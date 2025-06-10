@@ -63,6 +63,12 @@ export class AuthService {
   static async getCurrentUser(): Promise<User> {
     try {
       const response = await apiClient.get<User>(this.USERS_URL.ME);
+      
+      // Convertir el rol a mayúsculas si existe
+      if (response.data && response.data.role) {
+        response.data.role = response.data.role.toUpperCase() as any;
+      }
+      
       return response.data;
     } catch (error: any) {
       throw new Error(handleApiError(error));

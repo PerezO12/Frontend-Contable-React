@@ -1,0 +1,243 @@
+import { apiClient } from '../../../shared/api/client';
+import type { 
+  Account, 
+  AccountTree, 
+  AccountCreate, 
+  AccountUpdate, 
+  AccountFilters 
+} from '../types';
+
+export class AccountService {
+  private static readonly BASE_URL = '/api/v1/accounts';
+  /**
+   * Crear una nueva cuenta contable
+   */
+  static async createAccount(accountData: AccountCreate): Promise<Account> {
+    console.log('Datos de cuenta a crear:', accountData);
+    console.log('URL de petición:', this.BASE_URL);
+    try {
+      const response = await apiClient.post<Account>(this.BASE_URL, accountData);
+      console.log('Respuesta del servidor:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error al crear cuenta:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener lista de cuentas con filtros
+   */
+  static async getAccounts(filters?: AccountFilters): Promise<Account[]> {
+    const params = new URLSearchParams();
+    
+    if (filters) {
+      if (filters.skip !== undefined) params.append('skip', filters.skip.toString());
+      if (filters.limit !== undefined) params.append('limit', filters.limit.toString());
+      if (filters.account_type) params.append('account_type', filters.account_type);
+      if (filters.category) params.append('category', filters.category);
+      if (filters.is_active !== undefined) params.append('is_active', filters.is_active.toString());
+      if (filters.parent_id) params.append('parent_id', filters.parent_id);
+      if (filters.search) params.append('search', filters.search);
+    }
+
+    const url = params.toString() ? `${this.BASE_URL}?${params}` : this.BASE_URL;
+    const response = await apiClient.get<Account[]>(url);
+    return response.data;
+  }
+
+  /**
+   * Obtener una cuenta por ID
+   */
+  static async getAccountById(id: string): Promise<Account> {
+    const response = await apiClient.get<Account>(`${this.BASE_URL}/${id}`);
+    return response.data;
+  }
+
+  /**
+   * Obtener una cuenta por código
+   */
+  static async getAccountByCode(code: string): Promise<Account> {
+    const response = await apiClient.get<Account>(`${this.BASE_URL}/code/${code}`);
+    return response.data;
+  }
+  /**
+   * Actualizar una cuenta existente
+   */
+  static async updateAccount(id: string, updateData: AccountUpdate): Promise<Account> {
+    console.log('Actualizando cuenta:', id);
+    console.log('Datos de actualización:', updateData);
+    try {
+      const response = await apiClient.put<Account>(`${this.BASE_URL}/${id}`, updateData);
+      console.log('Respuesta del servidor:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error al actualizar cuenta:', error);
+      throw error;
+    }
+  }
+  /**
+   * Eliminar una cuenta permanentemente
+   */
+  static async deleteAccount(id: string): Promise<void> {
+    console.log('Eliminando cuenta:', id);
+    console.log('URL de eliminación:', `${this.BASE_URL}/${id}`);
+    try {
+      const response = await apiClient.delete(`${this.BASE_URL}/${id}`);
+      console.log('Cuenta eliminada exitosamente:', id);
+      return response.data;
+    } catch (error) {
+      console.error('Error al eliminar cuenta:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener la estructura jerárquica de cuentas como árbol
+   */
+  static async getAccountTree(accountType?: string, activeOnly: boolean = true): Promise<AccountTree[]> {
+    const params = new URLSearchParams();
+    
+    if (accountType) params.append('account_type', accountType);
+    params.append('active_only', activeOnly.toString());
+
+    const url = params.toString() ? `${this.BASE_URL}/tree?${params}` : `${this.BASE_URL}/tree`;
+    const response = await apiClient.get<AccountTree[]>(url);
+    return response.data;
+  }
+
+  /**
+   * Obtener cuentas hijas de una cuenta padre
+   */
+  static async getChildAccounts(parentId: string): Promise<Account[]> {
+    const response = await apiClient.get<Account[]>(`${this.BASE_URL}/${parentId}/children`);
+    return response.data;
+  }
+
+  /**
+   * Obtener el camino jerárquico de una cuenta
+   */
+  static async getAccountPath(id: string): Promise<Account[]> {
+    const response = await apiClient.get<Account[]>(`${this.BASE_URL}/${id}/path`);
+    return response.data;
+  }
+
+  /**
+   * Verificar si un código de cuenta está disponible
+   */
+  static async checkCodeAvailability(code: string, excludeId?: string): Promise<boolean> {
+    const params = new URLSearchParams();
+    params.append('code', code);
+    if (excludeId) params.append('exclude_id', excludeId);
+
+    const response = await apiClient.get<{ available: boolean }>(`${this.BASE_URL}/check-code?${params}`);
+    return response.data.available;
+  }
+
+  /**
+   * Obtener estadísticas de cuentas por tipo
+   */
+  static async getAccountStats(): Promise<Record<string, number>> {
+    const response = await apiClient.get<Record<string, number>>(`${this.BASE_URL}/stats`);
+    return response.data;
+  }
+
+  /**
+   * Exportar plan de cuentas
+   */
+  static async exportChartOfAccounts(format: 'excel' | 'csv' | 'pdf'): Promise<Blob> {
+    const response = await apiClient.get(`${this.BASE_URL}/export?format=${format}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  }
+
+  /**
+   * Importar plan de cuentas desde archivo
+   */
+  static async importChartOfAccounts(file: File): Promise<{ success: number; errors: string[] }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await apiClient.post<{ success: number; errors: string[] }>(
+      `${this.BASE_URL}/import`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Activar o desactivar una cuenta
+   */
+  static async toggleAccountStatus(id: string, isActive: boolean): Promise<Account> {
+    const response = await apiClient.patch<Account>(`${this.BASE_URL}/${id}/status`, {
+      is_active: isActive
+    });
+    return response.data;
+  }
+
+  /**
+   * Obtener saldo actual de una cuenta
+   */
+  static async getAccountBalance(id: string, asOfDate?: string): Promise<{
+    balance: string;
+    debit_balance: string;
+    credit_balance: string;
+    as_of_date: string;
+  }> {
+    const params = new URLSearchParams();
+    if (asOfDate) params.append('as_of_date', asOfDate);
+
+    const url = params.toString() 
+      ? `${this.BASE_URL}/${id}/balance?${params}` 
+      : `${this.BASE_URL}/${id}/balance`;
+    
+    const response = await apiClient.get(url);
+    return response.data;
+  }
+
+  /**
+   * Obtener movimientos de una cuenta
+   */
+  static async getAccountMovements(
+    id: string, 
+    filters?: {
+      start_date?: string;
+      end_date?: string;
+      skip?: number;
+      limit?: number;
+    }
+  ): Promise<{
+    movements: Array<{
+      id: string;
+      date: string;
+      description: string;
+      debit_amount: string;
+      credit_amount: string;
+      balance: string;
+      transaction_id: string;
+    }>;
+    total_count: number;
+  }> {
+    const params = new URLSearchParams();
+    
+    if (filters) {
+      if (filters.start_date) params.append('start_date', filters.start_date);
+      if (filters.end_date) params.append('end_date', filters.end_date);
+      if (filters.skip !== undefined) params.append('skip', filters.skip.toString());
+      if (filters.limit !== undefined) params.append('limit', filters.limit.toString());
+    }
+
+    const url = params.toString() 
+      ? `${this.BASE_URL}/${id}/movements?${params}` 
+      : `${this.BASE_URL}/${id}/movements`;
+    
+    const response = await apiClient.get(url);
+    return response.data;
+  }
+}

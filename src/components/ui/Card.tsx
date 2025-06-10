@@ -4,7 +4,8 @@ import type { CardProps } from '@/shared/types';
 export const Card: React.FC<CardProps> = ({ 
   children, 
   className = '', 
-  padding = 'md' 
+  padding = 'md',
+  onClick
 }) => {
   const paddingClasses = {
     none: '',
@@ -16,11 +17,12 @@ export const Card: React.FC<CardProps> = ({
   const combinedClasses = [
     'card',
     paddingClasses[padding],
+    onClick ? 'cursor-pointer' : '',
     className
   ].filter(Boolean).join(' ');
 
   return (
-    <div className={combinedClasses}>
+    <div className={combinedClasses} onClick={onClick}>
       {children}
     </div>
   );

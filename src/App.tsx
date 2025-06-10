@@ -20,6 +20,7 @@ import {
   AccountEditPage,
   AccountDetailPage
 } from '@/features/accounts/pages';
+import { DataImportRoutes } from '@/features/data-import';
 
 const AppContent = () => {
   const { toasts, removeToast } = useToast();
@@ -112,6 +113,16 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
               <AccountEditPage />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Rutas de Importación/Exportación - Solo para ADMIN y CONTADOR */}
+        <Route 
+          path="/import-export/*" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <DataImportRoutes />
             </ProtectedRoute>
           } 
         />

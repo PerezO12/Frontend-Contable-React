@@ -280,12 +280,12 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
                         }`}>
                           {account.is_active ? 'Activa' : 'Inactiva'}
                         </span>
-                      </td>
-                      <td className="py-3 px-4 text-center">
+                      </td>                      <td className="py-3 px-4 text-center">
                         <span className="text-sm text-gray-600">
                           Nivel {account.level}
                         </span>
-                      </td>                      {showActions && (
+                      </td>
+                      {showActions && (
                         <td className="py-3 px-4 text-center">
                           <div className="flex justify-center space-x-2">
                             {onEditAccount && (
@@ -296,10 +296,10 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
                                   e.stopPropagation();
                                   onEditAccount(account);
                                 }}
-                                className="text-blue-600 hover:text-blue-700 border-blue-300 hover:border-blue-400"
-                              >
+                                className="text-blue-600 hover:text-blue-700 border-blue-300 hover:border-blue-400"                              >
                                 Editar
-                              </Button>                            )}
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="danger"

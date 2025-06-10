@@ -7,6 +7,12 @@ import { UnauthorizedPage } from '@/components/layout/UnauthorizedPage';
 import { ToastContainer } from '@/components/ui/Toast';
 import { useToast } from '@/shared/hooks/useToast';
 import { UserRole } from '@/features/auth/types';
+import { 
+  JournalEntryListPage, 
+  JournalEntryCreatePage, 
+  JournalEntryEditPage, 
+  JournalEntryDetailPage 
+} from '@/features/journal-entries/pages';
 
 const AppContent = () => {
   const { toasts, removeToast } = useToast();
@@ -23,6 +29,40 @@ const AppContent = () => {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Rutas de Asientos Contables - Solo para ADMIN y CONTADOR */}
+        <Route 
+          path="/journal-entries" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <JournalEntryListPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/journal-entries/new" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <JournalEntryCreatePage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/journal-entries/:id" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <JournalEntryDetailPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/journal-entries/:id/edit" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <JournalEntryEditPage />
             </ProtectedRoute>
           } 
         />

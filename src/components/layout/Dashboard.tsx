@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { UserRole } from '@/features/auth/types';
 import { AccountsPage } from '@/features/accounts/pages';
@@ -6,10 +7,11 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { formatDate } from '@/shared/utils';
 
-type DashboardView = 'home' | 'accounts' | 'profile';
+type DashboardView = 'home' | 'accounts' | 'journal-entries' | 'profile';
 
 export const Dashboard: React.FC = () => {
   const { user, logout, isLoading } = useAuth();
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<DashboardView>('home');
 
   const getRoleDisplayName = (role: UserRole): string => {
@@ -86,8 +88,7 @@ export const Dashboard: React.FC = () => {
               >
                 Dashboard
               </button>
-              
-              {(user.role === UserRole.ADMIN || user.role === UserRole.CONTADOR) && (
+                {(user.role === UserRole.ADMIN || user.role === UserRole.CONTADOR) && (
                 <button
                   onClick={() => setCurrentView('accounts')}
                   className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -97,6 +98,15 @@ export const Dashboard: React.FC = () => {
                   }`}
                 >
                   Plan de Cuentas
+                </button>
+              )}
+              
+              {(user.role === UserRole.ADMIN || user.role === UserRole.CONTADOR) && (
+                <button
+                  onClick={() => navigate('/journal-entries')}
+                  className="py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                >
+                  Asientos Contables
                 </button>
               )}
               
@@ -201,23 +211,23 @@ export const Dashboard: React.FC = () => {
                     </div>
                   </div>
                 </Card>
-              )}
-
-              <Card className="opacity-50">
-                <div className="p-6">
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div className="ml-4">
-                      <h3 className="text-lg font-medium text-gray-900">Asientos Contables</h3>
-                      <p className="text-sm text-gray-500">Próximamente</p>
+              )}              {(user.role === UserRole.ADMIN || user.role === UserRole.CONTADOR) && (
+                <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/journal-entries')}>
+                  <div className="p-6">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <div className="ml-4">
+                        <h3 className="text-lg font-medium text-gray-900">Asientos Contables</h3>
+                        <p className="text-sm text-gray-500">Gestión de partida doble</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              )}
 
               <Card className="opacity-50">
                 <div className="p-6">

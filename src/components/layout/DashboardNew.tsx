@@ -125,8 +125,8 @@ export const Dashboard: React.FC = () => {
 
   return (
     <MainLayout>
-      {/* Welcome section */}
-      <div className="mb-8">        <h1 className="text-3xl font-bold text-gray-900">
+      {/* Welcome section */}      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">
           Bienvenido, {user.full_name}!
         </h1>
         <p className="text-gray-600 mt-2">

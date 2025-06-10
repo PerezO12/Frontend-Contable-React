@@ -4,6 +4,7 @@ import { JournalEntryForm } from '../components';
 import { useJournalEntry } from '../hooks';
 import { Spinner } from '../../../components/ui/Spinner';
 import { Card } from '../../../components/ui/Card';
+import { MainLayout } from '../../../components/layout/MainLayout';
 import type { JournalEntry } from '../types';
 
 export const JournalEntryEditPage: React.FC = () => {
@@ -22,21 +23,19 @@ export const JournalEntryEditPage: React.FC = () => {
       navigate('/journal-entries');
     }
   };
-
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <MainLayout>
         <div className="text-center py-8">
           <Spinner size="lg" />
           <p className="text-gray-600 mt-2">Cargando asiento contable...</p>
         </div>
-      </div>
+      </MainLayout>
     );
   }
-
   if (error || !entry) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <MainLayout>
         <Card>
           <div className="card-body text-center py-8">
             <p className="text-red-600 mb-4">
@@ -50,14 +49,13 @@ export const JournalEntryEditPage: React.FC = () => {
             </button>
           </div>
         </Card>
-      </div>
+      </MainLayout>
     );
   }
-
   // Check if entry can be edited
   if (entry.status !== 'draft') {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <MainLayout>
         <Card>
           <div className="card-body text-center py-8">
             <p className="text-orange-600 mb-4">
@@ -71,12 +69,11 @@ export const JournalEntryEditPage: React.FC = () => {
             </button>
           </div>
         </Card>
-      </div>
+      </MainLayout>
     );
   }
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <MainLayout>
       {/* Breadcrumb */}
       <nav className="flex mb-6" aria-label="Breadcrumb">
         <ol className="flex items-center space-x-2">
@@ -129,11 +126,11 @@ export const JournalEntryEditPage: React.FC = () => {
             cost_center_id: line.cost_center_id
           }))
         }}
-        onSuccess={handleSuccess}
+        onSuccess={handleSuccess}        
         onCancel={handleCancel}
         isEditMode={true}
         entryId={entry.id}
-      />
-    </div>
+      />    
+    </MainLayout>
   );
 };

@@ -229,3 +229,143 @@ body {
   outline: 2px solid #10b981;
   outline-offset: 2px;
 }
+
+/* Custom scrollbar styles for sidebar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #9ca3af #f3f4f6;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 4px;
+  border: 1px solid #f3f4f6;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+.scrollbar-thin::-webkit-scrollbar-corner {
+  background: #f3f4f6;
+}
+
+/* Estilos para sidebar colapsado */
+.sidebar-collapsed {
+  width: 4rem;
+}
+
+.sidebar-collapsed .sidebar-content {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-collapsed .sidebar-icon-only {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Fixed layout styles */
+.fixed-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.fixed-sidebar {
+  position: fixed;
+  top: 4rem; /* Height of header */
+  left: 0;
+  bottom: 0;
+  z-index: 999;
+}
+
+.main-content-with-fixed-layout {
+  margin-left: 16rem; /* Width of expanded sidebar */
+  margin-top: 4rem; /* Height of header */
+  transition: all 0.3s ease;
+  min-height: calc(100vh - 4rem);
+  width: calc(100% - 16rem);
+  max-width: none;
+}
+
+.main-content-with-fixed-layout.content-sidebar-collapsed {
+  margin-left: 4rem; /* Width of collapsed sidebar */
+  width: calc(100% - 4rem);
+}
+
+/* Estilos para sidebar colapsado */
+.sidebar-component-collapsed {
+  width: 4rem !important;
+}
+
+.sidebar-component-collapsed .sidebar-content {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-component-collapsed .sidebar-icon-only {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Estilos para elementos deshabilitados */
+.nav-item-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.nav-item-disabled .nav-icon {
+  color: #9ca3af;
+}
+
+.nav-item-disabled .nav-text {
+  color: #9ca3af;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .main-content-with-fixed-layout,
+  .main-content-with-fixed-layout.content-sidebar-collapsed {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* Mejora del balance del contenido */
+.main-content-with-fixed-layout > div {
+  width: 100%;
+  max-width: none;
+}
+
+/* Asegurar que los contenedores internos usen todo el espacio disponible */
+.main-content-with-fixed-layout .max-w-7xl,
+.main-content-with-fixed-layout .max-w-6xl,
+.main-content-with-fixed-layout .max-w-5xl,
+.main-content-with-fixed-layout .max-w-4xl {
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+/* Ajustes para contenido colapsado - más centrado */
+.main-content-with-fixed-layout.content-sidebar-collapsed .max-w-7xl,
+.main-content-with-fixed-layout.content-sidebar-collapsed .max-w-6xl,
+.main-content-with-fixed-layout.content-sidebar-collapsed .max-w-5xl,
+.main-content-with-fixed-layout.content-sidebar-collapsed .max-w-4xl {
+  padding-left: 3rem;
+  padding-right: 3rem;
+}

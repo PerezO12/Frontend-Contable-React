@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { JournalEntryForm } from '../components';
+import { MainLayout } from '../../../components/layout/MainLayout';
 import type { JournalEntry } from '../types';
 
 export const JournalEntryCreatePage: React.FC = () => {
@@ -13,9 +14,8 @@ export const JournalEntryCreatePage: React.FC = () => {
   const handleCancel = () => {
     navigate('/journal-entries');
   };
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <MainLayout>
       {/* Breadcrumb */}
       <nav className="flex mb-6" aria-label="Breadcrumb">
         <ol className="flex items-center space-x-2">
@@ -44,6 +44,6 @@ export const JournalEntryCreatePage: React.FC = () => {
         onCancel={handleCancel}
         isEditMode={false}
       />
-    </div>
+    </MainLayout>
   );
 };

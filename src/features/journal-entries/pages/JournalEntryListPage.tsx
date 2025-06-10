@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { JournalEntryList } from '../components';
+import { MainLayout } from '../../../components/layout/MainLayout';
 import type { JournalEntry } from '../types';
 
 export const JournalEntryListPage: React.FC = () => {
@@ -17,9 +18,8 @@ export const JournalEntryListPage: React.FC = () => {
   const handleEditEntry = (entry: JournalEntry) => {
     navigate(`/journal-entries/${entry.id}/edit`);
   };
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <MainLayout>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Asientos Contables</h1>
         <p className="text-gray-600 mt-2">
@@ -32,6 +32,6 @@ export const JournalEntryListPage: React.FC = () => {
         onCreateEntry={handleCreateEntry}
         onEditEntry={handleEditEntry}
       />
-    </div>
+    </MainLayout>
   );
 };

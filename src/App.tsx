@@ -13,6 +13,13 @@ import {
   JournalEntryEditPage, 
   JournalEntryDetailPage 
 } from '@/features/journal-entries/pages';
+import {
+  AccountsPage,
+  AccountListPage,
+  AccountCreatePage,
+  AccountEditPage,
+  AccountDetailPage
+} from '@/features/accounts/pages';
 
 const AppContent = () => {
   const { toasts, removeToast } = useToast();
@@ -63,6 +70,48 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
               <JournalEntryEditPage />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Rutas de Cuentas - Solo para ADMIN y CONTADOR */}
+        <Route 
+          path="/accounts" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <AccountsPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/accounts/list" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <AccountListPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/accounts/new" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <AccountCreatePage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/accounts/:id" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <AccountDetailPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/accounts/:id/edit" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <AccountEditPage />
             </ProtectedRoute>
           } 
         />

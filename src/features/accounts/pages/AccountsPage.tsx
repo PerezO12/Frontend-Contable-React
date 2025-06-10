@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '../../../components/ui/Button';
+import { MainLayout } from '../../../components/layout/MainLayout';
 import { AccountList, AccountTreeComponent as AccountTree, AccountForm, AccountDetail } from '../components';
 import type { Account } from '../types';
 
@@ -203,11 +204,12 @@ export const AccountsPage: React.FC = () => {
         );
     }
   };
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {renderHeader()}
-      {renderContent()}
-    </div>
+    <MainLayout>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {renderHeader()}
+        {renderContent()}
+      </div>
+    </MainLayout>
   );
 };

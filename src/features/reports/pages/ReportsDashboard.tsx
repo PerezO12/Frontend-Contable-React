@@ -10,6 +10,8 @@ import { ReportFilters } from '../components/ReportFilters';
 import { ReportViewer } from '../components/ReportViewer';
 import { ReportHistory } from '../components/ReportHistory';
 import { FinancialSummary } from '../components/FinancialSummary';
+import { ExportDemo } from '../components/ExportDemo';
+import { PDFTestComponent } from '../components/PDFTestComponent';
 import { useReports, useReportHistory, useFinancialAnalysis } from '../hooks/useReports';
 import type { GenerateReportParams } from '../types';
 
@@ -22,7 +24,7 @@ export const ReportsDashboard: React.FC = () => {  const {
   const { getRecentReports } = useReportHistory();
   const { getFinancialHealth } = useFinancialAnalysis();
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'history' | 'analysis'>('generator');
+  const [activeTab, setActiveTab] = useState<'generator' | 'history' | 'analysis' | 'demo' | 'pdftest'>('generator');
 
   // ==========================================
   // Handlers
@@ -181,9 +183,27 @@ export const ReportsDashboard: React.FC = () => {  const {
                 activeTab === 'analysis'
                   ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
+              }`}            >
+              📊 Análisis
+            </button>            <button
+              onClick={() => setActiveTab('demo')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'demo'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              📊 Análisis
+              🧪 Demo Exportación
+            </button>
+            <button
+              onClick={() => setActiveTab('pdftest')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'pdftest'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              🔧 Test PDF
             </button>
           </nav>
         </div>
@@ -276,10 +296,15 @@ export const ReportsDashboard: React.FC = () => {  const {
                   className="mx-auto"
                 >
                   Ir al Generador
-                </Button>
-              </Card>
+                </Button>              </Card>
             )}
           </div>
+        )}        {activeTab === 'demo' && (
+          <ExportDemo />
+        )}
+
+        {activeTab === 'pdftest' && (
+          <PDFTestComponent />
         )}
       </div>
     </div>

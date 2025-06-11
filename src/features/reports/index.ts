@@ -8,6 +8,8 @@ export { ReportViewer } from './components/ReportViewer';
 export { ReportHistory } from './components/ReportHistory';
 export { FinancialSummary } from './components/FinancialSummary';
 export { ReportComparison } from './components/ReportComparison';
+export { ExportDemo } from './components/ExportDemo';
+export { PDFTestComponent } from './components/PDFTestComponent';
 
 // Routes
 export { ReportsRoutes } from './routes';
@@ -24,11 +26,16 @@ export {
   useReportHistory 
 } from './hooks/useReports';
 
+export { useClientExport } from './hooks/useClientExport';
+
 // Services
 export { reportsAPI } from './services/reportsAPI';
 
 // Store
 export { useReportsStore, useReportsSelectors } from './stores/reportsStore';
+
+// Client Export Utils
+export { exportReport, exportToCSV, exportToExcel, exportToPDF } from './utils/clientExportUtils';
 
 // Types
 export type {

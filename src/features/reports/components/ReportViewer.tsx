@@ -2,10 +2,10 @@
 // Componente para mostrar reportes generados
 // ==========================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { useReportExport } from '../hooks/useReports';
+import { useClientExport } from '../hooks/useClientExport';
 import type { ReportResponse, AccountReportItem, ReportSection } from '../types';
 
 interface ReportViewerProps {
@@ -17,7 +17,8 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
   report,
   className = ''
 }) => {
-  const { exportToPDF, exportToExcel, exportToCSV, isExporting } = useReportExport();
+  const { exportToPDF, exportToExcel, exportToCSV, isExporting } = useClientExport();
+  const [includeNarrative, setIncludeNarrative] = useState(true);
 
   // ==========================================
   // Helpers para formateo
@@ -80,6 +81,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
       </td>
     </tr>
   );
+
   const ReportSectionComponent: React.FC<{ section: ReportSection }> = ({ section }) => {
     // Defensive checks for section data
     if (!section || !section.section_name) {
@@ -87,59 +89,61 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
     }
 
     return (
-    <div className="mb-6">
-      <div className="bg-gray-100 px-4 py-2 border-b-2 border-gray-300">
-        <h4 className="font-bold text-lg text-gray-800">
-          {section.section_name}
-        </h4>
+      <div className="mb-6">
+        <div className="bg-gray-100 px-4 py-2 border-b-2 border-gray-300">
+          <h4 className="font-bold text-lg text-gray-800">
+            {section.section_name}
+          </h4>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Cuenta
+                </th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Saldo Inicial
+                </th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Movimientos
+                </th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Saldo Final
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {section.items && section.items.map((item, index) => (
+                <React.Fragment key={`${item.account_code}-${index}`}>
+                  <AccountItem item={item} level={item.level || 0} />
+                  {item.children?.map((child, childIndex) => (
+                    <AccountItem 
+                      key={`${child.account_code}-${childIndex}`} 
+                      item={child} 
+                      level={child.level || 0} 
+                    />
+                  ))}
+                </React.Fragment>
+              ))}
+            </tbody>
+            <tfoot className="bg-gray-50">
+              <tr>
+                <td className="px-4 py-3 text-sm font-bold text-gray-900">
+                  Total {section.section_name}
+                </td>
+                <td className="px-4 py-3"></td>
+                <td className="px-4 py-3"></td>
+                <td className="px-4 py-3 text-right text-sm font-bold text-gray-900 font-mono">
+                  {section.total ? formatCurrency(section.total) : '-'}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
-      
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Cuenta
-              </th>
-              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Saldo Inicial
-              </th>
-              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Movimientos
-              </th>
-              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Saldo Final
-              </th>
-            </tr>
-          </thead>          <tbody className="bg-white divide-y divide-gray-200">
-            {section.items && section.items.map((item, index) => (
-              <React.Fragment key={`${item.account_code}-${index}`}>
-                <AccountItem item={item} level={item.level || 0} />
-                {item.children?.map((child, childIndex) => (
-                  <AccountItem 
-                    key={`${child.account_code}-${childIndex}`} 
-                    item={child} 
-                    level={child.level || 0} 
-                  />
-                ))}
-              </React.Fragment>
-            ))}
-          </tbody>
-          <tfoot className="bg-gray-50">
-            <tr>
-              <td className="px-4 py-3 text-sm font-bold text-gray-900">
-                Total {section.section_name}
-              </td>
-              <td className="px-4 py-3"></td>
-              <td className="px-4 py-3"></td>              <td className="px-4 py-3 text-right text-sm font-bold text-gray-900 font-mono">
-                {section.total ? formatCurrency(section.total) : '-'}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-  )
+    );
   };
 
   // ==========================================
@@ -159,32 +163,47 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
               {report.project_context}
             </p>
           </div>
+          <div className="flex items-center space-x-4">
+            {/* Toggle para incluir narrativa */}
+            {report.narrative && (
+              <label className="flex items-center space-x-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={includeNarrative}
+                  onChange={(e) => setIncludeNarrative(e.target.checked)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span>Incluir análisis</span>
+              </label>
+            )}
+            
             {/* Botones de exportación */}
-          <div className="flex space-x-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => exportToPDF(true)}
-              disabled={isExporting}
-            >
-              📄 PDF
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => exportToExcel()}
-              disabled={isExporting}
-            >
-              📊 Excel
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => exportToCSV()}
-              disabled={isExporting}
-            >
-              📋 CSV
-            </Button>
+            <div className="flex space-x-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => exportToPDF(report, { includeNarrative })}
+                disabled={isExporting}
+              >
+                📄 PDF
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => exportToExcel(report, { includeNarrative })}
+                disabled={isExporting}
+              >
+                📊 Excel
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => exportToCSV(report, { includeNarrative })}
+                disabled={isExporting}
+              >
+                📋 CSV
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -212,7 +231,8 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
       </Card>
 
       {/* Contenido del Reporte */}
-      <Card className="p-6">        <div className="space-y-6">
+      <Card className="p-6">
+        <div className="space-y-6">
           {/* Secciones del reporte */}
           {report.table && report.table.sections && report.table.sections.map((section, index) => (
             <ReportSectionComponent key={index} section={section} />
@@ -248,7 +268,8 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
             📊 Análisis del Reporte
           </h3>
           
-          <div className="space-y-6">            {/* Resumen Ejecutivo */}
+          <div className="space-y-6">
+            {/* Resumen Ejecutivo */}
             {report.narrative.executive_summary && (
               <div>
                 <h4 className="font-semibold text-gray-800 mb-2">
@@ -258,7 +279,9 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                   {report.narrative.executive_summary}
                 </p>
               </div>
-            )}{/* Insights Clave */}
+            )}
+
+            {/* Insights Clave */}
             {report.narrative.key_insights && report.narrative.key_insights.length > 0 && (
               <div>
                 <h4 className="font-semibold text-gray-800 mb-3">
@@ -290,7 +313,9 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                   ))}
                 </ul>
               </div>
-            )}            {/* Highlights Financieros */}
+            )}
+
+            {/* Highlights Financieros */}
             {report.narrative.financial_highlights && Object.keys(report.narrative.financial_highlights).length > 0 && (
               <div>
                 <h4 className="font-semibold text-gray-800 mb-3">

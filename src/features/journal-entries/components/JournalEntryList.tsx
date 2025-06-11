@@ -5,6 +5,7 @@ import { Card } from '../../../components/ui/Card';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useJournalEntries } from '../hooks';
 import { useJournalEntryListListener } from '../hooks/useJournalEntryEvents';
+import { SimpleJournalEntryExportControls } from './SimpleJournalEntryExportControls';
 import { formatCurrency } from '../../../shared/utils';
 import { 
   JournalEntryType,
@@ -32,6 +33,8 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
 }) => {
   const [filters, setFilters] = useState<JournalEntryFilters>(initialFilters || {});
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
   
   const { 
     entries, 
@@ -69,13 +72,43 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
     setFilters(newFilters);
     refetch(newFilters);
   };
-
   const handleSearch = () => {
     if (searchTerm.trim()) {
       searchEntries(searchTerm, filters);
     } else {
       refetch(filters);
     }
+  };
+
+  // Manejar selección individual de asientos
+  const handleEntrySelect = (entryId: string, checked: boolean) => {
+    const newSelected = new Set(selectedEntries);
+    if (checked) {
+      newSelected.add(entryId);
+    } else {
+      newSelected.delete(entryId);
+    }
+    setSelectedEntries(newSelected);
+    
+    // Actualizar estado de "seleccionar todo"
+    setSelectAll(newSelected.size === filteredEntries.length && filteredEntries.length > 0);
+  };
+
+  // Manejar selección de todos los asientos
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(filteredEntries.map(entry => entry.id));
+      setSelectedEntries(allIds);
+    } else {
+      setSelectedEntries(new Set());
+    }
+    setSelectAll(checked);
+  };
+
+  // Limpiar selección
+  const handleClearSelection = () => {
+    setSelectedEntries(new Set());
+    setSelectAll(false);
   };
 
   const handleDeleteEntry = async (entry: JournalEntry) => {
@@ -285,9 +318,7 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                 onChange={(e) => handleFilterChange('date_to', e.target.value || undefined)}
               />
             </div>
-          </div>
-
-          {/* Estadísticas rápidas */}
+          </div>          {/* Estadísticas rápidas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-gray-50 p-3 rounded-lg">
               <p className="text-sm text-gray-600">Total</p>
@@ -312,6 +343,48 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
               </p>
             </div>
           </div>
+
+          {/* Controles de selección y exportación */}
+          {filteredEntries.length > 0 && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={selectAll}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label className="ml-2 text-sm text-gray-700">
+                      Seleccionar todos ({filteredEntries.length})
+                    </label>
+                  </div>
+                  {selectedEntries.size > 0 && (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600">
+                        {selectedEntries.size} asiento{selectedEntries.size !== 1 ? 's' : ''} seleccionado{selectedEntries.size !== 1 ? 's' : ''}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={handleClearSelection}
+                        className="text-xs"
+                      >
+                        Limpiar selección
+                      </Button>
+                    </div>
+                  )}
+                </div>                {selectedEntries.size > 0 && (
+                  <SimpleJournalEntryExportControls
+                    selectedEntryIds={Array.from(selectedEntries)}
+                    entryCount={selectedEntries.size}
+                    onExportEnd={handleClearSelection}
+                  />
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -340,10 +413,17 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full table-auto">
+            <div className="overflow-x-auto">              <table className="min-w-full table-auto">
                 <thead>
                   <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-medium text-gray-900 w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectAll}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Número</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Fecha</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Descripción</th>
@@ -354,24 +434,41 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                     {showActions && <th className="text-center py-3 px-4 font-medium text-gray-900">Acciones</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredEntries.map((entry) => (
+                <tbody className="divide-y divide-gray-200">                  {filteredEntries.map((entry) => (
                     <tr
                       key={entry.id}
                       className={`hover:bg-gray-50 ${onEntrySelect ? 'cursor-pointer' : ''}`}
-                      onClick={() => onEntrySelect?.(entry)}
                     >
                       <td className="py-3 px-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedEntries.has(entry.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleEntrySelect(entry.id, e.target.checked);
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td 
+                        className="py-3 px-4"
+                        onClick={() => onEntrySelect?.(entry)}
+                      >
                         <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
                           {entry.number}
                         </code>
-                      </td>
-                      <td className="py-3 px-4">
+                      </td>                      <td 
+                        className="py-3 px-4"
+                        onClick={() => onEntrySelect?.(entry)}
+                      >
                         <span className="text-sm text-gray-900">
                           {new Date(entry.entry_date).toLocaleDateString()}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
+                      <td 
+                        className="py-3 px-4"
+                        onClick={() => onEntrySelect?.(entry)}
+                      >
                         <div>
                           <p className="font-medium text-gray-900">{entry.description}</p>
                           {entry.reference && (
@@ -379,22 +476,34 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-4">
+                      <td 
+                        className="py-3 px-4"
+                        onClick={() => onEntrySelect?.(entry)}
+                      >
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getTypeColor(entry.entry_type)}`}>
                           {JOURNAL_ENTRY_TYPE_LABELS[entry.entry_type]}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td 
+                        className="py-3 px-4 text-right"
+                        onClick={() => onEntrySelect?.(entry)}
+                      >
                         <span className="font-mono text-sm text-gray-900">
                           {formatCurrency(parseFloat(entry.total_debit))}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-center">
+                      <td 
+                        className="py-3 px-4 text-center"
+                        onClick={() => onEntrySelect?.(entry)}
+                      >
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(entry.status)}`}>
                           {JOURNAL_ENTRY_STATUS_LABELS[entry.status]}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
+                      <td 
+                        className="py-3 px-4"
+                        onClick={() => onEntrySelect?.(entry)}
+                      >
                         <span className="text-sm text-gray-600">
                           {entry.created_by_name || 'Usuario'}
                         </span>

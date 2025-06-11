@@ -1,4 +1,5 @@
 import { apiClient } from '../../../shared/api/client';
+import { ExportService } from '../../../shared/services/exportService';
 import type {
   JournalEntry,
   JournalEntryCreate,
@@ -270,9 +271,22 @@ export class JournalEntryService {
       throw error;
     }
   }
+  /**
+   * Exportar asientos contables usando el sistema de exportación genérico
+   */
+  static async exportJournalEntries(
+    entryIds: string[], 
+    format: 'csv' | 'json' | 'xlsx'
+  ): Promise<Blob> {
+    return ExportService.exportByIds({
+      table: 'journal_entries',
+      format,
+      ids: entryIds
+    });
+  }
 
   /**
-   * Exportar asientos contables a CSV
+   * Exportar asientos contables a CSV (método legacy)
    */
   static async exportToCsv(filters?: JournalEntryFilters): Promise<Blob> {
     console.log('Exportando asientos contables a CSV:', filters);

@@ -12,6 +12,7 @@ import type {
 
 export const useAccounts = (initialFilters?: AccountFilters) => {
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [currentFilters, setCurrentFilters] = useState<AccountFilters | undefined>(initialFilters);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { success, error: showError } = useToast();
@@ -21,7 +22,8 @@ export const useAccounts = (initialFilters?: AccountFilters) => {
     setError(null);
     
     try {
-      const data = await AccountService.getAccounts(filters || initialFilters);
+      const filtersToUse = filters || currentFilters;
+      const data = await AccountService.getAccounts(filtersToUse);
       setAccounts(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar las cuentas';
@@ -30,7 +32,16 @@ export const useAccounts = (initialFilters?: AccountFilters) => {
     } finally {
       setLoading(false);
     }
-  }, [initialFilters, showError]);
+  }, [currentFilters, showError]);
+
+  const refetchWithFilters = useCallback(async (newFilters: AccountFilters) => {
+    setCurrentFilters(newFilters);
+    await fetchAccounts(newFilters);
+  }, [fetchAccounts]);
+
+  const refetch = useCallback(async () => {
+    await fetchAccounts(currentFilters);
+  }, [fetchAccounts, currentFilters]);
 
   const createAccount = useCallback(async (accountData: AccountCreate): Promise<Account | null> => {
     setLoading(true);
@@ -111,10 +122,14 @@ export const useAccounts = (initialFilters?: AccountFilters) => {
       setLoading(false);
     }
   }, [success, showError]);
-
   useEffect(() => {
-    fetchAccounts();
-  }, [fetchAccounts]);  // Método para obtener cuentas potenciales padre por tipo
+    // Ejecutar solo una vez al montar con los filtros iniciales
+    if (initialFilters) {
+      fetchAccounts(initialFilters);
+    } else {
+      fetchAccounts();
+    }
+  }, []); // Array vacío para ejecutar solo una vez// Método para obtener cuentas potenciales padre por tipo
   const getParentAccountsByType = useCallback(async (accountType: AccountType): Promise<Account[]> => {
     try {
       // Filtramos por tipo de cuenta y solo cuentas activas
@@ -131,12 +146,12 @@ export const useAccounts = (initialFilters?: AccountFilters) => {
       return [];
     }
   }, [showError]);
-
   return {
     accounts,
     loading,
     error,
-    refetch: fetchAccounts,
+    refetch,
+    refetchWithFilters,
     createAccount,
     updateAccount,
     deleteAccount,
@@ -149,14 +164,12 @@ export const useAccountTree = (accountType?: string, activeOnly: boolean = true)
   const [accountTree, setAccountTree] = useState<AccountTree[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { error: showError } = useToast();
-
-  const fetchAccountTree = useCallback(async () => {
+  const { error: showError } = useToast();  const fetchAccountTree = useCallback(async (type?: string, active?: boolean) => {
     setLoading(true);
     setError(null);
     
     try {
-      const data = await AccountService.getAccountTree(accountType, activeOnly);
+      const data = await AccountService.getAccountTree(type, active);
       setAccountTree(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar el árbol de cuentas';
@@ -165,11 +178,11 @@ export const useAccountTree = (accountType?: string, activeOnly: boolean = true)
     } finally {
       setLoading(false);
     }
-  }, [accountType, activeOnly, showError]);
+  }, [showError]); // Solo showError como dependencia
 
   useEffect(() => {
-    fetchAccountTree();
-  }, [fetchAccountTree]);
+    fetchAccountTree(accountType, activeOnly);
+  }, []); // Array vacío para ejecutar solo una vez
 
   return {
     accountTree,
@@ -216,12 +229,11 @@ export const useAccount = (id?: string) => {
       setLoading(false);
     }
   }, [showError]);
-
   useEffect(() => {
     if (id) {
       fetchAccount(id);
     }
-  }, [id, fetchAccount]);
+  }, [id]); // Solo depende del id
 
   return {
     account,
@@ -282,12 +294,11 @@ export const useAccountBalance = (accountId?: string) => {
       setLoading(false);
     }
   }, [showError]);
-
   useEffect(() => {
     if (accountId) {
       fetchBalance(accountId);
     }
-  }, [accountId, fetchBalance]);
+  }, [accountId]); // Solo depende del accountId
 
   return {
     balance,
@@ -336,12 +347,11 @@ export const useAccountMovements = (accountId?: string) => {
       setLoading(false);
     }
   }, [showError]);
-
   useEffect(() => {
     if (accountId) {
       fetchMovements(accountId);
     }
-  }, [accountId, fetchMovements]);
+  }, [accountId]); // Solo depende del accountId
 
   return {
     movements,

@@ -134,7 +134,7 @@ export const useJournalEntryEventListener = (
   onEvent: (event: JournalEntryEvent) => void,
   dependencies: any[] = []
 ) => {
-  const handleEvent = useCallback(onEvent, dependencies);
+  const handleEvent = useCallback(onEvent, [onEvent, ...dependencies]);
 
   useEffect(() => {
     const cleanupFunctions: (() => void)[] = [];
@@ -173,8 +173,9 @@ export const useJournalEntryStatusListener = (
 export const useJournalEntryListListener = (
   onEntryChange: (event: JournalEntryEvent) => void
 ) => {
+  // Solo escuchamos eventos que realmente necesitan actualizar las listas
   useJournalEntryEventListener(
-    ['approved', 'posted', 'cancelled', 'reversed', 'updated', 'deleted'],
+    ['approved', 'posted', 'cancelled', 'reversed', 'deleted'],
     onEntryChange
   );
 };

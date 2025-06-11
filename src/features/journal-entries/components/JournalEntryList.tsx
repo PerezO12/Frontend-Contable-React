@@ -35,23 +35,27 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
-  
+    // Usar initialFilters para evitar reinicialización del hook
   const { 
     entries, 
     pagination, 
     loading, 
     error, 
-    refetch, 
+    refetch,
+    refetchWithFilters,
     deleteEntry,
     approveEntry,
     postEntry,
-    cancelEntry,    reverseEntry,
+    cancelEntry,
+    reverseEntry,
     searchEntries 
-  } = useJournalEntries(filters);
-  // Escuchar eventos de cambios en asientos contables para actualización en tiempo real
-  useJournalEntryListListener(() => {
-    // Refrescar la lista cuando hay cambios
-    refetch(filters);
+  } = useJournalEntries(initialFilters);// Escuchar eventos de cambios en asientos contables para actualización en tiempo real
+  // Solo escuchamos eventos que requieren refrescar la lista (no 'updated' para evitar bucles)
+  useJournalEntryListListener((event) => {
+    // Solo refrescamos para eventos específicos que realmente requieren actualización de la lista
+    if (['approved', 'posted', 'cancelled', 'reversed', 'deleted'].includes(event.type)) {
+      refetch(); // Sin pasar filtros para usar el estado interno del hook
+    }
   });
 
   // Filter entries based on search term
@@ -66,17 +70,15 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
       entry.created_by_name?.toLowerCase().includes(term)
     );
   }, [entries, searchTerm]);
-
   const handleFilterChange = (key: keyof JournalEntryFilters, value: any) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    refetch(newFilters);
-  };
-  const handleSearch = () => {
+    refetchWithFilters(newFilters);
+  };  const handleSearch = () => {
     if (searchTerm.trim()) {
       searchEntries(searchTerm, filters);
     } else {
-      refetch(filters);
+      refetchWithFilters(filters);
     }
   };
 
@@ -201,7 +203,7 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
       <Card>
         <div className="card-body text-center py-8">
           <p className="text-red-600 mb-4">Error al cargar los asientos contables: {error}</p>
-          <Button onClick={() => refetch(filters)}>
+          <Button onClick={() => refetchWithFilters(filters)}>
             Reintentar
           </Button>
         </div>
@@ -401,10 +403,9 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
               <p className="text-gray-500">No se encontraron asientos contables</p>
               {searchTerm && (
                 <Button
-                  variant="secondary"
-                  onClick={() => {
+                  variant="secondary"                  onClick={() => {
                     setSearchTerm('');
-                    refetch(filters);
+                    refetchWithFilters(filters);
                   }}
                   className="mt-2"
                 >

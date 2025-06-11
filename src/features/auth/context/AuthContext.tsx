@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { AuthService } from '../services/authService';
 import { TokenManager } from '../utils/tokenManager';
@@ -180,9 +180,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       dispatch({ type: 'LOGOUT' });
     }
   };
-
   // Función para renovar token
-  const refreshToken = async () => {
+  const refreshToken = useCallback(async () => {
     const tokens = TokenManager.getTokens();
     
     if (!tokens?.refresh_token) {
@@ -200,14 +199,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       dispatch({ type: 'LOGOUT' });
       TokenManager.clearTokens();
     }
-  };
+  }, []); // No dependencies - this function should be stable
 
   // Función para limpiar errores
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch({ type: 'CLEAR_ERROR' });
-  };
-
-  // Configurar renovación automática de tokens
+  }, []);  // Configurar renovación automática de tokens
   useEffect(() => {
     if (!state.isAuthenticated) return;
 
@@ -218,7 +215,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, 60000); // Verificar cada minuto
 
     return () => clearInterval(interval);
-  }, [state.isAuthenticated]);
+  }, [state.isAuthenticated, refreshToken]);
 
   const value: AuthContextType = {
     ...state,

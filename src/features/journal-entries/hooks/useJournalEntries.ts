@@ -17,6 +17,7 @@ import type {
  */
 export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [currentFilters, setCurrentFilters] = useState<JournalEntryFilters | undefined>(initialFilters);
   const [pagination, setPagination] = useState({
     total: 0,
     page: 1,
@@ -28,14 +29,13 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
   const [error, setError] = useState<string | null>(null);
   
   const { success, error: showError } = useToast();
-  const { emitApproved, emitPosted, emitCancelled, emitReversed, emitUpdated, emitDeleted } = useJournalEntryEventEmitter();
-
-  const fetchEntries = useCallback(async (filters?: JournalEntryFilters) => {
+  const { emitApproved, emitPosted, emitCancelled, emitReversed, emitDeleted } = useJournalEntryEventEmitter();  const fetchEntries = useCallback(async (filters?: JournalEntryFilters) => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await JournalEntryService.getJournalEntries(filters || initialFilters);
+      const filtersToUse = filters || currentFilters;
+      const response = await JournalEntryService.getJournalEntries(filtersToUse);
       setEntries(response.items);
       setPagination({
         total: response.total,
@@ -51,8 +51,16 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
     } finally {
       setLoading(false);
     }
-  }, [initialFilters, showError]);
+  }, [currentFilters, showError]);
 
+  const refetchWithFilters = useCallback(async (newFilters: JournalEntryFilters) => {
+    setCurrentFilters(newFilters);
+    await fetchEntries(newFilters);
+  }, [fetchEntries]);
+
+  const refetch = useCallback(async () => {
+    await fetchEntries(currentFilters);
+  }, [fetchEntries, currentFilters]);
   const createEntry = useCallback(async (data: JournalEntryCreate): Promise<JournalEntry | null> => {
     setLoading(true);
     setError(null);
@@ -61,7 +69,8 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
       const newEntry = await JournalEntryService.createJournalEntry(data);
       setEntries(prev => [newEntry, ...prev]);
       success('Asiento contable creado exitosamente');
-      emitUpdated(newEntry.id, newEntry);
+      // No emitimos evento 'updated' para evitar bucles infinitos
+      // emitUpdated(newEntry.id, newEntry);
       return newEntry;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al crear el asiento contable';
@@ -71,8 +80,7 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
     } finally {
       setLoading(false);
     }
-  }, [success, showError, emitUpdated]);
-
+  }, [success, showError]);
   const updateEntry = useCallback(async (id: string, data: JournalEntryUpdate): Promise<JournalEntry | null> => {
     setLoading(true);
     setError(null);
@@ -83,7 +91,8 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
         entry.id === id ? updatedEntry : entry
       ));
       success('Asiento contable actualizado exitosamente');
-      emitUpdated(id, updatedEntry);
+      // Solo emitimos eventos para operaciones que afectan el estado, no para updates simples
+      // emitUpdated(id, updatedEntry);
       return updatedEntry;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al actualizar el asiento contable';
@@ -93,7 +102,7 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
     } finally {
       setLoading(false);
     }
-  }, [success, showError, emitUpdated]);
+  }, [success, showError]);
 
   const deleteEntry = useCallback(async (id: string): Promise<boolean> => {
     setLoading(true);
@@ -201,7 +210,6 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
       setLoading(false);
     }
   }, [success, showError, emitCancelled]);
-
   const reverseEntry = useCallback(async (id: string, reason?: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
@@ -209,8 +217,8 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
     try {
       const response = await JournalEntryService.reverseJournalEntry(id, reason);
       if (response.success) {
-        // Refrescar la lista para mostrar el nuevo asiento de reversión
-        await fetchEntries();
+        // En lugar de refrescar toda la lista, simplemente emitimos el evento
+        // y dejamos que el sistema de eventos maneje la actualización
         success(response.message || 'Asiento de reversión creado exitosamente');
         
         // Emitir evento de reversión
@@ -227,7 +235,7 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
     } finally {
       setLoading(false);
     }
-  }, [success, showError, fetchEntries, emitReversed]);
+  }, [success, showError, emitReversed]);
 
   const searchEntries = useCallback(async (query: string, filters?: JournalEntryFilters) => {
     setLoading(true);
@@ -250,18 +258,21 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
     } finally {
       setLoading(false);
     }
-  }, [showError]);
-
-  useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
-
+  }, [showError]);  useEffect(() => {
+    // Ejecutar solo una vez al montar con los filtros iniciales
+    if (initialFilters) {
+      fetchEntries(initialFilters);
+    } else {
+      fetchEntries();
+    }
+  }, []); // Array vacío para ejecutar solo una vez
   return {
     entries,
     pagination,
     loading,
     error,
-    refetch: fetchEntries,
+    refetch,
+    refetchWithFilters,
     createEntry,
     updateEntry,
     deleteEntry,
@@ -281,7 +292,6 @@ export const useJournalEntry = (id?: string) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { error: showError } = useToast();
-
   const fetchEntry = useCallback(async (entryId: string) => {
     setLoading(true);
     setError(null);
@@ -296,7 +306,7 @@ export const useJournalEntry = (id?: string) => {
     } finally {
       setLoading(false);
     }
-  }, [showError]);
+  }, []); // Removemos showError de las dependencias
 
   const fetchByNumber = useCallback(async (number: string) => {
     setLoading(true);
@@ -312,25 +322,24 @@ export const useJournalEntry = (id?: string) => {
     } finally {
       setLoading(false);
     }
-  }, [showError]);
+  }, []); // Removemos showError de las dependencias
 
   useEffect(() => {
     if (id) {
       fetchEntry(id);
     }
-  }, [id, fetchEntry]);
+  }, [id]); // Solo depende del id, no de fetchEntry
 
   // Función para actualizar el entry localmente (para actualizaciones en tiempo real)
   const updateLocalEntry = useCallback((updatedEntry: JournalEntry) => {
     setEntry(updatedEntry);
   }, []);
-
   // Función para refrescar solo si el ID coincide
   const refetchIfMatches = useCallback((entryId: string) => {
     if (id === entryId) {
       fetchEntry(entryId);
     }
-  }, [id, fetchEntry]);
+  }, [id]); // Solo depende del id
 
   return {
     entry,
@@ -351,13 +360,13 @@ export const useJournalEntryStatistics = (filters?: JournalEntryFilters) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { error: showError } = useToast();
-
   const fetchStatistics = useCallback(async (statsFilters?: JournalEntryFilters) => {
     setLoading(true);
     setError(null);
     
     try {
-      const data = await JournalEntryService.getStatistics(statsFilters || filters);
+      const filtersToUse = statsFilters || filters;
+      const data = await JournalEntryService.getStatistics(filtersToUse);
       setStatistics(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar estadísticas';
@@ -366,11 +375,11 @@ export const useJournalEntryStatistics = (filters?: JournalEntryFilters) => {
     } finally {
       setLoading(false);
     }
-  }, [filters, showError]);
+  }, []); // Removemos las dependencias para evitar bucle infinito
 
   useEffect(() => {
-    fetchStatistics();
-  }, [fetchStatistics]);
+    fetchStatistics(filters);
+  }, []); // Solo ejecutar una vez al montar
 
   return {
     statistics,

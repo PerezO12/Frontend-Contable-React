@@ -20,11 +20,10 @@ export const useReports = (): UseReportsReturn => {
   // ==========================================
   // Effects
   // ==========================================
-
   // Cargar tipos de reportes al montar
   useEffect(() => {
     store.loadReportTypes();
-  }, [store.loadReportTypes]);
+  }, []); // Solo ejecutar una vez al montar
 
   // ==========================================
   // Memoized values

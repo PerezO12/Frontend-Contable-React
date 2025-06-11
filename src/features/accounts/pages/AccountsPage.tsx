@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { AccountList, AccountTreeComponent as AccountTree, AccountForm, AccountDetail } from '../components';
+import { ExportTestComponent } from '../components/ExportTestComponent';
 import type { Account } from '../types';
 
 type ViewMode = 'list' | 'tree';
@@ -10,7 +11,7 @@ export const AccountsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [pageMode, setPageMode] = useState<PageMode>('view');
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [parentAccount, setParentAccount] = useState<Account | null>(null);// Helper function to convert tree item to Account for compatibility
+  const [parentAccount, setParentAccount] = useState<Account | null>(null);  const [showTestComponent, setShowTestComponent] = useState(false);// Helper function to convert tree item to Account for compatibility
   const convertToAccount = (item: any): Account => {
     if ('category' in item) {
       // It's already an Account
@@ -69,10 +70,16 @@ export const AccountsPage: React.FC = () => {
           <p className="text-gray-600 mt-2">
             Gestión completa del plan de cuentas contables
           </p>
-        </div>
-
-        {pageMode === 'view' && (
-          <div className="flex space-x-3">
+        </div>        {pageMode === 'view' && (
+          <div className="flex space-x-3">            <Button
+              variant="ghost"
+              onClick={() => setShowTestComponent(true)}
+              className="flex items-center space-x-2"
+              title="Componente de prueba para diagnóstico"
+            >
+              <span>🧪</span>
+              <span>Pruebas</span>
+            </Button>
             <Button
               variant="secondary"
               onClick={() => handleCreateAccount()}
@@ -201,12 +208,30 @@ export const AccountsPage: React.FC = () => {
             )}
           </>
         );    }
-  };
-  return (
+  };  return (
     <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {renderHeader()}
-        {renderContent()}
+        {showTestComponent ? (
+          <div>
+            <div className="mb-6">
+              <Button
+                variant="secondary"
+                onClick={() => setShowTestComponent(false)}
+                className="flex items-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                <span>Volver</span>
+              </Button>
+            </div>
+            <ExportTestComponent />
+          </div>
+        ) : (
+          <>
+            {renderHeader()}
+            {renderContent()}
+          </>        )}
       </div>
     </>
   );

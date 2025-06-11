@@ -4,6 +4,7 @@ import { Input } from '../../../components/ui/Input';
 import { Card } from '../../../components/ui/Card';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useAccounts } from '../hooks';
+import { SimpleExportControls } from './SimpleExportControls';
 import { formatCurrency } from '../../../shared/utils';
 import { 
   AccountType, 
@@ -30,7 +31,10 @@ export const AccountList: React.FC<AccountListProps> = ({
 }) => {
   const [filters, setFilters] = useState<AccountFilters>(initialFilters || {});
   const [searchTerm, setSearchTerm] = useState('');
-    const { accounts, loading, error, refetch, deleteAccount } = useAccounts(filters);
+  const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
+  
+  const { accounts, loading, error, refetch, deleteAccount } = useAccounts(filters);
 
   // Filter accounts based on search term
   const filteredAccounts = useMemo(() => {
@@ -43,11 +47,41 @@ export const AccountList: React.FC<AccountListProps> = ({
       account.description?.toLowerCase().includes(term)
     );
   }, [accounts, searchTerm]);
-
   const handleFilterChange = (key: keyof AccountFilters, value: any) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
     refetch(newFilters);
+  };
+
+  // Manejar selección individual de cuentas
+  const handleAccountSelect = (accountId: string, checked: boolean) => {
+    const newSelected = new Set(selectedAccounts);
+    if (checked) {
+      newSelected.add(accountId);
+    } else {
+      newSelected.delete(accountId);
+    }
+    setSelectedAccounts(newSelected);
+    
+    // Actualizar estado de "seleccionar todo"
+    setSelectAll(newSelected.size === filteredAccounts.length && filteredAccounts.length > 0);
+  };
+
+  // Manejar selección de todas las cuentas
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(filteredAccounts.map(account => account.id));
+      setSelectedAccounts(allIds);
+    } else {
+      setSelectedAccounts(new Set());
+    }
+    setSelectAll(checked);
+  };
+
+  // Limpiar selección
+  const handleClearSelection = () => {
+    setSelectedAccounts(new Set());
+    setSelectAll(false);
   };
   const handleDeleteAccount = async (account: Account) => {
     const confirmMessage = `⚠️ CONFIRMACIÓN DE ELIMINACIÓN
@@ -108,8 +142,7 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
               <p className="text-sm text-gray-600 mt-1">
                 {filteredAccounts.length} cuenta{filteredAccounts.length !== 1 ? 's' : ''} encontrada{filteredAccounts.length !== 1 ? 's' : ''}
               </p>
-            </div>
-            {showActions && onCreateAccount && (
+            </div>            {showActions && onCreateAccount && (
               <Button 
                 onClick={onCreateAccount}
                 className="bg-blue-600 hover:bg-blue-700"
@@ -197,11 +230,46 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
             </div>
           </div>
         </div>
-      </Card>
-
-      {/* Lista de cuentas */}
+      </Card>      {/* Lista de cuentas */}
       <Card>
         <div className="card-body">
+          {/* Barra de herramientas de selección */}
+          <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center space-x-4">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={selectAll && filteredAccounts.length > 0}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Seleccionar todas ({filteredAccounts.length})
+                </span>
+              </label>
+              {selectedAccounts.size > 0 && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-blue-600 font-medium">
+                    {selectedAccounts.size} cuenta{selectedAccounts.size === 1 ? '' : 's'} seleccionada{selectedAccounts.size === 1 ? '' : 's'}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearSelection}
+                    className="text-xs"
+                  >
+                    Limpiar
+                  </Button>
+                </div>
+              )}            </div>
+            
+            {/* Controles de exportación simples */}
+            <SimpleExportControls
+              selectedAccountIds={Array.from(selectedAccounts)}
+              accountCount={selectedAccounts.size}
+            />
+          </div>
+
           {loading ? (
             <div className="text-center py-8">
               <Spinner size="lg" />
@@ -221,10 +289,17 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full table-auto">
+            <div className="overflow-x-auto">              <table className="min-w-full table-auto">
                 <thead>
                   <tr className="border-b border-gray-200">
+                    <th className="text-center py-3 px-4 font-medium text-gray-900 w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectAll && filteredAccounts.length > 0}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Código</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Nombre</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Tipo</th>
@@ -234,45 +309,70 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
                     <th className="text-center py-3 px-4 font-medium text-gray-900">Nivel</th>
                     {showActions && <th className="text-center py-3 px-4 font-medium text-gray-900">Acciones</th>}
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
+                </thead>                <tbody className="divide-y divide-gray-200">
                   {filteredAccounts.map((account) => (
                     <tr
                       key={account.id}
-                      className={`hover:bg-gray-50 ${onAccountSelect ? 'cursor-pointer' : ''}`}
-                      onClick={() => onAccountSelect?.(account)}
+                      className={`hover:bg-gray-50 ${selectedAccounts.has(account.id) ? 'bg-blue-50' : ''}`}
                     >
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedAccounts.has(account.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleAccountSelect(account.id, e.target.checked);
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td 
+                        className="py-3 px-4 cursor-pointer"
+                        onClick={() => onAccountSelect?.(account)}
+                      >
                         <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
                           {account.code}
                         </code>
                       </td>
-                      <td className="py-3 px-4">
+                      <td 
+                        className="py-3 px-4 cursor-pointer"
+                        onClick={() => onAccountSelect?.(account)}
+                      >
                         <div>
                           <p className="font-medium text-gray-900">{account.name}</p>
                           {account.description && (
                             <p className="text-sm text-gray-500">{account.description}</p>
                           )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
+                        </div>                      </td>
+                      <td 
+                        className="py-3 px-4 cursor-pointer"
+                        onClick={() => onAccountSelect?.(account)}
+                      >
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getAccountTypeColor(account.account_type)}`}>
                           {ACCOUNT_TYPE_LABELS[account.account_type]}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
+                      <td 
+                        className="py-3 px-4 cursor-pointer"
+                        onClick={() => onAccountSelect?.(account)}
+                      >
                         <span className="text-sm text-gray-600">
                           {ACCOUNT_CATEGORY_LABELS[account.category]}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td 
+                        className="py-3 px-4 text-right cursor-pointer"
+                        onClick={() => onAccountSelect?.(account)}
+                      >
                         <span className={`font-mono text-sm ${
                           parseFloat(account.balance) >= 0 ? 'text-green-600' : 'text-red-600'
                         }`}>
                           {formatCurrency(parseFloat(account.balance))}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-center">
+                        </span>                      </td>
+                      <td 
+                        className="py-3 px-4 text-center cursor-pointer"
+                        onClick={() => onAccountSelect?.(account)}
+                      >
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                           account.is_active 
                             ? 'bg-green-100 text-green-800' 
@@ -280,7 +380,11 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
                         }`}>
                           {account.is_active ? 'Activa' : 'Inactiva'}
                         </span>
-                      </td>                      <td className="py-3 px-4 text-center">
+                      </td>
+                      <td 
+                        className="py-3 px-4 text-center cursor-pointer"
+                        onClick={() => onAccountSelect?.(account)}
+                      >
                         <span className="text-sm text-gray-600">
                           Nivel {account.level}
                         </span>
@@ -319,8 +423,7 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+          )}          </div>
       </Card>
     </div>
   );

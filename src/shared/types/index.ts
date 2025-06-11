@@ -12,6 +12,13 @@ export type {
   UserSession 
 } from '@/features/auth/types';
 
+// Export service types
+export type {
+  ExportRequest,
+  ExportResponse,
+  ExportAdvancedRequest
+} from '@/shared/services/exportService';
+
 // Common UI types
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'success' | 'warning';

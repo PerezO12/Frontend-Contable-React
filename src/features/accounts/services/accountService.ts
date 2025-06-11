@@ -1,4 +1,5 @@
 import { apiClient } from '../../../shared/api/client';
+import { ExportService } from '../../../shared/services/exportService';
 import type { 
   Account, 
   AccountTree, 
@@ -231,13 +232,73 @@ export class AccountService {
       if (filters.end_date) params.append('end_date', filters.end_date);
       if (filters.skip !== undefined) params.append('skip', filters.skip.toString());
       if (filters.limit !== undefined) params.append('limit', filters.limit.toString());
-    }
-
-    const url = params.toString() 
+    }    const url = params.toString() 
       ? `${this.BASE_URL}/${id}/movements?${params}` 
       : `${this.BASE_URL}/${id}/movements`;
     
     const response = await apiClient.get(url);
     return response.data;
+  }
+
+  /**
+   * Exportar cuentas seleccionadas usando el sistema de exportación genérico
+   */
+  static async exportAccounts(
+    accountIds: string[], 
+    format: 'csv' | 'json' | 'xlsx'
+  ): Promise<Blob> {
+    return ExportService.exportByIds({
+      table: 'accounts',
+      format,
+      ids: accountIds
+    });
+  }
+
+  /**
+   * Exportar cuentas con filtros avanzados
+   */
+  static async exportAccountsAdvanced(
+    format: 'csv' | 'json' | 'xlsx',
+    filters?: {
+      account_type?: string;
+      category?: string;
+      is_active?: boolean;
+      parent_id?: string;
+      search?: string;
+      date_from?: string;
+      date_to?: string;
+    },
+    selectedColumns?: string[]
+  ): Promise<Blob> {
+    const columnsConfig = selectedColumns?.map(name => ({
+      name,
+      include: true
+    }));
+
+    return ExportService.exportAdvanced({
+      table_name: 'accounts',
+      export_format: format,
+      filters: {
+        ...filters,
+        active_only: filters?.is_active
+      },
+      columns: columnsConfig
+    });
+  }
+
+  /**
+   * Obtener información de esquema para exportación
+   */
+  static async getExportSchema(): Promise<{
+    table_name: string;
+    display_name: string;
+    available_columns: Array<{
+      name: string;
+      data_type: string;
+      include: boolean;
+    }>;
+    total_records: number;
+  }> {
+    return ExportService.getTableSchema('accounts');
   }
 }

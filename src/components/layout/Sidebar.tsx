@@ -164,40 +164,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onToggle, isC
           ],
         },
       ],
-    },
-    {
+    },    {
       title: 'Reportes',
-      items: [        {
+      items: [
+        {
           id: 'reports',
           label: 'Reportes',
           icon: icons.reports,
           path: '/reports',
-          children: [
-            {
-              id: 'dashboard',
-              label: 'Centro de Reportes',
-              icon: icons.dashboard,
-              path: '/reports',
-            },
-            {
-              id: 'balance-sheet',
-              label: 'Balance General',
-              icon: icons.balanceSheet,
-              path: '/reports?type=balance_general',
-            },
-            {
-              id: 'profit-loss',
-              label: 'Estado de Resultados',
-              icon: icons.profitLoss,
-              path: '/reports?type=p_g',
-            },
-            {
-              id: 'cash-flow',
-              label: 'Flujo de Efectivo',
-              icon: icons.reports,
-              path: '/reports?type=flujo_efectivo',
-            },
-          ],
         },
       ],
     },
@@ -304,47 +278,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onToggle, isC
             },
           ],
         },
-      ],
-    },
-    {
-      title: 'Herramientas',
-      items: [
-        {
-          id: 'tools',
-          label: 'Herramientas',
-          icon: icons.settings,
-          children: [
-            {
-              id: 'import',
-              label: 'Importar Datos',
-              icon: icons.settings,
-              path: '/tools/import',
-              roles: [UserRole.ADMIN, UserRole.CONTADOR],
-            },
-            {
-              id: 'export',
-              label: 'Exportar Datos',
-              icon: icons.settings,
-              path: '/tools/export',
-              roles: [UserRole.ADMIN, UserRole.CONTADOR],
-            },
-            {
-              id: 'audit',
-              label: 'Auditoría',
-              icon: icons.settings,
-              path: '/tools/audit',
-              roles: [UserRole.ADMIN],
-            },
-            {
-              id: 'calculator',
-              label: 'Calculadora Contable',
-              icon: icons.settings,
-              path: '/tools/calculator',
-            },
-          ],
-        },
-      ],
-    },
+      ],    },
     {
       title: 'Soporte',
       items: [

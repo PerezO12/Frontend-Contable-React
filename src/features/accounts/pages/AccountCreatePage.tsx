@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AccountForm } from '../components';
-import { MainLayout } from '../../../components/layout/MainLayout';
 import type { Account } from '../types';
 
 export const AccountCreatePage: React.FC = () => {
@@ -13,9 +12,8 @@ export const AccountCreatePage: React.FC = () => {
 
   const handleCancel = () => {
     navigate('/accounts');
-  };
-  return (
-    <MainLayout>
+  };  return (
+    <>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
         <nav className="flex mb-6" aria-label="Breadcrumb">
@@ -48,6 +46,6 @@ export const AccountCreatePage: React.FC = () => {
           isEditMode={false}
         />
       </div>
-    </MainLayout>
+    </>
   );
 };

@@ -4,7 +4,6 @@ import { JournalEntryDetail } from '../components';
 import { useJournalEntries } from '../hooks';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
-import { MainLayout } from '../../../components/layout/MainLayout';
 import type { JournalEntry } from '../types';
 
 export const JournalEntryDetailPage: React.FC = () => {
@@ -80,10 +79,9 @@ export const JournalEntryDetailPage: React.FC = () => {
         navigate('/journal-entries');
       }
     }
-  };
-  if (!id) {
+  };  if (!id) {
     return (
-      <MainLayout>
+      <>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Card>
             <div className="card-body text-center py-8">
@@ -97,10 +95,12 @@ export const JournalEntryDetailPage: React.FC = () => {
             </div>
           </Card>
         </div>
-      </MainLayout>
+      </>
     );
-  }return (
-    <MainLayout>
+  }
+
+  return (
+    <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back to List Button */}
         <div className="mb-4">
@@ -140,6 +140,6 @@ export const JournalEntryDetailPage: React.FC = () => {
           onReverse={handleReverse}
         />
       </div>
-    </MainLayout>
+    </>
   );
 };

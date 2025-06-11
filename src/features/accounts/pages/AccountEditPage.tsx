@@ -4,7 +4,6 @@ import { AccountForm } from '../components';
 import { useAccount } from '../hooks';
 import { Spinner } from '../../../components/ui/Spinner';
 import { Card } from '../../../components/ui/Card';
-import { MainLayout } from '../../../components/layout/MainLayout';
 import type { Account } from '../types';
 
 export const AccountEditPage: React.FC = () => {
@@ -22,24 +21,20 @@ export const AccountEditPage: React.FC = () => {
     } else {
       navigate('/accounts');
     }
-  };
-
-  if (loading) {
+  };  if (loading) {
     return (
-      <MainLayout>
+      <>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-8">
             <Spinner size="lg" />
             <p className="text-gray-600 mt-2">Cargando cuenta...</p>
           </div>
         </div>
-      </MainLayout>
+      </>
     );
-  }
-
-  if (error || !account) {
+  }  if (error || !account) {
     return (
-      <MainLayout>
+      <>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Card>
             <div className="card-body text-center py-8">
@@ -55,12 +50,10 @@ export const AccountEditPage: React.FC = () => {
             </div>
           </Card>
         </div>
-      </MainLayout>
+      </>
     );
-  }
-
-  return (
-    <MainLayout>
+  }  return (
+    <>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
         <nav className="flex mb-6" aria-label="Breadcrumb">
@@ -114,6 +107,6 @@ export const AccountEditPage: React.FC = () => {
           accountId={account.id}
         />
       </div>
-    </MainLayout>
+    </>
   );
 };

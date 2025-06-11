@@ -1,6 +1,5 @@
 import React from 'react';
 import { AccountList } from '../components';
-import { MainLayout } from '../../../components/layout/MainLayout';
 import { useNavigate } from 'react-router-dom';
 import type { Account } from '../types';
 
@@ -17,9 +16,8 @@ export const AccountListPage: React.FC = () => {
 
   const handleEditAccount = (account: Account) => {
     navigate(`/accounts/${account.id}/edit`);
-  };
-  return (
-    <MainLayout>
+  };  return (
+    <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Plan de Cuentas</h1>
@@ -35,6 +33,6 @@ export const AccountListPage: React.FC = () => {
           showActions={true}
         />
       </div>
-    </MainLayout>
+    </>
   );
 };

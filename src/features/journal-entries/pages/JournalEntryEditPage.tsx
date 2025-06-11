@@ -4,7 +4,6 @@ import { JournalEntryForm } from '../components';
 import { useJournalEntry } from '../hooks';
 import { Spinner } from '../../../components/ui/Spinner';
 import { Card } from '../../../components/ui/Card';
-import { MainLayout } from '../../../components/layout/MainLayout';
 import type { JournalEntry } from '../types';
 
 export const JournalEntryEditPage: React.FC = () => {
@@ -22,20 +21,20 @@ export const JournalEntryEditPage: React.FC = () => {
     } else {
       navigate('/journal-entries');
     }
-  };
-  if (loading) {
+  };  if (loading) {
     return (
-      <MainLayout>
+      <>
         <div className="text-center py-8">
           <Spinner size="lg" />
           <p className="text-gray-600 mt-2">Cargando asiento contable...</p>
         </div>
-      </MainLayout>
+      </>
     );
   }
+
   if (error || !entry) {
     return (
-      <MainLayout>
+      <>
         <Card>
           <div className="card-body text-center py-8">
             <p className="text-red-600 mb-4">
@@ -49,13 +48,14 @@ export const JournalEntryEditPage: React.FC = () => {
             </button>
           </div>
         </Card>
-      </MainLayout>
+      </>
     );
   }
+
   // Check if entry can be edited
   if (entry.status !== 'draft') {
     return (
-      <MainLayout>
+      <>
         <Card>
           <div className="card-body text-center py-8">
             <p className="text-orange-600 mb-4">
@@ -69,11 +69,12 @@ export const JournalEntryEditPage: React.FC = () => {
             </button>
           </div>
         </Card>
-      </MainLayout>
+      </>
     );
   }
+
   return (
-    <MainLayout>
+    <>
       {/* Breadcrumb */}
       <nav className="flex mb-6" aria-label="Breadcrumb">
         <ol className="flex items-center space-x-2">
@@ -131,6 +132,6 @@ export const JournalEntryEditPage: React.FC = () => {
         isEditMode={true}
         entryId={entry.id}
       />    
-    </MainLayout>
+    </>
   );
 };

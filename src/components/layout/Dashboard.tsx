@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { UserRole } from '@/features/auth/types';
 import { Card } from '@/components/ui/Card';
-import { MainLayout } from './MainLayout';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -122,10 +121,10 @@ export const Dashboard: React.FC = () => {
       roles: [UserRole.ADMIN, UserRole.CONTADOR, UserRole.SOLO_LECTURA],
     },
   ];
-
   return (
-    <MainLayout>
-      {/* Welcome section */}      <div className="mb-8">
+    <>
+      {/* Welcome section */}
+      <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">
           Bienvenido, {user.full_name}!
         </h1>
@@ -238,9 +237,8 @@ export const Dashboard: React.FC = () => {
               <span className="text-sm text-gray-600">Usuarios conectados</span>
               <span className="text-sm text-gray-900">3 activos</span>
             </div>
-          </div>
-        </Card>
+          </div>        </Card>
       </div>
-    </MainLayout>
+    </>
   );
 };

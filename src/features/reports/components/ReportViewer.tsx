@@ -6,7 +6,8 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useClientExport } from '../hooks/useClientExport';
-import type { ReportResponse, AccountReportItem, ReportSection } from '../types';
+import { CashFlowViewer } from './CashFlowViewer';
+import type { ReportResponse, AccountReportItem, ReportSection, CashFlowResponse } from '../types';
 
 interface ReportViewerProps {
   report: ReportResponse;
@@ -149,6 +150,16 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
   // ==========================================
   // Render
   // ==========================================
+
+  // Si es un reporte de flujo de efectivo, usar el componente especializado
+  if (report.report_type === 'flujo_efectivo') {
+    return (
+      <CashFlowViewer 
+        report={report as CashFlowResponse} 
+        className={className} 
+      />
+    );
+  }
 
   return (
     <div className={`space-y-6 ${className}`}>

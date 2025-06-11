@@ -46,11 +46,10 @@ export const AccountList: React.FC<AccountListProps> = ({
       account.name.toLowerCase().includes(term) ||
       account.description?.toLowerCase().includes(term)
     );
-  }, [accounts, searchTerm]);
-  const handleFilterChange = (key: keyof AccountFilters, value: any) => {
+  }, [accounts, searchTerm]);  const handleFilterChange = (key: keyof AccountFilters, value: any) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    refetch(newFilters);
+    refetch();
   };
 
   // Manejar selección individual de cuentas
@@ -97,12 +96,10 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
 • No se podrán recuperar los datos
 • Si la cuenta tiene movimientos asociados, la eliminación podría fallar
 
-¿Continuar con la eliminación?`;
-
-    if (window.confirm(confirmMessage)) {
+¿Continuar con la eliminación?`;    if (window.confirm(confirmMessage)) {
       const success = await deleteAccount(account.id);
       if (success) {
-        refetch(filters);
+        refetch();
       }
     }
   };
@@ -121,10 +118,9 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
 
   if (error) {
     return (
-      <Card>
-        <div className="card-body text-center py-8">
+      <Card>        <div className="card-body text-center py-8">
           <p className="text-red-600 mb-4">Error al cargar las cuentas: {error}</p>
-          <Button onClick={() => refetch(filters)}>
+          <Button onClick={() => refetch()}>
             Reintentar
           </Button>
         </div>

@@ -20,6 +20,9 @@ El módulo de reportes para la aplicación contable React TypeScript ha sido **c
 - ✅ **FinancialSummary** - Dashboard de análisis financiero con ratios
 - ✅ **ReportComparison** - Herramienta de comparación de reportes
 - ✅ **ReportsDashboard** - Dashboard principal con pestañas
+- ✅ **CashFlowViewer** - Componente especializado para flujo de efectivo
+- ✅ **CashFlowDemo** - Demo interactivo de funcionalidades avanzadas
+- ✅ **CashFlowTest** - Componente de testing para validación
 
 ### 🔧 Infraestructura
 - ✅ **Routing** (`routes/index.tsx`) - Configuración de rutas
@@ -38,10 +41,18 @@ npm install zustand immer decimal.js
 ### 📊 Generación de Reportes
 - **Balance General** - Estado de situación financiera
 - **Pérdidas y Ganancias** - Estado de resultados
-- **Flujo de Efectivo** - Movimientos de efectivo
+- **Flujo de Efectivo** - Movimientos de efectivo con métodos directo e indirecto
 - **Formato Unificado** y **Clásico** soportados
 - **Filtros avanzados** con validación
 - **Presets de fecha** para períodos comunes
+
+### 💧 Flujo de Efectivo Avanzado (NUEVO)
+- **Métodos Duales** - Soporte completo para método directo e indirecto
+- **Análisis de Liquidez** - Ratios, salud financiera y métricas avanzadas
+- **Reconciliación Automática** - Validación de flujos vs cambios de efectivo
+- **Proyecciones Inteligentes** - Análisis predictivo de 30 días con IA
+- **Narrativa Mejorada** - Insights automáticos y recomendaciones
+- **Categorización Automática** - Clasificación inteligente de actividades
 
 ### 💼 Análisis Financiero
 - **Ratios financieros** automáticos
@@ -118,6 +129,7 @@ export const ReportsPage = () => {
 - ✅ **Tipos** - Sistema de tipos completo y consistente
 - ✅ **Hooks** - Hooks funcionales y optimizados
 - ✅ **Componentes** - UI responsive y accesible
+- ✅ **Cash Flow** - Funcionalidades avanzadas implementadas y testadas
 
 ## 📝 Próximos Pasos Recomendados
 

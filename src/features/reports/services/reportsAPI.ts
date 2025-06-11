@@ -61,7 +61,6 @@ class ReportsAPIService {
     
     return response.data;
   }
-
   /**
    * Genera Estado de Flujo de Efectivo
    */
@@ -73,6 +72,14 @@ class ReportsAPIService {
       ...(filters.detail_level && { detail_level: filters.detail_level }),
       ...(filters.include_subaccounts !== undefined && { 
         include_subaccounts: filters.include_subaccounts.toString() 
+      }),
+      // Nuevos parámetros para flujo de efectivo
+      ...(filters.cash_flow_method && { method: filters.cash_flow_method }),
+      ...(filters.enable_reconciliation !== undefined && { 
+        enable_reconciliation: filters.enable_reconciliation.toString() 
+      }),
+      ...(filters.include_projections !== undefined && { 
+        include_projections: filters.include_projections.toString() 
       })
     });
 
@@ -191,22 +198,33 @@ class ReportsAPIService {
       errors
     };
   }
-
   /**
    * Genera filtros por defecto basados en el tipo de reporte
    */
-  getDefaultFilters(_reportType: ReportType): ReportFilters {
+  getDefaultFilters(reportType: ReportType): ReportFilters {
     const today = new Date();
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-    return {
+    const baseFilters: ReportFilters = {
       from_date: startOfMonth.toISOString().split('T')[0],
       to_date: endOfMonth.toISOString().split('T')[0],
       detail_level: 'medio',
       include_subaccounts: false,
       include_zero_balances: false
     };
+
+    // Agregar configuraciones específicas por tipo de reporte
+    if (reportType === 'flujo_efectivo') {
+      return {
+        ...baseFilters,
+        cash_flow_method: 'indirect',
+        enable_reconciliation: true,
+        include_projections: false
+      };
+    }
+
+    return baseFilters;
   }
 
   // ==========================================

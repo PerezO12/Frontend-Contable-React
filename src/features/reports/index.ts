@@ -10,6 +10,13 @@ export { FinancialSummary } from './components/FinancialSummary';
 export { ReportComparison } from './components/ReportComparison';
 export { ExportDemo } from './components/ExportDemo';
 export { PDFTestComponent } from './components/PDFTestComponent';
+export { CashFlowViewer } from './components/CashFlowViewer';
+export { CashFlowDemo } from './components/CashFlowDemo';
+export { CashFlowTest } from './components/CashFlowTest';
+export { CashFlowImportExportControls } from './components/CashFlowImportExportControls';
+export { SimpleCashFlowExportControls } from './components/SimpleCashFlowExportControls';
+export { CashFlowTemplateDownload } from './components/CashFlowTemplateDownload';
+export { CashFlowImportWizard } from './components/CashFlowImportWizard';
 
 // Routes
 export { ReportsRoutes } from './routes';
@@ -27,9 +34,11 @@ export {
 } from './hooks/useReports';
 
 export { useClientExport } from './hooks/useClientExport';
+export { useCashFlowImport } from './hooks/useCashFlowImport';
 
 // Services
 export { reportsAPI } from './services/reportsAPI';
+export { CashFlowImportService } from './services/cashFlowImportService';
 
 // Store
 export { useReportsStore, useReportsSelectors } from './stores/reportsStore';
@@ -59,7 +68,14 @@ export type {
   FinancialRatio,
   ReportAnalysis,
   ReportConfig,
-  ReportError
+  ReportError,
+  // Nuevos tipos para cash flow
+  CashFlowMethod,
+  CashFlowCategory,
+  CashFlowTotals,
+  CashFlowSummary,
+  CashFlowNarrative,
+  CashFlowResponse
 } from './types';
 
 // Utils

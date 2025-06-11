@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useReportFilters } from '../hooks/useReports';
-import type { ReportType, DetailLevel } from '../types';
+import type { ReportType, DetailLevel, CashFlowMethod } from '../types';
 
 interface ReportFiltersProps {
   onGenerate: () => void;
@@ -48,6 +48,20 @@ const DETAIL_LEVELS: Array<{ value: DetailLevel; label: string; description: str
     value: 'alto',
     label: 'Detallado',
     description: 'Todas las cuentas'
+  }
+];
+
+// Nuevas opciones para flujo de efectivo
+const CASH_FLOW_METHODS = [
+  {
+    value: 'indirect' as const,
+    label: 'Método Indirecto',
+    description: 'Ajustes a la utilidad neta'
+  },
+  {
+    value: 'direct' as const,
+    label: 'Método Directo',
+    description: 'Entradas y salidas brutas'
   }
 ];
 
@@ -101,8 +115,12 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
     setFilters({ project_context: value || undefined });
   }, [setFilters]);
 
-  const handleCheckboxChange = useCallback((field: 'include_subaccounts' | 'include_zero_balances', checked: boolean) => {
+  const handleCheckboxChange = useCallback((field: 'include_subaccounts' | 'include_zero_balances' | 'enable_reconciliation' | 'include_projections', checked: boolean) => {
     setFilters({ [field]: checked });
+  }, [setFilters]);
+  // Nuevo handler para método de flujo de efectivo
+  const handleCashFlowMethodChange = useCallback((method: CashFlowMethod) => {
+    setFilters({ cash_flow_method: method });
   }, [setFilters]);
 
   const handleGenerate = useCallback(() => {
@@ -347,6 +365,76 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
             </label>
           </div>
         </div>
+
+        {/* Opciones Específicas para Flujo de Efectivo */}
+        {reportType === 'flujo_efectivo' && (
+          <>
+            {/* Método de Flujo de Efectivo */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                💧 Método de Flujo de Efectivo
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {CASH_FLOW_METHODS.map((method) => (
+                  <button
+                    key={method.value}
+                    onClick={() => handleCashFlowMethodChange(method.value)}
+                    disabled={isGenerating}
+                    className={`p-3 text-left border rounded-lg transition-colors ${
+                      filters.cash_flow_method === method.value
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    } ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <div className="font-medium text-sm">{method.label}</div>
+                    <div className="text-xs text-gray-500 mt-1">{method.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Opciones Avanzadas de Flujo de Efectivo */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700">
+                ⚙️ Opciones Avanzadas de Flujo de Efectivo
+              </label>
+              
+              <div className="space-y-2">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={filters.enable_reconciliation || false}
+                    onChange={(e) => handleCheckboxChange('enable_reconciliation', e.target.checked)}
+                    disabled={isGenerating}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">
+                    ✅ Habilitar reconciliación automática
+                  </span>
+                  <span className="ml-1 text-xs text-gray-500">
+                    (Valida que los flujos coincidan con cambios en efectivo)
+                  </span>
+                </label>
+
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={filters.include_projections || false}
+                    onChange={(e) => handleCheckboxChange('include_projections', e.target.checked)}
+                    disabled={isGenerating}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">
+                    🔮 Incluir proyecciones de flujo de efectivo
+                  </span>
+                  <span className="ml-1 text-xs text-gray-500">
+                    (Análisis predictivo de 30 días)
+                  </span>
+                </label>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Botón Generar */}
         <div className="pt-4 border-t">

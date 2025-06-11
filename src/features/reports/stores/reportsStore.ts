@@ -75,13 +75,16 @@ const initialState: ReportsState = {
   isExporting: false,
   
   // UI state
-  selectedReportType: 'balance_general',
-  currentFilters: {
+  selectedReportType: 'balance_general',  currentFilters: {
     from_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     to_date: new Date().toISOString().split('T')[0],
     detail_level: 'medio',
     include_subaccounts: false,
-    include_zero_balances: false
+    include_zero_balances: false,
+    // Nuevos parámetros para flujo de efectivo
+    cash_flow_method: 'indirect',
+    enable_reconciliation: true,
+    include_projections: false
   },
   availableReportTypes: [
     {

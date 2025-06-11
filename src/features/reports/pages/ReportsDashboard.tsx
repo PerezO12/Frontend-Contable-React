@@ -12,6 +12,8 @@ import { ReportHistory } from '../components/ReportHistory';
 import { FinancialSummary } from '../components/FinancialSummary';
 import { ExportDemo } from '../components/ExportDemo';
 import { PDFTestComponent } from '../components/PDFTestComponent';
+import { CashFlowDemo } from '../components/CashFlowDemo';
+import { CashFlowTest } from '../components/CashFlowTest';
 import { useReports, useReportHistory, useFinancialAnalysis } from '../hooks/useReports';
 import type { GenerateReportParams } from '../types';
 
@@ -24,7 +26,7 @@ export const ReportsDashboard: React.FC = () => {  const {
   const { getRecentReports } = useReportHistory();
   const { getFinancialHealth } = useFinancialAnalysis();
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'history' | 'analysis' | 'demo' | 'pdftest'>('generator');
+  const [activeTab, setActiveTab] = useState<'generator' | 'history' | 'analysis' | 'demo' | 'cashflow' | 'cashtest' | 'pdftest'>('generator');
 
   // ==========================================
   // Handlers
@@ -194,6 +196,25 @@ export const ReportsDashboard: React.FC = () => {  const {
               }`}
             >
               🧪 Demo Exportación
+            </button>            <button
+              onClick={() => setActiveTab('cashflow')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'cashflow'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              💧 Demo Cash Flow
+            </button>
+            <button
+              onClick={() => setActiveTab('cashtest')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'cashtest'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              🧪 Test Cash Flow
             </button>
             <button
               onClick={() => setActiveTab('pdftest')}
@@ -301,6 +322,12 @@ export const ReportsDashboard: React.FC = () => {  const {
           </div>
         )}        {activeTab === 'demo' && (
           <ExportDemo />
+        )}        {activeTab === 'cashflow' && (
+          <CashFlowDemo />
+        )}
+
+        {activeTab === 'cashtest' && (
+          <CashFlowTest />
         )}
 
         {activeTab === 'pdftest' && (

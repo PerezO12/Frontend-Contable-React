@@ -21,6 +21,23 @@ export const DetailLevel = {
 
 export type DetailLevel = typeof DetailLevel[keyof typeof DetailLevel];
 
+// Nuevos tipos para cash flow
+export const CashFlowMethod = {
+  DIRECT: 'direct',
+  INDIRECT: 'indirect'
+} as const;
+
+export type CashFlowMethod = typeof CashFlowMethod[keyof typeof CashFlowMethod];
+
+export const CashFlowCategory = {
+  OPERATING: 'operating',
+  INVESTING: 'investing',
+  FINANCING: 'financing',
+  CASH_EQUIVALENTS: 'cash_equivalents'
+} as const;
+
+export type CashFlowCategory = typeof CashFlowCategory[keyof typeof CashFlowCategory];
+
 export const AccountType = {
   ACTIVO: 'ACTIVO',
   PASIVO: 'PASIVO',
@@ -48,6 +65,10 @@ export interface ReportFilters {
   company_name?: string;
   account_types?: AccountType[];
   account_codes?: string[];
+  // Nuevos parámetros para flujo de efectivo
+  cash_flow_method?: CashFlowMethod;
+  enable_reconciliation?: boolean;
+  include_projections?: boolean;
 }
 
 // Estructuras de datos para reportes unificados
@@ -135,6 +156,55 @@ export interface CashFlowTotals {
   flujo_inversion: string;
   flujo_financiamiento: string;
   flujo_neto: string;
+}
+
+// Nuevas interfaces para análisis avanzado de flujo de efectivo
+export interface CashFlowSummary {
+  start_date: string;
+  end_date: string;
+  company_name: string;
+  method: CashFlowMethod;
+  is_reconciled: boolean;
+  beginning_cash_balance?: string;
+  ending_cash_balance?: string;
+  net_increase_decrease?: string;
+}
+
+export interface CashFlowNarrative extends ReportNarrative {
+  financial_highlights: {
+    operating_cash_flow: string;
+    investing_cash_flow: string;
+    financing_cash_flow: string;
+    net_cash_flow: string;
+    cash_position_strength: string;
+    liquidity_trend: string;
+    method_used: string;
+  };
+  liquidity_analysis?: {
+    current_ratio: string;
+    quick_ratio: string;
+    cash_runway_days: number;
+    burn_rate: string;
+    liquidity_health: 'Excelente' | 'Muy fuerte' | 'Bueno' | 'Aceptable' | 'Crítico';
+  };
+  projections?: {
+    next_30_days: {
+      projected_operating: number;
+      projected_investing: number;
+      projected_financing: number;
+      projected_net: number;
+    };
+    confidence_level: string;
+  };
+}
+
+export interface CashFlowResponse extends Omit<ReportResponse, 'narrative'> {
+  report_type: 'flujo_efectivo';
+  narrative: CashFlowNarrative;
+  table: ReportTable & {
+    summary: CashFlowSummary;
+    totals: CashFlowTotals;
+  };
 }
 
 // Estado del store

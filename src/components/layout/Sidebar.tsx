@@ -167,47 +167,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onToggle, isC
     },
     {
       title: 'Reportes',
-      items: [
-        {
+      items: [        {
           id: 'reports',
           label: 'Reportes',
           icon: icons.reports,
+          path: '/reports',
           children: [
+            {
+              id: 'dashboard',
+              label: 'Centro de Reportes',
+              icon: icons.dashboard,
+              path: '/reports',
+            },
             {
               id: 'balance-sheet',
               label: 'Balance General',
               icon: icons.balanceSheet,
-              path: '/reports/balance-sheet',
+              path: '/reports?type=balance_general',
             },
             {
               id: 'profit-loss',
               label: 'Estado de Resultados',
               icon: icons.profitLoss,
-              path: '/reports/profit-loss',
-            },
-            {
-              id: 'trial-balance',
-              label: 'Balance de Comprobación',
-              icon: icons.trialBalance,
-              path: '/reports/trial-balance',
+              path: '/reports?type=p_g',
             },
             {
               id: 'cash-flow',
               label: 'Flujo de Efectivo',
               icon: icons.reports,
-              path: '/reports/cash-flow',
-            },
-            {
-              id: 'aging-report',
-              label: 'Reporte de Antigüedad',
-              icon: icons.reports,
-              path: '/reports/aging',
-            },
-            {
-              id: 'budget-vs-actual',
-              label: 'Presupuesto vs Real',
-              icon: icons.reports,
-              path: '/reports/budget-vs-actual',
+              path: '/reports?type=flujo_efectivo',
             },
           ],
         },

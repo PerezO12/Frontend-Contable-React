@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/features/auth/context/AuthContext';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
+import { MainLayout } from '@/components/layout/MainLayout';
 import { LoginForm } from '@/features/auth/components/LoginForm';
 import { Dashboard } from '@/components/layout/Dashboard';
 import { UnauthorizedPage } from '@/components/layout/UnauthorizedPage';
@@ -21,6 +22,7 @@ import {
   AccountDetailPage
 } from '@/features/accounts/pages';
 import { DataImportRoutes } from '@/features/data-import';
+import { ReportsRoutes } from '@/features/reports';
 
 const AppContent = () => {
   const { toasts, removeToast } = useToast();
@@ -31,12 +33,14 @@ const AppContent = () => {
         {/* Ruta pública - Login */}
         <Route path="/login" element={<LoginForm />} />
         
-        {/* Rutas protegidas */}
+        {/* Rutas protegidas con layout principal */}
         <Route 
           path="/dashboard" 
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <MainLayout>
+                <Dashboard />
+              </MainLayout>
             </ProtectedRoute>
           } 
         />
@@ -46,7 +50,9 @@ const AppContent = () => {
           path="/journal-entries" 
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
-              <JournalEntryListPage />
+              <MainLayout>
+                <JournalEntryListPage />
+              </MainLayout>
             </ProtectedRoute>
           } 
         />
@@ -54,7 +60,9 @@ const AppContent = () => {
           path="/journal-entries/new" 
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
-              <JournalEntryCreatePage />
+              <MainLayout>
+                <JournalEntryCreatePage />
+              </MainLayout>
             </ProtectedRoute>
           } 
         />
@@ -62,7 +70,9 @@ const AppContent = () => {
           path="/journal-entries/:id" 
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
-              <JournalEntryDetailPage />
+              <MainLayout>
+                <JournalEntryDetailPage />
+              </MainLayout>
             </ProtectedRoute>
           } 
         />
@@ -70,7 +80,9 @@ const AppContent = () => {
           path="/journal-entries/:id/edit" 
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
-              <JournalEntryEditPage />
+              <MainLayout>
+                <JournalEntryEditPage />
+              </MainLayout>
             </ProtectedRoute>
           } 
         />
@@ -80,7 +92,9 @@ const AppContent = () => {
           path="/accounts" 
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
-              <AccountsPage />
+              <MainLayout>
+                <AccountsPage />
+              </MainLayout>
             </ProtectedRoute>
           } 
         />
@@ -88,7 +102,9 @@ const AppContent = () => {
           path="/accounts/list" 
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
-              <AccountListPage />
+              <MainLayout>
+                <AccountListPage />
+              </MainLayout>
             </ProtectedRoute>
           } 
         />
@@ -96,7 +112,9 @@ const AppContent = () => {
           path="/accounts/new" 
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
-              <AccountCreatePage />
+              <MainLayout>
+                <AccountCreatePage />
+              </MainLayout>
             </ProtectedRoute>
           } 
         />
@@ -104,7 +122,9 @@ const AppContent = () => {
           path="/accounts/:id" 
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
-              <AccountDetailPage />
+              <MainLayout>
+                <AccountDetailPage />
+              </MainLayout>
             </ProtectedRoute>
           } 
         />
@@ -112,7 +132,9 @@ const AppContent = () => {
           path="/accounts/:id/edit" 
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
-              <AccountEditPage />
+              <MainLayout>
+                <AccountEditPage />
+              </MainLayout>
             </ProtectedRoute>
           } 
         />
@@ -122,7 +144,21 @@ const AppContent = () => {
           path="/import-export/*" 
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
-              <DataImportRoutes />
+              <MainLayout>
+                <DataImportRoutes />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Rutas de Reportes - Acceso para todos los roles */}
+        <Route 
+          path="/reports/*" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR, UserRole.SOLO_LECTURA]}>
+              <MainLayout>
+                <ReportsRoutes />
+              </MainLayout>
             </ProtectedRoute>
           } 
         />
@@ -132,12 +168,14 @@ const AppContent = () => {
           path="/admin" 
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-              <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold text-gray-900">Panel de Administración</h1>
-                  <p className="text-gray-600 mt-2">Solo para administradores</p>
+              <MainLayout>
+                <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                  <div className="text-center">
+                    <h1 className="text-2xl font-bold text-gray-900">Panel de Administración</h1>
+                    <p className="text-gray-600 mt-2">Solo para administradores</p>
+                  </div>
                 </div>
-              </div>
+              </MainLayout>
             </ProtectedRoute>
           } 
         />

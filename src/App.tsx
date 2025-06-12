@@ -21,6 +21,7 @@ import {
   AccountEditPage,
   AccountDetailPage
 } from '@/features/accounts/pages';
+import { CostCenterManagementPage } from '@/features/cost-centers/pages';
 import { DataImportRoutes } from '@/features/data-import';
 import { ReportsRoutes } from '@/features/reports';
 
@@ -134,6 +135,18 @@ const AppContent = () => {
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
               <MainLayout>
                 <AccountEditPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Rutas de Centros de Costo - Solo para ADMIN y CONTADOR */}
+        <Route 
+          path="/cost-centers" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <CostCenterManagementPage />
               </MainLayout>
             </ProtectedRoute>
           } 

@@ -14,9 +14,7 @@ export const AccountListPage: React.FC = () => {
     navigate('/accounts/new');
   };
 
-  const handleEditAccount = (account: Account) => {
-    navigate(`/accounts/${account.id}/edit`);
-  };  return (
+  return (
     <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
@@ -29,7 +27,6 @@ export const AccountListPage: React.FC = () => {
         <AccountList
           onAccountSelect={handleAccountSelect}
           onCreateAccount={handleCreateAccount}
-          onEditAccount={handleEditAccount}
           showActions={true}
         />
       </div>

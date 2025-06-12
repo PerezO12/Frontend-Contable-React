@@ -5,3 +5,4 @@ export { JournalEntryErrorBoundary, useJournalEntryErrorBoundary } from './Journ
 export { SimpleJournalEntryExportControls } from './SimpleJournalEntryExportControls';
 export { ReasonModal } from './ReasonModal';
 export { JournalEntryListWithModals } from './JournalEntryListWithModals';
+export { BulkDeleteModal } from './BulkDeleteModal';

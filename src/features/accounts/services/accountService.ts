@@ -5,7 +5,10 @@ import type {
   AccountTree, 
   AccountCreate, 
   AccountUpdate, 
-  AccountFilters 
+  AccountFilters,
+  BulkAccountDelete,
+  AccountDeleteValidation,
+  BulkAccountDeleteResult
 } from '../types';
 
 export class AccountService {
@@ -239,6 +242,41 @@ export class AccountService {
     const response = await apiClient.get(url);
     return response.data;
   }
+  /**
+   * Validar si múltiples cuentas pueden ser eliminadas
+   */
+  static async validateDeletion(accountIds: string[]): Promise<AccountDeleteValidation[]> {
+    console.log('Validando eliminación de cuentas:', accountIds);
+    try {
+      const response = await apiClient.post<AccountDeleteValidation[]>(
+        `${this.BASE_URL}/validate-deletion`,
+        accountIds
+      );
+      console.log('Validación completada:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error al validar eliminación:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Eliminar múltiples cuentas con validaciones
+   */
+  static async bulkDeleteAccounts(deleteData: BulkAccountDelete): Promise<BulkAccountDeleteResult> {
+    console.log('Eliminación masiva de cuentas:', deleteData);
+    try {
+      const response = await apiClient.post<BulkAccountDeleteResult>(
+        `${this.BASE_URL}/bulk-delete`,
+        deleteData
+      );
+      console.log('Eliminación masiva completada:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error en eliminación masiva:', error);
+      throw error;
+    }
+  }
 
   /**
    * Exportar cuentas seleccionadas usando el sistema de exportación genérico
@@ -279,8 +317,7 @@ export class AccountService {
       table_name: 'accounts',
       export_format: format,
       filters: {
-        ...filters,
-        active_only: filters?.is_active
+        ...filters,      active_only: filters?.is_active
       },
       columns: columnsConfig
     });

@@ -7,7 +7,10 @@ import type {
   AccountCreate, 
   AccountUpdate, 
   AccountFilters,
-  AccountType
+  AccountType,
+  AccountDeleteValidation,
+  BulkAccountDelete,
+  BulkAccountDeleteResult
 } from '../types';
 
 export const useAccounts = (initialFilters?: AccountFilters) => {
@@ -142,8 +145,44 @@ export const useAccounts = (initialFilters?: AccountFilters) => {
       return possibleParents;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar las cuentas padre potenciales';
+      showError(errorMessage);      return [];
+    }
+  }, [showError]);
+
+  // Validar eliminación masiva
+  const validateBulkDeletion = useCallback(async (accountIds: string[]): Promise<AccountDeleteValidation[]> => {
+    try {
+      return await AccountService.validateDeletion(accountIds);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al validar la eliminación';
       showError(errorMessage);
-      return [];
+      throw err;
+    }
+  }, [showError]);
+
+  // Eliminar cuentas masivamente
+  const bulkDeleteAccounts = useCallback(async (deleteData: BulkAccountDelete): Promise<BulkAccountDeleteResult> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await AccountService.bulkDeleteAccounts(deleteData);
+      
+      // Actualizar la lista removiendo las cuentas eliminadas exitosamente
+      if (result.successfully_deleted.length > 0) {
+        setAccounts(prev => prev.filter(account => 
+          !result.successfully_deleted.includes(account.id)
+        ));
+      }
+      
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error en la eliminación masiva';
+      setError(errorMessage);
+      showError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
     }
   }, [showError]);
   return {
@@ -156,7 +195,9 @@ export const useAccounts = (initialFilters?: AccountFilters) => {
     updateAccount,
     deleteAccount,
     toggleAccountStatus,
-    getParentAccountsByType
+    getParentAccountsByType,
+    validateBulkDeletion,
+    bulkDeleteAccounts
   };
 };
 

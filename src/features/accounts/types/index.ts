@@ -38,6 +38,16 @@ export const AccountCategory = {
 
 export type AccountCategory = typeof AccountCategory[keyof typeof AccountCategory];
 
+// Cash Flow Categories (matching backend enum)
+export const CashFlowCategory = {
+  OPERATING: 'operating',
+  INVESTING: 'investing',
+  FINANCING: 'financing',
+  CASH_EQUIVALENTS: 'cash'
+} as const;
+
+export type CashFlowCategory = typeof CashFlowCategory[keyof typeof CashFlowCategory];
+
 // Base Account interface
 export interface Account {
   id: string;
@@ -46,6 +56,7 @@ export interface Account {
   description?: string;
   account_type: AccountType;
   category: AccountCategory;
+  cash_flow_category?: CashFlowCategory;
   parent_id?: string;
   level: number;
   is_active: boolean;
@@ -81,6 +92,7 @@ export interface AccountCreate {
   description?: string;
   account_type: AccountType;
   category: AccountCategory;
+  cash_flow_category?: CashFlowCategory;
   parent_id?: string;
   is_active?: boolean;
   allows_movements?: boolean;
@@ -93,6 +105,7 @@ export interface AccountUpdate {
   name?: string;
   description?: string;
   category?: AccountCategory;
+  cash_flow_category?: CashFlowCategory;
   is_active?: boolean;
   allows_movements?: boolean;
   requires_third_party?: boolean;
@@ -106,6 +119,7 @@ export interface AccountFilters {
   limit?: number;
   account_type?: AccountType;
   category?: AccountCategory;
+  cash_flow_category?: CashFlowCategory;
   is_active?: boolean;
   parent_id?: string;
   search?: string;
@@ -130,6 +144,7 @@ export const accountCreateSchema = z.object({
     'gastos_operacionales', 'gastos_no_operacionales',
     'costo_ventas', 'costos_produccion'
   ]),
+  cash_flow_category: z.enum(['operating', 'investing', 'financing', 'cash']).optional(),
   parent_id: z.string().uuid().optional(),
   is_active: z.boolean().optional(),
   allows_movements: z.boolean().optional(),
@@ -152,6 +167,7 @@ export const accountUpdateSchema = z.object({
     'gastos_operacionales', 'gastos_no_operacionales',
     'costo_ventas', 'costos_produccion'
   ]).optional(),
+  cash_flow_category: z.enum(['operating', 'investing', 'financing', 'cash']).optional(),
   is_active: z.boolean().optional(),
   allows_movements: z.boolean().optional(),
   requires_third_party: z.boolean().optional(),
@@ -161,6 +177,39 @@ export const accountUpdateSchema = z.object({
 
 export type AccountCreateForm = z.infer<typeof accountCreateSchema>;
 export type AccountUpdateForm = z.infer<typeof accountUpdateSchema>;
+
+// Bulk deletion types
+export interface BulkAccountDelete {
+  account_ids: string[];
+  force_delete?: boolean;
+  delete_reason?: string;
+}
+
+export interface AccountDeleteValidation {
+  account_id: string;
+  can_delete: boolean;
+  blocking_reasons: string[];
+  warnings: string[];
+  dependencies: Record<string, any>;
+}
+
+export interface BulkAccountDeleteResult {
+  total_requested: number;
+  successfully_deleted: string[];
+  failed_to_delete: Array<{
+    account_id: string;
+    reason: string;
+    details: Record<string, any>;
+  }>;
+  validation_errors: Array<{
+    account_id: string;
+    error: string;
+  }>;
+  warnings: string[];
+  success_count: number;
+  failure_count: number;
+  success_rate: number;
+}
 
 // Utility types for account management
 export interface AccountBalance {
@@ -202,6 +251,20 @@ export const ACCOUNT_CATEGORY_LABELS: Record<AccountCategory, string> = {
   [AccountCategory.GASTOS_NO_OPERACIONALES]: 'Gastos No Operacionales',
   [AccountCategory.COSTO_VENTAS]: 'Costo de Ventas',
   [AccountCategory.COSTOS_PRODUCCION]: 'Costos de Producción'
+};
+
+export const CASH_FLOW_CATEGORY_LABELS: Record<CashFlowCategory, string> = {
+  [CashFlowCategory.OPERATING]: 'Actividades de Operación',
+  [CashFlowCategory.INVESTING]: 'Actividades de Inversión',
+  [CashFlowCategory.FINANCING]: 'Actividades de Financiamiento',
+  [CashFlowCategory.CASH_EQUIVALENTS]: 'Efectivo y Equivalentes'
+};
+
+export const CASH_FLOW_CATEGORY_DESCRIPTIONS: Record<CashFlowCategory, string> = {
+  [CashFlowCategory.OPERATING]: 'Cuentas relacionadas con la actividad principal del negocio (ventas, gastos operativos, etc.)',
+  [CashFlowCategory.INVESTING]: 'Cuentas relacionadas con compra/venta de activos a largo plazo (equipos, propiedades, etc.)',
+  [CashFlowCategory.FINANCING]: 'Cuentas relacionadas con financiamiento y estructura de capital (préstamos, capital social, etc.)',
+  [CashFlowCategory.CASH_EQUIVALENTS]: 'Cuentas que representan efectivo o instrumentos líquidos (caja, bancos, inversiones temporales)'
 };
 
 // Helper functions for account type behavior
@@ -250,6 +313,53 @@ export const getAccountTypeProperties = (accountType: AccountType) => {
       statement: 'income_statement' as const
     }
   };
-
   return properties[accountType];
+};
+
+// Helper function to get recommended cash flow categories based on account type
+export const getRecommendedCashFlowCategories = (accountType: AccountType): CashFlowCategory[] => {
+  const recommendations = {
+    [AccountType.ACTIVO]: [CashFlowCategory.CASH_EQUIVALENTS, CashFlowCategory.OPERATING, CashFlowCategory.INVESTING],
+    [AccountType.PASIVO]: [CashFlowCategory.OPERATING, CashFlowCategory.FINANCING],
+    [AccountType.PATRIMONIO]: [CashFlowCategory.FINANCING],
+    [AccountType.INGRESO]: [CashFlowCategory.OPERATING],
+    [AccountType.GASTO]: [CashFlowCategory.OPERATING],
+    [AccountType.COSTOS]: [CashFlowCategory.OPERATING]
+  };
+
+  return recommendations[accountType] || [];
+};
+
+// Helper function to get the default cash flow category for an account type
+export const getDefaultCashFlowCategory = (accountType: AccountType, category: AccountCategory): CashFlowCategory | undefined => {
+  // Cash and bank accounts should default to cash equivalents
+  if (accountType === AccountType.ACTIVO && category === AccountCategory.ACTIVO_CORRIENTE) {
+    return CashFlowCategory.CASH_EQUIVALENTS;
+  }
+  
+  // Fixed assets should default to investing
+  if (accountType === AccountType.ACTIVO && category === AccountCategory.ACTIVO_NO_CORRIENTE) {
+    return CashFlowCategory.INVESTING;
+  }
+  
+  // Current liabilities should default to operating
+  if (accountType === AccountType.PASIVO && category === AccountCategory.PASIVO_CORRIENTE) {
+    return CashFlowCategory.OPERATING;
+  }
+  
+  // Long-term liabilities should default to financing
+  if (accountType === AccountType.PASIVO && category === AccountCategory.PASIVO_NO_CORRIENTE) {
+    return CashFlowCategory.FINANCING;
+  }
+  
+  // Equity accounts should default to financing
+  if (accountType === AccountType.PATRIMONIO) {
+    return CashFlowCategory.FINANCING;
+  }
+    // Income, expense, and cost accounts should default to operating
+  if (accountType === AccountType.INGRESO || accountType === AccountType.GASTO || accountType === AccountType.COSTOS) {
+    return CashFlowCategory.OPERATING;
+  }
+  
+  return undefined;
 };

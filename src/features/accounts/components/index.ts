@@ -6,3 +6,5 @@ export { AccountExportModal } from './AccountExportModal';
 export { ExportFormatModal } from './ExportFormatModal';
 export { SimpleExportControls } from './SimpleExportControls';
 export { ExportTestComponent } from './ExportTestComponent';
+export { CashFlowCategoryManager } from './CashFlowCategoryManager';
+export { BulkDeleteModal } from './BulkDeleteModal';

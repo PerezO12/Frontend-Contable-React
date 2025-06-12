@@ -232,3 +232,30 @@ export interface JournalEntryOperationResponse {
   message: string;
   journal_entry?: JournalEntry;
 }
+
+// Bulk deletion types
+export interface BulkJournalEntryDelete {
+  entry_ids: string[];  // Volvemos a entry_ids según la documentación oficial
+  force_delete?: boolean;
+  reason?: string;
+}
+
+export interface JournalEntryDeleteValidation {
+  journal_entry_id: string;
+  journal_entry_number: string;
+  journal_entry_description: string;
+  status: JournalEntryStatus;
+  can_delete: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface BulkJournalEntryDeleteResult {
+  total_requested: number;
+  total_deleted: number;
+  total_failed: number;
+  deleted_entries: JournalEntryDeleteValidation[];
+  failed_entries: JournalEntryDeleteValidation[];
+  errors: string[];
+  warnings: string[];
+}

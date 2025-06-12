@@ -7,6 +7,7 @@ import { formatCurrency, formatDate } from '../../../shared/utils';
 import { 
   ACCOUNT_TYPE_LABELS, 
   ACCOUNT_CATEGORY_LABELS,
+  CASH_FLOW_CATEGORY_LABELS,
   getAccountTypeProperties,
   type Account 
 } from '../types';
@@ -162,8 +163,7 @@ export const AccountDetail: React.FC<AccountDetailProps> = ({
             <div className="card-header">
               <h3 className="card-title">Información Básica</h3>
             </div>
-            <div className="card-body space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="card-body space-y-4">              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700">Código</label>
                   <p className="mt-1 font-mono text-gray-900">{account.code}</p>
@@ -180,6 +180,16 @@ export const AccountDetail: React.FC<AccountDetailProps> = ({
                   <label className="text-sm font-medium text-gray-700">Categoría</label>
                   <p className="mt-1 text-gray-900">{ACCOUNT_CATEGORY_LABELS[account.category]}</p>
                 </div>
+                {account.cash_flow_category && (
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-gray-700">💧 Categoría de Flujo de Efectivo</label>
+                    <p className="mt-1 text-gray-900 flex items-center">
+                      <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 mr-2">
+                        {CASH_FLOW_CATEGORY_LABELS[account.cash_flow_category]}
+                      </span>
+                    </p>
+                  </div>
+                )}
               </div>
 
               {account.notes && (

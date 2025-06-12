@@ -1,0 +1,1 @@
+export { CostCenterManagementPage } from './CostCenterManagementPage';

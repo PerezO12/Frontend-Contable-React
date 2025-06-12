@@ -21,6 +21,7 @@ interface JournalEntryDetailProps {
   onPost?: (entry: JournalEntry) => void;
   onCancel?: (entry: JournalEntry) => void;
   onReverse?: (entry: JournalEntry) => void;
+  onRestore?: (entry: JournalEntry) => void;
 }
 
 type TabType = 'info' | 'lines' | 'audit';
@@ -32,7 +33,8 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
   onApprove,
   onPost,
   onCancel,
-  onReverse
+  onReverse,
+  onRestore
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const { entry, loading, error, updateLocalEntry } = useJournalEntry(entryId);
@@ -93,8 +95,7 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
       [JournalEntryType.REVERSAL]: 'bg-yellow-100 text-yellow-800'
     };
     return colors[type];
-  };
-  const canEdit = entry.status === JournalEntryStatus.DRAFT;
+  };  const canEdit = entry.status === JournalEntryStatus.DRAFT;
   const canApprove = entry.status === JournalEntryStatus.DRAFT || entry.status === JournalEntryStatus.PENDING;
   const canPost = entry.status === JournalEntryStatus.APPROVED;
   const canCancel = 
@@ -104,6 +105,11 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
   const canReverse = 
     entry.status === JournalEntryStatus.POSTED && 
     entry.entry_type !== JournalEntryType.REVERSAL;
+  // Puede restaurarse a borrador si está en estado POSTED, APPROVED o CANCELLED
+  const canRestore = 
+    entry.status === JournalEntryStatus.APPROVED || 
+    entry.status === JournalEntryStatus.POSTED || 
+    entry.status === JournalEntryStatus.CANCELLED;
 
   const renderInfoTab = () => (
     <div className="space-y-6">
@@ -444,13 +450,20 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
                 >
                   Revertir
                 </Button>
-              )}
-              {canCancel && onCancel && (
+              )}              {canCancel && onCancel && (
                 <Button
                   variant="danger"
                   onClick={() => onCancel(entry)}
                 >
                   Cancelar
+                </Button>
+              )}
+              {canRestore && onRestore && (
+                <Button
+                  variant="warning"
+                  onClick={() => onRestore(entry)}
+                >
+                  Restaurar a Borrador
                 </Button>
               )}
               {onClose && (

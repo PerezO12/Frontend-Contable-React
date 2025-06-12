@@ -11,7 +11,11 @@ import {
   AccountType, 
   AccountCategory,
   ACCOUNT_TYPE_LABELS,
-  ACCOUNT_CATEGORY_LABELS
+  ACCOUNT_CATEGORY_LABELS,
+  CASH_FLOW_CATEGORY_LABELS,
+  CASH_FLOW_CATEGORY_DESCRIPTIONS,
+  getRecommendedCashFlowCategories,
+  getDefaultCashFlowCategory
 } from '../types';
 import type { AccountCreateForm } from '../types';
 import type { Account } from '../types';
@@ -39,13 +43,13 @@ export const AccountForm: React.FC<AccountFormProps> = ({
     updateField,
     handleSubmit,
     getFieldError
-  } = useForm<AccountCreateForm>({
-    initialData: {
+  } = useForm<AccountCreateForm>({    initialData: {
       code: initialData?.code || '',
       name: initialData?.name || '',
       description: initialData?.description || '',
       account_type: initialData?.account_type || AccountType.ACTIVO,
       category: initialData?.category || AccountCategory.ACTIVO_CORRIENTE,
+      cash_flow_category: initialData?.cash_flow_category,
       parent_id: parentAccount?.id || initialData?.parent_id,
       is_active: initialData?.is_active ?? true,
       allows_movements: initialData?.allows_movements ?? true,
@@ -61,29 +65,39 @@ export const AccountForm: React.FC<AccountFormProps> = ({
           message: err.message
         }));
       }
-      return [];
-    },    onSubmit: async (formData) => {
+      return [];    },    onSubmit: async (formData) => {
       console.log('Enviando datos al backend:', formData);
+      
+      // Clean up optional fields: convert empty strings to undefined
+      const cleanedData = {
+        ...formData,
+        cash_flow_category: (formData.cash_flow_category as any) === '' ? undefined : formData.cash_flow_category
+      };
       
       if (isEditMode && accountId) {
         // Modo edición
-        const result = await updateAccount(accountId, formData);
+        const result = await updateAccount(accountId, cleanedData);
         if (result && onSuccess) {
           onSuccess(result);
         }
       } else {
         // Modo creación
-        const result = await createAccount(formData);
+        const result = await createAccount(cleanedData);
         if (result && onSuccess) {
           onSuccess(result);
         }
       }
     }
   });
-
   const handleInputChange = (field: keyof AccountCreateForm) => 
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-      updateField(field, e.target.value);
+      const value = e.target.value;
+      // Handle optional fields: convert empty string to undefined for cash_flow_category
+      if (field === 'cash_flow_category' && value === '') {
+        updateField(field, undefined);
+      } else {
+        updateField(field, value);
+      }
     };
 
   const handleCheckboxChange = (field: keyof AccountCreateForm) => 
@@ -135,6 +149,17 @@ export const AccountForm: React.FC<AccountFormProps> = ({
       }
     }
   }, [values.account_type, availableCategories, values.category, updateField]);
+  // Suggest cash flow category when account type or category changes
+  useEffect(() => {
+    // Only auto-suggest during initial load if no cash flow category is set
+    // and only if this is not edit mode (to avoid overwriting existing data)
+    if (!isEditMode && !values.cash_flow_category && !initialData?.cash_flow_category) {
+      const suggestedCategory = getDefaultCashFlowCategory(values.account_type, values.category);
+      if (suggestedCategory) {
+        updateField('cash_flow_category', suggestedCategory);
+      }
+    }
+  }, [values.account_type, values.category, isEditMode, initialData?.cash_flow_category, updateField]);
 
   return (
     <Card>      <div className="card-header">
@@ -307,8 +332,37 @@ export const AccountForm: React.FC<AccountFormProps> = ({
                 className="form-checkbox"
               />
               <span className="text-sm text-gray-700">Requiere centro de costo</span>
-            </label>
-          </div>
+            </label>          </div>
+        </div>
+
+        {/* Categoría de Flujo de Efectivo */}
+        <div>
+          <label htmlFor="cash_flow_category" className="form-label">
+            💧 Categoría de Flujo de Efectivo
+          </label>
+          <select
+            id="cash_flow_category"
+            name="cash_flow_category"
+            value={values.cash_flow_category || ''}
+            onChange={handleInputChange('cash_flow_category')}
+            className="form-select"
+          >
+            <option value="">Seleccionar categoría (opcional)</option>
+            {getRecommendedCashFlowCategories(values.account_type).map((category) => (
+              <option key={category} value={category}>
+                {CASH_FLOW_CATEGORY_LABELS[category]}
+              </option>
+            ))}
+          </select>
+          {getFieldError('cash_flow_category') && (
+            <ValidationMessage type="error" message={getFieldError('cash_flow_category')!} />
+          )}
+          <p className="text-sm text-gray-500 mt-1">
+            {values.cash_flow_category && CASH_FLOW_CATEGORY_DESCRIPTIONS[values.cash_flow_category]}
+          </p>
+          <p className="text-xs text-blue-600 mt-1">
+            💡 Esta categorización ayuda en la generación automática del Estado de Flujo de Efectivo
+          </p>
         </div>
 
         {/* Notas */}

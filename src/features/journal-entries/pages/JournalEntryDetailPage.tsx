@@ -9,12 +9,12 @@ import type { JournalEntry } from '../types';
 export const JournalEntryDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  
-  const { 
+    const { 
     approveEntry, 
     postEntry, 
     cancelEntry, 
-    reverseEntry 
+    reverseEntry,
+    restoreEntryToDraft 
   } = useJournalEntries();
 
   const handleEdit = (entry: JournalEntry) => {
@@ -81,6 +81,26 @@ export const JournalEntryDetailPage: React.FC = () => {
         navigate('/journal-entries');
       }
     }
+  };  const handleRestore = async (entry: JournalEntry) => {
+    const confirmed = window.confirm(
+      `¿Está seguro de que desea restaurar el asiento ${entry.number} a estado borrador?\n\nEsto permitirá editar el asiento nuevamente.`
+    );
+
+    if (confirmed) {
+      const reason = window.prompt(
+        `Ingrese una razón para la restauración a borrador (requerido):`
+      );
+      
+      if (!reason || reason.trim() === '') {
+        alert('Debe ingresar una razón para restaurar el asiento a borrador.');
+        return;
+      }
+      
+      const success = await restoreEntryToDraft(entry.id, reason);
+      if (success) {
+        window.location.reload();
+      }
+    }
   };  if (!id) {
     return (
       <>
@@ -140,6 +160,7 @@ export const JournalEntryDetailPage: React.FC = () => {
           onPost={handlePost}
           onCancel={handleCancel}
           onReverse={handleReverse}
+          onRestore={handleRestore}
         />
       </div>
     </>

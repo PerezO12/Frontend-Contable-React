@@ -5,19 +5,21 @@ import { Card } from '../../../components/ui/Card';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useAccounts } from '../hooks';
 import { SimpleExportControls } from './SimpleExportControls';
+import { BulkDeleteModal } from './BulkDeleteModal';
 import { formatCurrency } from '../../../shared/utils';
 import { 
   AccountType, 
   ACCOUNT_TYPE_LABELS, 
   ACCOUNT_CATEGORY_LABELS,
+  CASH_FLOW_CATEGORY_LABELS,
   type Account,
-  type AccountFilters 
+  type AccountFilters,
+  type BulkAccountDeleteResult
 } from '../types';
 
 interface AccountListProps {
   onAccountSelect?: (account: Account) => void;
   onCreateAccount?: () => void;
-  onEditAccount?: (account: Account) => void;
   initialFilters?: AccountFilters;
   showActions?: boolean;
 }
@@ -25,15 +27,14 @@ interface AccountListProps {
 export const AccountList: React.FC<AccountListProps> = ({
   onAccountSelect,
   onCreateAccount,
-  onEditAccount,
   initialFilters,
   showActions = true
-}) => {
-  const [filters, setFilters] = useState<AccountFilters>(initialFilters || {});
+}) => {const [filters, setFilters] = useState<AccountFilters>(initialFilters || {});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
-    const { accounts, loading, error, refetch, refetchWithFilters, deleteAccount } = useAccounts(filters);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const { accounts, loading, error, refetch, refetchWithFilters } = useAccounts(filters);
 
   // Filter accounts based on search term
   const filteredAccounts = useMemo(() => {
@@ -75,32 +76,29 @@ export const AccountList: React.FC<AccountListProps> = ({
     }
     setSelectAll(checked);
   };
-
   // Limpiar selección
   const handleClearSelection = () => {
     setSelectedAccounts(new Set());
     setSelectAll(false);
   };
-  const handleDeleteAccount = async (account: Account) => {
-    const confirmMessage = `⚠️ CONFIRMACIÓN DE ELIMINACIÓN
 
-¿Estás seguro de que deseas eliminar permanentemente la cuenta?
-
-Código: ${account.code}
-Nombre: ${account.name}
-Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
-
-⚠️ ADVERTENCIA: Esta acción es IRREVERSIBLE
-• Se eliminará toda la información de la cuenta
-• No se podrán recuperar los datos
-• Si la cuenta tiene movimientos asociados, la eliminación podría fallar
-
-¿Continuar con la eliminación?`;    if (window.confirm(confirmMessage)) {
-      const success = await deleteAccount(account.id);
-      if (success) {
-        refetch();
-      }
+  // Manejar eliminación masiva
+  const handleBulkDelete = () => {
+    if (selectedAccounts.size === 0) {
+      return;
     }
+    setShowBulkDeleteModal(true);
+  };
+  // Manejar éxito de eliminación masiva
+  const handleBulkDeleteSuccess = (_result: BulkAccountDeleteResult) => {
+    setShowBulkDeleteModal(false);
+    setSelectedAccounts(new Set());
+    setSelectAll(false);
+    refetch(); // Recargar la lista de cuentas
+  };
+  // Obtener cuentas seleccionadas como objetos
+  const getSelectedAccountsObjects = (): Account[] => {
+    return accounts.filter(account => selectedAccounts.has(account.id));
   };
 
   const getAccountTypeColor = (accountType: AccountType) => {
@@ -148,9 +146,8 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
           </div>
         </div>
 
-        <div className="card-body">
-          {/* Filtros optimizados */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="card-body">          {/* Filtros optimizados */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             {/* Búsqueda */}
             <div className="md:col-span-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -182,6 +179,26 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
               </select>
             </div>
 
+            {/* Filtro por categoría de flujo de efectivo */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                💧 Categoría de Flujo
+              </label>
+              <select
+                value={filters.cash_flow_category || ''}
+                onChange={(e) => handleFilterChange('cash_flow_category', e.target.value || undefined)}
+                className="form-select"
+              >
+                <option value="">Todas las categorías</option>
+                {Object.entries(CASH_FLOW_CATEGORY_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+                <option value="__unassigned__">Sin asignar</option>
+              </select>
+            </div>
+
             {/* Filtro por estado */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -197,10 +214,8 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
                 <option value="false">Inactivas</option>
               </select>
             </div>
-          </div>
-
-          {/* Estadísticas rápidas */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          </div>          {/* Estadísticas rápidas */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             <div className="bg-gray-50 p-3 rounded-lg">
               <p className="text-sm text-gray-600">Total Cuentas</p>
               <p className="text-lg font-semibold text-gray-900">{accounts.length}</p>
@@ -218,8 +233,14 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
               </p>
             </div>
             <div className="bg-purple-50 p-3 rounded-lg">
-              <p className="text-sm text-gray-600">Tipos Únicos</p>
+              <p className="text-sm text-gray-600">💧 Con Flujo Asignado</p>
               <p className="text-lg font-semibold text-purple-700">
+                {accounts.filter(a => a.cash_flow_category).length}
+              </p>
+            </div>
+            <div className="bg-indigo-50 p-3 rounded-lg">
+              <p className="text-sm text-gray-600">Tipos Únicos</p>
+              <p className="text-lg font-semibold text-indigo-700">
                 {new Set(accounts.map(a => a.account_type)).size}
               </p>
             </div>
@@ -241,12 +262,19 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
                 <span className="text-sm font-medium text-gray-700">
                   Seleccionar todas ({filteredAccounts.length})
                 </span>
-              </label>
-              {selectedAccounts.size > 0 && (
+              </label>              {selectedAccounts.size > 0 && (
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-blue-600 font-medium">
                     {selectedAccounts.size} cuenta{selectedAccounts.size === 1 ? '' : 's'} seleccionada{selectedAccounts.size === 1 ? '' : 's'}
                   </span>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                    className="text-xs bg-red-600 hover:bg-red-700"
+                  >
+                    🗑️ Eliminar Seleccionadas
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -259,10 +287,12 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
               )}            </div>
             
             {/* Controles de exportación simples */}
-            <SimpleExportControls
-              selectedAccountIds={Array.from(selectedAccounts)}
-              accountCount={selectedAccounts.size}
-            />
+            <div className="flex items-center space-x-2">
+              <SimpleExportControls
+                selectedAccountIds={Array.from(selectedAccounts)}
+                accountCount={selectedAccounts.size}
+              />
+            </div>
           </div>
 
           {loading ? (
@@ -294,15 +324,13 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
                         onChange={(e) => handleSelectAll(e.target.checked)}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Código</th>
+                    </th>                    <th className="text-left py-3 px-4 font-medium text-gray-900">Código</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Nombre</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Tipo</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Categoría</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-900">Saldo</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-900">💧 Flujo</th>                    <th className="text-right py-3 px-4 font-medium text-gray-900">Saldo</th>
                     <th className="text-center py-3 px-4 font-medium text-gray-900">Estado</th>
                     <th className="text-center py-3 px-4 font-medium text-gray-900">Nivel</th>
-                    {showActions && <th className="text-center py-3 px-4 font-medium text-gray-900">Acciones</th>}
                   </tr>
                 </thead>                <tbody className="divide-y divide-gray-200">
                   {filteredAccounts.map((account) => (
@@ -346,14 +374,25 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getAccountTypeColor(account.account_type)}`}>
                           {ACCOUNT_TYPE_LABELS[account.account_type]}
                         </span>
-                      </td>
-                      <td 
+                      </td>                      <td 
                         className="py-3 px-4 cursor-pointer"
                         onClick={() => onAccountSelect?.(account)}
                       >
                         <span className="text-sm text-gray-600">
                           {ACCOUNT_CATEGORY_LABELS[account.category]}
                         </span>
+                      </td>
+                      <td 
+                        className="py-3 px-4 cursor-pointer"
+                        onClick={() => onAccountSelect?.(account)}
+                      >
+                        {account.cash_flow_category ? (
+                          <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                            {CASH_FLOW_CATEGORY_LABELS[account.cash_flow_category]}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">Sin asignar</span>
+                        )}
                       </td>
                       <td 
                         className="py-3 px-4 text-right cursor-pointer"
@@ -379,47 +418,25 @@ Tipo: ${ACCOUNT_TYPE_LABELS[account.account_type]}
                       <td 
                         className="py-3 px-4 text-center cursor-pointer"
                         onClick={() => onAccountSelect?.(account)}
-                      >
-                        <span className="text-sm text-gray-600">
+                      >                        <span className="text-sm text-gray-600">
                           Nivel {account.level}
                         </span>
                       </td>
-                      {showActions && (
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex justify-center space-x-2">
-                            {onEditAccount && (
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onEditAccount(account);
-                                }}
-                                className="text-blue-600 hover:text-blue-700 border-blue-300 hover:border-blue-400"                              >
-                                Editar
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="danger"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteAccount(account);
-                              }}
-                              className="text-red-600 hover:text-red-700 border-red-300 hover:border-red-400"
-                            >
-                              Eliminar
-                            </Button>
-                          </div>
-                        </td>
-                      )}
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-          )}          </div>
+            </div>          )}          </div>
       </Card>
+
+      {/* Modal de eliminación masiva */}
+      {showBulkDeleteModal && (
+        <BulkDeleteModal
+          selectedAccounts={getSelectedAccountsObjects()}
+          onClose={() => setShowBulkDeleteModal(false)}
+          onSuccess={handleBulkDeleteSuccess}
+        />
+      )}
     </div>
   );
 };

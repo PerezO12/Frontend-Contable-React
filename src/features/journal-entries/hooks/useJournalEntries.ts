@@ -8,8 +8,12 @@ import type {
   JournalEntryUpdate,
   JournalEntryFilters,
   JournalEntryStatistics,
-  JournalEntryFormData
+  JournalEntryFormData,
+  BulkJournalEntryDelete,
+  JournalEntryDeleteValidation,
+  BulkJournalEntryDeleteResult
 } from '../types';
+import { JournalEntryStatus } from '../types';
 
 /**
  * Hook principal para gestión de asientos contables
@@ -57,10 +61,9 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
     setCurrentFilters(newFilters);
     await fetchEntries(newFilters);
   }, [fetchEntries]);
-
   const refetch = useCallback(async () => {
     await fetchEntries(currentFilters);
-  }, [fetchEntries, currentFilters]);
+  }, [fetchEntries]);
   const createEntry = useCallback(async (data: JournalEntryCreate): Promise<JournalEntry | null> => {
     setLoading(true);
     setError(null);
@@ -220,7 +223,6 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
       setLoading(false);
     }
   }, [success, showError, emitReversed]);
-
   const searchEntries = useCallback(async (query: string, filters?: JournalEntryFilters) => {
     setLoading(true);
     setError(null);
@@ -242,14 +244,112 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
     } finally {
       setLoading(false);
     }
-  }, [showError]);  useEffect(() => {
-    // Ejecutar solo una vez al montar con los filtros iniciales
-    if (initialFilters) {
-      fetchEntries(initialFilters);
-    } else {
-      fetchEntries();
+  }, [showError]);
+
+  // Validar eliminación masiva
+  const validateDeletion = useCallback(async (entryIds: string[]): Promise<JournalEntryDeleteValidation[]> => {
+    try {
+      return await JournalEntryService.validateDeletion(entryIds);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al validar la eliminación';
+      showError(errorMessage);
+      throw err;
     }
+  }, [showError]);
+
+  // Eliminar asientos masivamente
+  const bulkDeleteEntries = useCallback(async (deleteData: BulkJournalEntryDelete): Promise<BulkJournalEntryDeleteResult> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await JournalEntryService.bulkDeleteEntries(deleteData);
+      
+      // Actualizar la lista removiendo los asientos eliminados exitosamente
+      if (result.deleted_entries.length > 0) {
+        const deletedIds = result.deleted_entries.map(entry => entry.journal_entry_id);
+        setEntries(prev => prev.filter(entry => !deletedIds.includes(entry.id)));
+        
+        // Emitir eventos de eliminación para cada asiento eliminado
+        deletedIds.forEach(id => emitDeleted(id));
+      }
+      
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error en la eliminación masiva';
+      setError(errorMessage);
+      showError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [showError, emitDeleted]);  // Restaurar un asiento contable a borrador
+  const restoreEntryToDraft = useCallback(async (id: string, reason: string): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await JournalEntryService.restoreToDraft(id, reason);
+      
+      // Actualizar el estado del asiento en la lista local
+      setEntries(prev => 
+        prev.map(entry => 
+          entry.id === id ? { ...entry, status: JournalEntryStatus.DRAFT } : entry
+        )
+      );
+      
+      success(`Asiento ${id} restaurado a borrador exitosamente`);
+      return true;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al restaurar asiento a borrador';
+      setError(errorMessage);
+      showError(errorMessage);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [showError, success]);
+
+  // Restaurar múltiples asientos contables a borrador
+  const bulkRestoreToDraft = useCallback(async (entryIds: string[], reason: string) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await JournalEntryService.bulkRestoreToDraft(entryIds, reason);
+      
+      // Actualizar la lista actualizando el estado de los asientos restaurados exitosamente
+      if (result.successful_entries.length > 0) {
+        const restoredIds = result.successful_entries.map(entry => entry.id);
+        
+        setEntries(prev => 
+          prev.map(entry => 
+            restoredIds.includes(entry.id) 
+              ? { ...entry, status: JournalEntryStatus.DRAFT } 
+              : entry
+          )
+        );
+        
+        // Podríamos añadir un evento de restauración si fuera necesario
+      }
+      
+      success(`${result.total_restored} de ${result.total_requested} asientos restaurados a borrador`);
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error en la restauración masiva a borrador';
+      setError(errorMessage);
+      showError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [showError, success]);  useEffect(() => {
+    // Ejecutar solo una vez al montar con los filtros iniciales
+    fetchEntries(initialFilters);
   }, []); // Array vacío para ejecutar solo una vez
+  
+  // No agregamos fetchEntries porque eso causaría re-ejecución innecesaria
+  
   return {
     entries,
     pagination,
@@ -264,7 +364,11 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
     postEntry,
     cancelEntry,
     reverseEntry,
-    searchEntries
+    searchEntries,
+    validateDeletion,
+    bulkDeleteEntries,
+    restoreEntryToDraft,
+    bulkRestoreToDraft
   };
 };
 

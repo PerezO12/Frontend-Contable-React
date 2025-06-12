@@ -12,9 +12,53 @@ Este directorio contiene toda la documentación técnica del sistema contable, o
 - [Endpoints de Autenticación](./auth/auth-endpoints.md) - API de autenticación
 - [Endpoints de Usuarios](./auth/user-endpoints.md) - API de gestión de usuarios
 
+### Sistema de Cuentas Contables
+- [Plan de Cuentas](./accounts/README.md) - Índice del módulo de cuentas
+- [Gestión de Cuentas](./accounts/account-management.md) - CRUD y administración de cuentas
+- [Tipos de Cuentas](./accounts/account-types.md) - Tipos y categorías de cuentas
+- [Estructura del Plan](./accounts/chart-of-accounts.md) - Estructura jerárquica de cuentas
+- [Movimientos](./accounts/account-movements.md) - Gestión de movimientos y saldos
+- [Endpoints de Cuentas](./accounts/account-endpoints.md) - API de gestión de cuentas
+
+### Sistema de Asientos Contables
+- [Índice de Asientos Contables](./journal-entries/README.md) - Índice del módulo de asientos contables
+- [Gestión de Asientos](./journal-entries/journal-entry-management.md) - Modelo y estructura de asientos
+- [Tipos de Asientos](./journal-entries/journal-entry-types.md) - Tipos y estados de asientos
+- [Operaciones de Asientos](./journal-entries/journal-entry-operations.md) - Operaciones y lógica de asientos
+- [Endpoints de Asientos](./journal-entries/journal-entry-endpoints.md) - API de gestión de asientos
+
+### Sistema de Centros de Costo
+- [Índice de Centros de Costo](./cost-centers/README.md) - Visión general del módulo de centros de costo
+- [Gestión de Centros de Costo](./cost-centers/cost-center-management.md) - CRUD y administración de centros de costo
+- [Estructura Jerárquica](./cost-centers/cost-center-hierarchy.md) - Sistema jerárquico y validaciones
+- [Reportes de Rentabilidad](./cost-centers/cost-center-reports.md) - Análisis de rentabilidad y KPIs
+- [Análisis Comparativo](./cost-centers/cost-center-analysis.md) - Comparaciones y benchmarking
+- [Endpoints de Centros de Costo](./cost-centers/cost-center-endpoints.md) - API de gestión y reportes
+
+### Sistema de Terceros
+- [Índice de Terceros](./third-parties/README.md) - Visión general del módulo de terceros
+- [Gestión de Terceros](./third-parties/third-party-management.md) - CRUD de clientes, proveedores y empleados
+- [Estados de Cuenta](./third-parties/third-party-statements.md) - Generación de estados de cuenta
+- [Balances y Antigüedad](./third-parties/third-party-balances.md) - Análisis de saldos y vencimientos
+- [Operaciones Masivas](./third-parties/third-party-operations.md) - Importación y actualización masiva
+- [Endpoints de Terceros](./third-parties/third-party-endpoints.md) - API de gestión de terceros
+
+### Sistema de Importación de Datos
+- [Índice de Importación](./data-import/README.md) - Visión general del sistema de importación
+- [Estructuras de Datos](./data-import/import-data-structures.md) - Modelos y esquemas para importación
+- [Procesos de Importación](./data-import/import-processes.md) - Flujos de trabajo y procesos
+- [Plantillas y Formatos](./data-import/import-templates.md) - Plantillas y formatos soportados
+- [Exportación de Plantillas](./data-import/export-templates.md) - Funcionalidades de exportación de ejemplos y plantillas
+- [API de Importación](./data-import/import-api-endpoints.md) - Endpoints para importación
+
+### Sistema de Exportación de Datos
+- [Índice de Exportación](./export/README.md) - Visión general del sistema de exportación
+- [Servicio de Exportación](./export/export-service.md) - Documentación técnica del servicio principal
+- [API de Exportación](./export/export-endpoints.md) - Endpoints y especificaciones de la API
+- [Esquemas de Datos](./export/export-schemas.md) - Modelos y validaciones de datos
+- [Seguridad y Filtros](./export/export-security.md) - Manejo de datos sensibles y protección
+
 ### Otros Módulos (Para futuras expansiones)
-- [Cuentas Contables](./accounts/) - Gestión del plan de cuentas
-- [Asientos Contables](./journal-entries/) - Sistema de asientos contables
 - [Reportes](./reports/) - Sistema de reportes financieros
 - [Auditoría](./audit/) - Sistema de auditoría y logs
 
@@ -58,7 +102,22 @@ Este directorio contiene toda la documentación técnica del sistema contable, o
 
 ## Últimas Actualizaciones
 
+- **Diciembre 2024** - **SPRINT 2 COMPLETADO** - Sistema de Centros de Costo y Terceros
+  - **Centros de Costo**: Sistema jerárquico completo con análisis de rentabilidad
+  - **Terceros**: Gestión integral de clientes, proveedores y empleados
+  - **Reportes Avanzados**: KPIs, comparaciones, seguimiento presupuestario
+  - **Integración**: Conexión completa con asientos contables
+  - **28 endpoints nuevos** completamente documentados
 - **Junio 2025** - Documentación inicial del sistema de autenticación
-- Sistema de usuarios y roles completamente funcional
-- Endpoints de autenticación documentados
-- Ejemplos de integración incluidos
+  - Sistema de usuarios y roles completamente funcional
+  - Endpoints de autenticación documentados
+  - Ejemplos de integración incluidos
+- **Junio 2025** - Documentación completa del módulo de asientos contables
+  - Modelos, tipos y estados de asientos documentados
+  - Operaciones de asientos (creación, aprobación, contabilización, cancelación, reversión)
+  - Endpoints de API e integración con otros módulos
+- **Junio 2025** - Documentación del sistema de importación de datos
+  - Procesos de importación para cuentas y asientos contables
+  - Plantillas de importación en CSV, XLSX y JSON
+  - API para importación, validación y gestión de datos
+  - Funcionalidad de exportación de plantillas y ejemplos

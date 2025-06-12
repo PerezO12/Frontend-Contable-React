@@ -4,7 +4,7 @@ import { JournalEntryForm } from '../components';
 import { useJournalEntry } from '../hooks';
 import { Spinner } from '../../../components/ui/Spinner';
 import { Card } from '../../../components/ui/Card';
-import type { JournalEntry } from '../types';
+import type { JournalEntry, JournalEntryLine } from '../types';
 
 export const JournalEntryEditPage: React.FC = () => {
   const navigate = useNavigate();
@@ -115,7 +115,7 @@ export const JournalEntryEditPage: React.FC = () => {
           entry_date: entry.entry_date,
           notes: entry.notes,
           external_reference: entry.external_reference,
-          lines: entry.lines.map((line: any) => ({
+          lines: entry.lines.map((line: JournalEntryLine) => ({
             account_id: line.account_id,
             account_code: line.account_code,
             account_name: line.account_name,

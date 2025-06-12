@@ -33,8 +33,7 @@ export const AccountList: React.FC<AccountListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
-  
-  const { accounts, loading, error, refetch, deleteAccount } = useAccounts(filters);
+    const { accounts, loading, error, refetch, refetchWithFilters, deleteAccount } = useAccounts(filters);
 
   // Filter accounts based on search term
   const filteredAccounts = useMemo(() => {
@@ -49,7 +48,7 @@ export const AccountList: React.FC<AccountListProps> = ({
   }, [accounts, searchTerm]);  const handleFilterChange = (key: keyof AccountFilters, value: any) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    refetch();
+    refetchWithFilters(newFilters);
   };
 
   // Manejar selección individual de cuentas

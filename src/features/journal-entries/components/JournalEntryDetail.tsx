@@ -72,10 +72,10 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
       </Card>
     );
   }
-
   const getStatusColor = (status: JournalEntryStatus) => {
     const colors = {
       [JournalEntryStatus.DRAFT]: 'bg-gray-100 text-gray-800',
+      [JournalEntryStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
       [JournalEntryStatus.APPROVED]: 'bg-blue-100 text-blue-800',
       [JournalEntryStatus.POSTED]: 'bg-green-100 text-green-800',
       [JournalEntryStatus.CANCELLED]: 'bg-red-100 text-red-800'
@@ -94,12 +94,12 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
     };
     return colors[type];
   };
-
   const canEdit = entry.status === JournalEntryStatus.DRAFT;
-  const canApprove = entry.status === JournalEntryStatus.DRAFT;
+  const canApprove = entry.status === JournalEntryStatus.DRAFT || entry.status === JournalEntryStatus.PENDING;
   const canPost = entry.status === JournalEntryStatus.APPROVED;
   const canCancel = 
     entry.status === JournalEntryStatus.DRAFT || 
+    entry.status === JournalEntryStatus.PENDING || 
     entry.status === JournalEntryStatus.APPROVED;
   const canReverse = 
     entry.status === JournalEntryStatus.POSTED && 

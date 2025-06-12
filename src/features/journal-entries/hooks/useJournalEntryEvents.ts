@@ -132,7 +132,7 @@ export const useJournalEntryEventEmitter = () => {
 export const useJournalEntryEventListener = (
   eventTypes: JournalEntryEventType[],
   onEvent: (event: JournalEntryEvent) => void,
-  dependencies: any[] = []
+  dependencies: unknown[] = []
 ) => {
   const handleEvent = useCallback(onEvent, [onEvent, ...dependencies]);
 

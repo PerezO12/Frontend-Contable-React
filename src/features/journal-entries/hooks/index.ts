@@ -12,3 +12,5 @@ export {
   useJournalEntryListListener,
   journalEntryEventEmitter
 } from './useJournalEntryEvents';
+
+export { useJournalEntryOperationsWithModal } from './useJournalEntryOperationsWithModal';

@@ -61,14 +61,16 @@ export const JournalEntriesPage: React.FC = () => {
       // El evento se encargará de actualizar el estado automáticamente
     }
   };
-
   const handlePostEntry = async (entry: JournalEntry) => {
     const confirmed = window.confirm(
       `¿Está seguro de que desea contabilizar el asiento ${entry.number}?\n\nEsta acción afectará los saldos de las cuentas contables.`
     );
 
     if (confirmed) {
-      await postEntry(entry.id);
+      const reason = window.prompt(
+        `Ingrese una razón para la contabilización (opcional):`
+      );
+      await postEntry(entry.id, reason || undefined);
       // El evento se encargará de actualizar el estado automáticamente
     }
   };

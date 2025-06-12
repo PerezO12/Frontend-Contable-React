@@ -125,7 +125,7 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
     clearErrors();
   };
 
-  const handleAccountSelect = (index: number, account: any) => {
+  const handleAccountSelect = (index: number, account: { id: string; code: string; name: string }) => {
     const newLines = [...values.lines];
     newLines[index] = {
       ...newLines[index],

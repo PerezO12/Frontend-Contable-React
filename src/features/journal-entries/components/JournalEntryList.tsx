@@ -22,6 +22,11 @@ interface JournalEntryListProps {
   onEditEntry?: (entry: JournalEntry) => void;
   initialFilters?: JournalEntryFilters;
   showActions?: boolean;
+  // Handlers opcionales para operaciones
+  onApproveEntry?: (entry: JournalEntry) => Promise<void> | void;
+  onPostEntry?: (entry: JournalEntry) => Promise<void> | void;
+  onCancelEntry?: (entry: JournalEntry) => Promise<void> | void;
+  onReverseEntry?: (entry: JournalEntry) => Promise<void> | void;
 }
 
 export const JournalEntryList: React.FC<JournalEntryListProps> = ({
@@ -29,7 +34,11 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
   onCreateEntry,
   onEditEntry,
   initialFilters,
-  showActions = true
+  showActions = true,
+  onApproveEntry: externalApproveHandler,
+  onPostEntry: externalPostHandler,
+  onCancelEntry: externalCancelHandler,
+  onReverseEntry: externalReverseHandler
 }) => {
   const [filters, setFilters] = useState<JournalEntryFilters>(initialFilters || {});
   const [searchTerm, setSearchTerm] = useState('');
@@ -70,7 +79,7 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
       entry.created_by_name?.toLowerCase().includes(term)
     );
   }, [entries, searchTerm]);
-  const handleFilterChange = (key: keyof JournalEntryFilters, value: any) => {
+  const handleFilterChange = (key: keyof JournalEntryFilters, value: string | number | undefined) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
     refetchWithFilters(newFilters);
@@ -126,50 +135,65 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
       await deleteEntry(entry.id);
     }
   };
-
   const handleApproveEntry = async (entry: JournalEntry) => {
-    const confirmed = window.confirm(
-      `¿Está seguro de que desea aprobar el asiento contable ${entry.number}?`
-    );
+    if (externalApproveHandler) {
+      await externalApproveHandler(entry);
+    } else {
+      const confirmed = window.confirm(
+        `¿Está seguro de que desea aprobar el asiento contable ${entry.number}?`
+      );
 
-    if (confirmed) {
-      await approveEntry(entry.id);
+      if (confirmed) {
+        await approveEntry(entry.id);
+      }
+    }
+  };  const handlePostEntry = async (entry: JournalEntry) => {
+    if (externalPostHandler) {
+      await externalPostHandler(entry);
+    } else {
+      const confirmed = window.confirm(
+        `¿Está seguro de que desea contabilizar el asiento ${entry.number}?\n\nEsta acción afectará los saldos de las cuentas contables.`
+      );
+
+      if (confirmed) {
+        const reason = window.prompt(
+          `Ingrese una razón para la contabilización (opcional):`
+        );
+        // El reason puede ser null, undefined o string vacío - todos son válidos
+        await postEntry(entry.id, reason || undefined);
+      }
     }
   };
-
-  const handlePostEntry = async (entry: JournalEntry) => {
-    const confirmed = window.confirm(
-      `¿Está seguro de que desea contabilizar el asiento ${entry.number}?\n\nEsta acción afectará los saldos de las cuentas contables.`
-    );
-
-    if (confirmed) {
-      await postEntry(entry.id);
-    }
-  };
-
   const handleCancelEntry = async (entry: JournalEntry) => {
-    const reason = window.prompt(
-      `Ingrese la razón para cancelar el asiento ${entry.number}:`
-    );
+    if (externalCancelHandler) {
+      await externalCancelHandler(entry);
+    } else {
+      const reason = window.prompt(
+        `Ingrese la razón para cancelar el asiento ${entry.number}:`
+      );
 
-    if (reason !== null && reason.trim()) {
-      await cancelEntry(entry.id, reason.trim());
+      if (reason !== null && reason.trim()) {
+        await cancelEntry(entry.id, reason.trim());
+      }
     }
   };
-
   const handleReverseEntry = async (entry: JournalEntry) => {
-    const reason = window.prompt(
-      `Ingrese la razón para crear una reversión del asiento ${entry.number}:`
-    );
+    if (externalReverseHandler) {
+      await externalReverseHandler(entry);
+    } else {
+      const reason = window.prompt(
+        `Ingrese la razón para crear una reversión del asiento ${entry.number}:`
+      );
 
-    if (reason !== null && reason.trim()) {
-      await reverseEntry(entry.id, reason.trim());
+      if (reason !== null && reason.trim()) {
+        await reverseEntry(entry.id, reason.trim());
+      }
     }
   };
-
   const getStatusColor = (status: JournalEntryStatus) => {
     const colors = {
       [JournalEntryStatus.DRAFT]: 'bg-gray-100 text-gray-800',
+      [JournalEntryStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
       [JournalEntryStatus.APPROVED]: 'bg-blue-100 text-blue-800',
       [JournalEntryStatus.POSTED]: 'bg-green-100 text-green-800',
       [JournalEntryStatus.CANCELLED]: 'bg-red-100 text-red-800'
@@ -188,13 +212,12 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
     };
     return colors[type];
   };
-
   const canEdit = (entry: JournalEntry) => entry.status === JournalEntryStatus.DRAFT;
   const canDelete = (entry: JournalEntry) => entry.status === JournalEntryStatus.DRAFT;
-  const canApprove = (entry: JournalEntry) => entry.status === JournalEntryStatus.DRAFT;
+  const canApprove = (entry: JournalEntry) => entry.status === JournalEntryStatus.DRAFT || entry.status === JournalEntryStatus.PENDING;
   const canPost = (entry: JournalEntry) => entry.status === JournalEntryStatus.APPROVED;
   const canCancel = (entry: JournalEntry) => 
-    entry.status === JournalEntryStatus.DRAFT || entry.status === JournalEntryStatus.APPROVED;
+    entry.status === JournalEntryStatus.DRAFT || entry.status === JournalEntryStatus.PENDING || entry.status === JournalEntryStatus.APPROVED;
   const canReverse = (entry: JournalEntry) => 
     entry.status === JournalEntryStatus.POSTED && entry.entry_type !== JournalEntryType.REVERSAL;
 
@@ -321,7 +344,7 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
               />
             </div>
           </div>          {/* Estadísticas rápidas */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             <div className="bg-gray-50 p-3 rounded-lg">
               <p className="text-sm text-gray-600">Total</p>
               <p className="text-lg font-semibold text-gray-900">{pagination.total}</p>
@@ -332,6 +355,12 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                 {entries.filter(e => e.status === JournalEntryStatus.DRAFT).length}
               </p>
             </div>
+            <div className="bg-yellow-50 p-3 rounded-lg">
+              <p className="text-sm text-gray-600">Pendientes</p>
+              <p className="text-lg font-semibold text-yellow-700">
+                {entries.filter(e => e.status === JournalEntryStatus.PENDING).length}
+              </p>
+            </div>
             <div className="bg-green-50 p-3 rounded-lg">
               <p className="text-sm text-gray-600">Contabilizados</p>
               <p className="text-lg font-semibold text-green-700">
@@ -339,7 +368,7 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
               </p>
             </div>
             <div className="bg-orange-50 p-3 rounded-lg">
-              <p className="text-sm text-gray-600">Pendientes</p>
+              <p className="text-sm text-gray-600">Aprobados</p>
               <p className="text-lg font-semibold text-orange-700">
                 {entries.filter(e => e.status === JournalEntryStatus.APPROVED).length}
               </p>

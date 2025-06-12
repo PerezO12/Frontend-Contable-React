@@ -3,3 +3,5 @@ export { JournalEntryForm } from './JournalEntryForm';
 export { JournalEntryDetail } from './JournalEntryDetail';
 export { JournalEntryErrorBoundary, useJournalEntryErrorBoundary } from './JournalEntryErrorBoundary';
 export { SimpleJournalEntryExportControls } from './SimpleJournalEntryExportControls';
+export { ReasonModal } from './ReasonModal';
+export { JournalEntryListWithModals } from './JournalEntryListWithModals';

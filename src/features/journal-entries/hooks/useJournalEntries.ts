@@ -123,26 +123,22 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
       setLoading(false);
     }
   }, [success, showError, emitDeleted]);
-
   const approveEntry = useCallback(async (id: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await JournalEntryService.approveJournalEntry(id);
-      if (response.success && response.journal_entry) {
-        // Actualizar estado local inmediatamente
-        setEntries(prev => prev.map(entry => 
-          entry.id === id ? response.journal_entry! : entry
-        ));
-        success(response.message || 'Asiento contable aprobado exitosamente');
-        
-        // Emitir evento de aprobación para actualización en tiempo real
-        emitApproved(id, response.journal_entry);
-        
-        return true;
-      }
-      return false;
+      const updatedEntry = await JournalEntryService.approveJournalEntry(id);
+      // Actualizar estado local inmediatamente
+      setEntries(prev => prev.map(entry => 
+        entry.id === id ? updatedEntry : entry
+      ));
+      success('Asiento contable aprobado exitosamente');
+      
+      // Emitir evento de aprobación para actualización en tiempo real
+      emitApproved(id, updatedEntry);
+      
+      return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al aprobar el asiento contable';
       setError(errorMessage);
@@ -152,26 +148,22 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
       setLoading(false);
     }
   }, [success, showError, emitApproved]);
-
-  const postEntry = useCallback(async (id: string): Promise<boolean> => {
+  const postEntry = useCallback(async (id: string, reason?: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await JournalEntryService.postJournalEntry(id);
-      if (response.success && response.journal_entry) {
-        // Actualizar estado local inmediatamente
-        setEntries(prev => prev.map(entry => 
-          entry.id === id ? response.journal_entry! : entry
-        ));
-        success(response.message || 'Asiento contable contabilizado exitosamente');
-        
-        // Emitir evento de contabilización para actualización en tiempo real
-        emitPosted(id, response.journal_entry);
-        
-        return true;
-      }
-      return false;
+      const updatedEntry = await JournalEntryService.postJournalEntry(id, reason);
+      // Actualizar estado local inmediatamente
+      setEntries(prev => prev.map(entry => 
+        entry.id === id ? updatedEntry : entry
+      ));
+      success('Asiento contable contabilizado exitosamente');
+      
+      // Emitir evento de contabilización para actualización en tiempo real
+      emitPosted(id, updatedEntry);
+      
+      return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al contabilizar el asiento contable';
       setError(errorMessage);
@@ -181,26 +173,22 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
       setLoading(false);
     }
   }, [success, showError, emitPosted]);
-
-  const cancelEntry = useCallback(async (id: string, reason?: string): Promise<boolean> => {
+  const cancelEntry = useCallback(async (id: string, reason: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await JournalEntryService.cancelJournalEntry(id, reason);
-      if (response.success && response.journal_entry) {
-        // Actualizar estado local inmediatamente
-        setEntries(prev => prev.map(entry => 
-          entry.id === id ? response.journal_entry! : entry
-        ));
-        success(response.message || 'Asiento contable cancelado exitosamente');
-        
-        // Emitir evento de cancelación para actualización en tiempo real
-        emitCancelled(id, response.journal_entry);
-        
-        return true;
-      }
-      return false;
+      const updatedEntry = await JournalEntryService.cancelJournalEntry(id, reason);
+      // Actualizar estado local inmediatamente
+      setEntries(prev => prev.map(entry => 
+        entry.id === id ? updatedEntry : entry
+      ));
+      success('Asiento contable cancelado exitosamente');
+      
+      // Emitir evento de cancelación para actualización en tiempo real
+      emitCancelled(id, updatedEntry);
+      
+      return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cancelar el asiento contable';
       setError(errorMessage);
@@ -209,24 +197,20 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
     } finally {
       setLoading(false);
     }
-  }, [success, showError, emitCancelled]);
-  const reverseEntry = useCallback(async (id: string, reason?: string): Promise<boolean> => {
+  }, [success, showError, emitCancelled]);  const reverseEntry = useCallback(async (id: string, reason: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await JournalEntryService.reverseJournalEntry(id, reason);
-      if (response.success) {
-        // En lugar de refrescar toda la lista, simplemente emitimos el evento
-        // y dejamos que el sistema de eventos maneje la actualización
-        success(response.message || 'Asiento de reversión creado exitosamente');
-        
-        // Emitir evento de reversión
-        emitReversed(id);
-        
-        return true;
-      }
-      return false;
+      const reversalEntry = await JournalEntryService.reverseJournalEntry(id, reason);
+      // En lugar de refrescar toda la lista, simplemente emitimos el evento
+      // y dejamos que el sistema de eventos maneje la actualización
+      success('Asiento de reversión creado exitosamente');
+      
+      // Emitir evento de reversión
+      emitReversed(id, reversalEntry);
+      
+      return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al crear la reversión';
       setError(errorMessage);

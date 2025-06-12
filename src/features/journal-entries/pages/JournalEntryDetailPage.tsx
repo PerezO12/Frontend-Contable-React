@@ -38,14 +38,16 @@ export const JournalEntryDetailPage: React.FC = () => {
       }
     }
   };
-
   const handlePost = async (entry: JournalEntry) => {
     const confirmed = window.confirm(
       `¿Está seguro de que desea contabilizar el asiento ${entry.number}?\n\nEsta acción afectará los saldos de las cuentas contables.`
     );
 
     if (confirmed) {
-      const success = await postEntry(entry.id);
+      const reason = window.prompt(
+        `Ingrese una razón para la contabilización (opcional):`
+      );
+      const success = await postEntry(entry.id, reason || undefined);
       if (success) {
         // Refresh the page to show updated status
         window.location.reload();

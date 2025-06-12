@@ -6,8 +6,7 @@ import type {
   JournalEntryUpdate,
   JournalEntryFilters,
   JournalEntryListResponse,
-  JournalEntryStatistics,
-  JournalEntryOperationResponse
+  JournalEntryStatistics
 } from '../types';
 
 /**
@@ -60,7 +59,6 @@ export class JournalEntryService {
       throw error;
     }
   }
-
   /**
    * Obtener un asiento contable por número
    */
@@ -68,7 +66,7 @@ export class JournalEntryService {
     console.log('Obteniendo asiento contable por número:', number);
     
     try {
-      const response = await apiClient.get<JournalEntry>(`${this.BASE_URL}/by-number/${number}`);
+      const response = await apiClient.get<JournalEntry>(`${this.BASE_URL}/by-number/${encodeURIComponent(number)}`);
       console.log('Asiento contable obtenido:', response.data);
       return response.data;
     } catch (error) {
@@ -123,15 +121,14 @@ export class JournalEntryService {
       throw error;
     }
   }
-
   /**
    * Aprobar un asiento contable
    */
-  static async approveJournalEntry(id: string): Promise<JournalEntryOperationResponse> {
+  static async approveJournalEntry(id: string): Promise<JournalEntry> {
     console.log('Aprobando asiento contable:', id);
     
     try {
-      const response = await apiClient.post<JournalEntryOperationResponse>(`${this.BASE_URL}/${id}/approve`);
+      const response = await apiClient.post<JournalEntry>(`${this.BASE_URL}/${id}/approve`);
       console.log('Asiento contable aprobado:', response.data);
       return response.data;
     } catch (error) {
@@ -139,15 +136,17 @@ export class JournalEntryService {
       throw error;
     }
   }
-
   /**
    * Contabilizar un asiento contable
    */
-  static async postJournalEntry(id: string): Promise<JournalEntryOperationResponse> {
-    console.log('Contabilizando asiento contable:', id);
+  static async postJournalEntry(id: string, reason?: string): Promise<JournalEntry> {
+    console.log('Contabilizando asiento contable:', id, 'Razón:', reason);
     
     try {
-      const response = await apiClient.post<JournalEntryOperationResponse>(`${this.BASE_URL}/${id}/post`);
+      const response = await apiClient.post<JournalEntry>(
+        `${this.BASE_URL}/${id}/post`,
+        reason ? { reason } : {}
+      );
       console.log('Asiento contable contabilizado:', response.data);
       return response.data;
     } catch (error) {
@@ -155,15 +154,14 @@ export class JournalEntryService {
       throw error;
     }
   }
-
   /**
    * Cancelar un asiento contable
    */
-  static async cancelJournalEntry(id: string, reason?: string): Promise<JournalEntryOperationResponse> {
+  static async cancelJournalEntry(id: string, reason: string): Promise<JournalEntry> {
     console.log('Cancelando asiento contable:', id, 'Razón:', reason);
     
     try {
-      const response = await apiClient.post<JournalEntryOperationResponse>(
+      const response = await apiClient.post<JournalEntry>(
         `${this.BASE_URL}/${id}/cancel`,
         { reason }
       );
@@ -174,17 +172,15 @@ export class JournalEntryService {
       throw error;
     }
   }
-
   /**
    * Crear asiento de reversión
    */
-  static async reverseJournalEntry(id: string, reason?: string): Promise<JournalEntryOperationResponse> {
+  static async reverseJournalEntry(id: string, reason: string): Promise<JournalEntry> {
     console.log('Creando reversión de asiento contable:', id, 'Razón:', reason);
     
     try {
-      const response = await apiClient.post<JournalEntryOperationResponse>(
-        `${this.BASE_URL}/${id}/reverse`,
-        { reason }
+      const response = await apiClient.post<JournalEntry>(
+        `${this.BASE_URL}/${id}/reverse?reason=${encodeURIComponent(reason)}`
       );
       console.log('Asiento de reversión creado:', response.data);
       return response.data;
@@ -252,7 +248,6 @@ export class JournalEntryService {
       throw error;
     }
   }
-
   /**
    * Crear múltiples asientos contables en lote
    */
@@ -262,7 +257,7 @@ export class JournalEntryService {
     try {
       const response = await apiClient.post<JournalEntry[]>(
         `${this.BASE_URL}/bulk-create`,
-        { entries }
+        entries
       );
       console.log('Asientos contables creados en lote:', response.data);
       return response.data;

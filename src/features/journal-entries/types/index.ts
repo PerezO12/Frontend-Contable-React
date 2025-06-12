@@ -14,6 +14,7 @@ export type JournalEntryType = typeof JournalEntryType[keyof typeof JournalEntry
 
 export const JournalEntryStatus = {
   DRAFT: 'draft',
+  PENDING: 'pending',
   APPROVED: 'approved',
   POSTED: 'posted',
   CANCELLED: 'cancelled'
@@ -134,7 +135,7 @@ export const journalEntryFiltersSchema = z.object({
   skip: z.number().min(0).optional(),
   limit: z.number().min(1).max(1000).optional(),
   entry_type: z.enum(['manual', 'automatic', 'adjustment', 'opening', 'closing', 'reversal']).optional(),
-  status: z.enum(['draft', 'approved', 'posted', 'cancelled']).optional(),
+  status: z.enum(['draft', 'pending', 'approved', 'posted', 'cancelled']).optional(),
   date_from: z.string().optional(),
   date_to: z.string().optional(),
   search: z.string().optional(),
@@ -184,6 +185,7 @@ export const JOURNAL_ENTRY_TYPE_LABELS: Record<JournalEntryType, string> = {
 
 export const JOURNAL_ENTRY_STATUS_LABELS: Record<JournalEntryStatus, string> = {
   [JournalEntryStatus.DRAFT]: 'Borrador',
+  [JournalEntryStatus.PENDING]: 'Pendiente',
   [JournalEntryStatus.APPROVED]: 'Aprobado',
   [JournalEntryStatus.POSTED]: 'Contabilizado',
   [JournalEntryStatus.CANCELLED]: 'Cancelado'

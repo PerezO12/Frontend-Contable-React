@@ -454,8 +454,7 @@ export class JournalEntryService {
 
   /**
    * Restaurar múltiples asientos contables a estado borrador
-   */
-  static async bulkRestoreToDraft(entryIds: string[], reason: string): Promise<{
+   */  static async bulkRestoreToDraft(entryIds: string[], reason: string): Promise<{
     total_requested: number;
     total_restored: number;
     total_failed: number;
@@ -469,17 +468,48 @@ export class JournalEntryService {
     }
 
     try {
+      // Asegurarnos de que los IDs se envían correctamente según la convención del API
+      const payload = {
+        entry_ids: entryIds,
+        reason,
+        operation: "restore_to_draft" // Agregar operación explícitamente
+      };
+      console.log('Payload para restauración:', payload);
+      
+      try {
+        // Verificar que el formato del payload es correcto antes de enviar
+        if (!Array.isArray(payload.entry_ids)) {
+          console.error('Error: entry_ids no es un array', payload.entry_ids);
+          throw new Error('Formato de IDs inválido');
+        }
+        
+        payload.entry_ids.forEach((id, index) => {
+          if (typeof id !== 'string' || !id) {
+            console.error(`Error en ID #${index}:`, id);
+          }
+        });
+      } catch (validationError) {
+        console.error('Error de validación del payload:', validationError);
+        throw validationError;
+      }
+      
       const response = await apiClient.post(
         `${this.BASE_URL}/bulk-restore-to-draft`,
-        {
-          entry_ids: entryIds,
-          reason
-        }
+        payload
       );
       console.log('Restauración masiva completada:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('Error en restauración masiva:', error);
+      
+      // Información detallada del error para mejor diagnóstico
+      if (error.response) {
+        console.error('Respuesta del servidor:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data
+        });
+      }
       
       // Si el endpoint no está implementado (404, 422, 501), crear respuesta mock
       if (error.response?.status === 422 || error.response?.status === 404 || error.response?.status === 501) {

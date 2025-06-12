@@ -21,12 +21,17 @@ export const useCostCenters = (initialFilters?: CostCenterFilters) => {
   const fetchCostCenters = useCallback(async (filters?: CostCenterFilters) => {
     setLoading(true);
     setError(null);
-    
-    try {
+      try {
       const filtersToUse = filters || currentFilters;
+      console.log('🏢📡 Obteniendo centros de costo con filtros:', filtersToUse);
       const response = await CostCenterService.getCostCenters(filtersToUse);
+      console.log('🏢📥 Respuesta del servicio getCostCenters:', response);
+      console.log('🏢📊 Datos recibidos:', response.data);
+      console.log('🏢🔢 Total:', response.total);
+      
       setCostCenters(response.data);
       setTotal(response.total);
+      console.log('🏢✅ Estado actualizado - centros:', response.data.length, 'total:', response.total);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar los centros de costo';
       setError(errorMessage);
@@ -44,18 +49,43 @@ export const useCostCenters = (initialFilters?: CostCenterFilters) => {
   const refetch = useCallback(async () => {
     await fetchCostCenters(currentFilters);
   }, [fetchCostCenters, currentFilters]);
-
   const createCostCenter = useCallback(async (costCenterData: CostCenterCreate): Promise<CostCenter | null> => {
     setLoading(true);
     setError(null);
     
     try {
+      console.log('🏢 Intentando crear centro de costo:', costCenterData);
       const newCostCenter = await CostCenterService.createCostCenter(costCenterData);
+      console.log('🏢✅ Centro de costo creado exitosamente:', newCostCenter);
       setCostCenters(prev => [...prev, newCostCenter]);
       success('Centro de costo creado exitosamente');
       return newCostCenter;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al crear el centro de costo';
+      console.log('🏢❌ Error al crear centro de costo:', err);
+      console.log('🏢📝 Datos enviados:', costCenterData);
+      
+      let errorMessage = 'Error al crear el centro de costo';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+        console.log('🏢📋 Mensaje de error:', err.message);
+      }
+      
+      // Si hay response data del servidor, mostrarlo también
+      if ((err as any)?.response?.data) {
+        console.log('🏢🔍 Detalles del servidor:', JSON.stringify((err as any).response.data, null, 2));
+        
+        // Si es un error 422, intentar extraer los detalles de validación
+        if ((err as any)?.response?.status === 422) {
+          const details = (err as any).response.data.detail;
+          if (Array.isArray(details)) {
+            console.log('🏢⚠️ Errores de validación:');
+            details.forEach((detail: any, index: number) => {
+              console.log(`  ${index + 1}. Campo: ${detail.loc?.join('.')}, Error: ${detail.msg}`);
+            });
+          }
+        }
+      }
+      
       setError(errorMessage);
       showError(errorMessage);
       return null;

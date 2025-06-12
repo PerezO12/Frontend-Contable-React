@@ -8,3 +8,4 @@ export * from './CostCenterExportModal';
 export * from './SimpleCostCenterExportControls';
 export * from './CostCenterSelector';
 export * from './CostCenterStats';
+export * from './CostCenterDebugTest';

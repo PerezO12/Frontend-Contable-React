@@ -27,17 +27,39 @@ export const CostCenterList: React.FC<CostCenterListProps> = ({
   const [selectAll, setSelectAll] = useState(false);
   
   const { costCenters = [], total = 0, loading, error, refetch, refetchWithFilters, deleteCostCenter } = useCostCenters(filters);
+  
+  // Logging para debug - ver qué datos está recibiendo el componente
+  console.log('🏢🖥️ CostCenterList - Datos recibidos del hook:');
+  console.log('  - costCenters:', costCenters);
+  console.log('  - costCenters.length:', costCenters?.length);
+  console.log('  - total:', total);
+  console.log('  - loading:', loading);
+  console.log('  - error:', error);
+  
   // Filter cost centers based on search term
   const filteredCostCenters = useMemo(() => {
-    if (!costCenters) return [];
-    if (!searchTerm) return costCenters;
+    console.log('🏢🔍 Filtrando centros de costo:');
+    console.log('  - costCenters input:', costCenters);
+    console.log('  - searchTerm:', searchTerm);
+    
+    if (!costCenters) {
+      console.log('  - No hay costCenters, retornando array vacío');
+      return [];
+    }
+    if (!searchTerm) {
+      console.log('  - No hay searchTerm, retornando todos:', costCenters.length);
+      return costCenters;
+    }
     
     const term = searchTerm.toLowerCase();
-    return costCenters.filter(costCenter =>
+    const filtered = costCenters.filter(costCenter =>
       costCenter.code.toLowerCase().includes(term) ||
       costCenter.name.toLowerCase().includes(term) ||
       costCenter.description?.toLowerCase().includes(term)
     );
+    
+    console.log('  - Resultado filtrado:', filtered.length);
+    return filtered;
   }, [costCenters, searchTerm]);
 
   const handleFilterChange = (key: keyof CostCenterFilters, value: any) => {
@@ -261,14 +283,13 @@ Nivel: ${costCenter.level}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm font-medium text-gray-700">
-                  Seleccionar todos ({filteredCostCenters.length})
+                  {selectedCostCenters.size > 0 
+                    ? `${selectedCostCenters.size} centro${selectedCostCenters.size === 1 ? '' : 's'} seleccionado${selectedCostCenters.size === 1 ? '' : 's'}`
+                    : `Seleccionar todos (${filteredCostCenters.length})`}
                 </span>
               </label>
               {selectedCostCenters.size > 0 && (
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-blue-600 font-medium">
-                    {selectedCostCenters.size} centro{selectedCostCenters.size === 1 ? '' : 's'} seleccionado{selectedCostCenters.size === 1 ? '' : 's'}
-                  </span>
                   <Button
                     variant="ghost"
                     size="sm"

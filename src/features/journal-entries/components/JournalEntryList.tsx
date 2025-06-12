@@ -413,16 +413,14 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                       checked={selectAll}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <label className="ml-2 text-sm text-gray-700">
-                      Seleccionar todos ({filteredEntries.length})
+                    />                    <label className="ml-2 text-sm text-gray-700">
+                      {selectedEntries.size > 0 
+                        ? `${selectedEntries.size} asiento${selectedEntries.size !== 1 ? 's' : ''} seleccionado${selectedEntries.size !== 1 ? 's' : ''}`
+                        : `Seleccionar todos (${filteredEntries.length})`}
                     </label>
                   </div>
                   {selectedEntries.size > 0 && (
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600">
-                        {selectedEntries.size} asiento{selectedEntries.size !== 1 ? 's' : ''} seleccionado{selectedEntries.size !== 1 ? 's' : ''}
-                      </span>
                       <Button
                         size="sm"
                         variant="secondary"

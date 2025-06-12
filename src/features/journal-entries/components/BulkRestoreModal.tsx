@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { Spinner } from '../../../components/ui/Spinner';
 import { Modal } from '../../../components/ui/Modal';
@@ -32,7 +32,20 @@ export const BulkRestoreModal: React.FC<BulkRestoreModalProps> = ({
   const [restoreReason, setRestoreReason] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [restoreResult, setRestoreResult] = useState<any>(null);
+  
+  // Log para depurar los IDs recibidos
+  console.log('BulkRestoreModal - IDs recibidos:', selectedEntryIds);
 
+  // Resetear estado cuando se abre el modal
+  useEffect(() => {
+    if (isOpen) {
+      setError(null);
+      setRestoreReason('');
+      setShowResults(false);
+      setRestoreResult(null);
+    }
+  }, [isOpen]);
+  
   // Manejar la restauración masiva
   const handleRestore = async () => {
     if (!restoreReason.trim()) {
@@ -40,14 +53,36 @@ export const BulkRestoreModal: React.FC<BulkRestoreModalProps> = ({
       return;
     }
 
+    // Verificar si hay IDs seleccionados
+    if (!selectedEntryIds || selectedEntryIds.length === 0) {
+      setError('No hay asientos seleccionados para restaurar');
+      return;
+    }
+
+    console.log('BulkRestoreModal - Iniciando restauración para IDs:', selectedEntryIds);
+    
     setLoading(true);
     setError(null);
     
     try {
+      // Validación adicional de los IDs antes de llamar al servicio
+      const cleanedIds = selectedEntryIds.filter(id => typeof id === 'string' && id.trim() !== '');
+      
+      if (cleanedIds.length === 0) {
+        throw new Error('No hay IDs válidos para restaurar');
+      }
+      
+      if (cleanedIds.length !== selectedEntryIds.length) {
+        console.warn(`Se filtraron ${selectedEntryIds.length - cleanedIds.length} IDs inválidos`);
+      }
+      
+      // Llamar a la función de restauración con los IDs verificados
       const result = await onBulkRestore(
-        selectedEntryIds,
+        cleanedIds,
         restoreReason.trim()
       );
+      
+      console.log('BulkRestoreModal - Resultado de la restauración:', result);
       
       setRestoreResult(result);
       setShowResults(true);
@@ -56,6 +91,7 @@ export const BulkRestoreModal: React.FC<BulkRestoreModalProps> = ({
         onSuccess(result);
       }
     } catch (err) {
+      console.error('Error al restaurar asientos:', err);
       setError(err instanceof Error ? err.message : 'Error al restaurar asientos');
     } finally {
       setLoading(false);
@@ -64,7 +100,8 @@ export const BulkRestoreModal: React.FC<BulkRestoreModalProps> = ({
 
   // Renderizar contenido del modal según el estado actual
   const renderContent = () => {
-    if (loading) {      return (
+    if (loading) {
+      return (
         <div className="flex flex-col items-center justify-center p-6">
           <Spinner size="md" />
           <p className="mt-4 text-gray-600">Restaurando asientos contables...</p>
@@ -129,7 +166,8 @@ export const BulkRestoreModal: React.FC<BulkRestoreModalProps> = ({
   };
 
   // Renderizar resultados de la restauración
-  const renderResults = () => {    if (!restoreResult) return null;
+  const renderResults = () => {
+    if (!restoreResult) return null;
     
     const { total_requested, total_restored, total_failed, failed_entries } = restoreResult;
     
@@ -156,7 +194,8 @@ export const BulkRestoreModal: React.FC<BulkRestoreModalProps> = ({
         
         {failed_entries.length > 0 && (
           <div className="mb-4">
-            <h3 className="font-medium mb-2">Asientos que no pudieron restaurarse:</h3>            <ul className="list-disc pl-5 space-y-1">
+            <h3 className="font-medium mb-2">Asientos que no pudieron restaurarse:</h3>
+            <ul className="list-disc pl-5 space-y-1">
               {failed_entries.map((entry: { id: string; error: string }) => (
                 <li key={entry.id} className="text-red-600">
                   {entry.id}: {entry.error}

@@ -38,8 +38,7 @@ apiClient.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
-    // Logging detallado para requests de importación
+      // Logging detallado para requests de importación
     if (config.url?.includes('/import/')) {
       console.log('🌐 === INTERCEPTOR REQUEST ===');
       console.log('📍 URL:', config.url);
@@ -60,6 +59,16 @@ apiClient.interceptors.request.use(
       }
       console.log('⏱️ Timeout:', config.timeout);
     }
+
+    // Logging detallado para requests de centros de costo
+    if (config.url?.includes('/cost-centers')) {
+      console.log('🏢 === COST CENTER REQUEST ===');
+      console.log('📍 URL:', config.url);
+      console.log('🔧 Method:', config.method?.toUpperCase());
+      console.log('📋 Headers:', config.headers);
+      console.log('📄 Data:', config.data);
+      console.log('⏱️ Timeout:', config.timeout);
+    }
     
     return config;
   },
@@ -70,7 +79,7 @@ apiClient.interceptors.request.use(
 );
 
 // Interceptor de response: manejar token expirado y logging
-apiClient.interceptors.response.use(
+apiClient.interceptors.response.use(  
   (response: AxiosResponse) => {
     // Logging detallado para responses de importación
     if (response.config.url?.includes('/import/')) {
@@ -80,10 +89,19 @@ apiClient.interceptors.response.use(
       console.log('📋 Headers:', response.headers);
       console.log('📄 Data:', response.data);
     }
+
+    // Logging detallado para responses de centros de costo
+    if (response.config.url?.includes('/cost-centers')) {
+      console.log('🏢 === COST CENTER RESPONSE ===');
+      console.log('📍 URL:', response.config.url);
+      console.log('✅ Status:', response.status);
+      console.log('📋 Headers:', response.headers);
+      console.log('📄 Data:', response.data);
+    }
+
     return response;
   },
-  async (error: AxiosError) => {
-    // Logging de errores para importación
+  async (error: AxiosError) => {    // Logging de errores para importación
     if (error.config?.url?.includes('/import/')) {
       console.log('❌ === INTERCEPTOR ERROR ===');
       console.log('📍 URL:', error.config.url);
@@ -92,6 +110,19 @@ apiClient.interceptors.response.use(
         console.log('📊 Status:', error.response.status);
         console.log('📋 Headers:', error.response.headers);
         console.log('📄 Data:', error.response.data);
+      }
+    }
+
+    // Logging de errores para centros de costo
+    if (error.config?.url?.includes('/cost-centers')) {
+      console.log('🏢❌ === COST CENTER ERROR ===');
+      console.log('📍 URL:', error.config.url);
+      console.log('🔥 Error:', error.message);
+      if (error.response) {
+        console.log('📊 Status:', error.response.status);
+        console.log('📋 Headers:', error.response.headers);
+        console.log('📄 Data:', error.response.data);
+        console.log('📝 Detail:', JSON.stringify(error.response.data, null, 2));
       }
     }
 

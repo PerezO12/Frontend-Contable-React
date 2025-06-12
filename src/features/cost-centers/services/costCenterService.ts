@@ -44,10 +44,27 @@ export class CostCenterService {
       if (filters.created_before) params.append('created_before', filters.created_before);
       if (filters.order_by) params.append('order_by', filters.order_by);
       if (filters.order_desc !== undefined) params.append('order_desc', filters.order_desc.toString());
-    }
-
-    const url = params.toString() ? `${this.BASE_URL}?${params}` : this.BASE_URL;
+    }    const url = params.toString() ? `${this.BASE_URL}?${params}` : this.BASE_URL;
     const response = await apiClient.get(url);
+    
+    // Logging para debug - verificar estructura de respuesta
+    console.log('🏢🔍 Respuesta del servidor getCostCenters:', response.data);
+    console.log('🏢📋 Estructura esperada vs recibida:');
+    console.log('  - Esperado: {data, total, skip, limit}');
+    console.log('  - Recibido:', Object.keys(response.data));
+    
+    // Manejar diferentes estructuras de respuesta del servidor
+    if (response.data.items) {
+      // Si el servidor devuelve "items" en lugar de "data"
+      console.log('🏢⚠️ Servidor devuelve "items", adaptando respuesta...');
+      return {
+        data: response.data.items,
+        total: response.data.total,
+        skip: response.data.skip,
+        limit: response.data.limit
+      };
+    }
+    
     return response.data;
   }
 

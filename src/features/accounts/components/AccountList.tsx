@@ -258,15 +258,13 @@ export const AccountList: React.FC<AccountListProps> = ({
                   checked={selectAll && filteredAccounts.length > 0}
                   onChange={(e) => handleSelectAll(e.target.checked)}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-gray-700">
-                  Seleccionar todas ({filteredAccounts.length})
+                />                <span className="text-sm font-medium text-gray-700">
+                  {selectedAccounts.size > 0 
+                    ? `${selectedAccounts.size} cuenta${selectedAccounts.size === 1 ? '' : 's'} seleccionada${selectedAccounts.size === 1 ? '' : 's'}`
+                    : `Seleccionar todas (${filteredAccounts.length})`}
                 </span>
               </label>              {selectedAccounts.size > 0 && (
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-blue-600 font-medium">
-                    {selectedAccounts.size} cuenta{selectedAccounts.size === 1 ? '' : 's'} seleccionada{selectedAccounts.size === 1 ? '' : 's'}
-                  </span>
                   <Button
                     variant="danger"
                     size="sm"

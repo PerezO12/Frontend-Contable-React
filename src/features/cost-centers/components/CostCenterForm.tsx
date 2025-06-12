@@ -83,45 +83,59 @@ export const CostCenterForm: React.FC<CostCenterFormProps> = ({
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
       setLoading2(true);
       try {
         if (isEditing) {
-          // For editing, only include updatable fields
+          // For editing, only include updatable fields          
           const updateData: CostCenterUpdate = {
             name: values.name,
             description: values.description,
-            parent_id: values.parent_id,
+            parent_id: values.parent_id || undefined, // Convertir string vacío a undefined
             is_active: values.is_active
           };
+          console.log('🏢📝 Datos de actualización preparados:', updateData);
           await onSubmit(updateData);        } else {
           // For creating, check for duplicate codes first
           const code = (values as any).code?.toUpperCase();
           
+          console.log('🏢🔍 Validando código duplicado:', code);
+          console.log('🏢📋 Códigos existentes:', costCenters?.map(cc => cc.code));
+          
           // Simple client-side check (you may want to add a server-side check later)
           if (costCenters?.some(cc => cc.code === code)) {
+            console.log('🏢❌ Código duplicado detectado en cliente:', code);
             setErrors({ code: 'Este código ya está en uso' });
             setLoading2(false);
             return;
           }
-          
-          const createData: CostCenterCreate = {
+            const createData: CostCenterCreate = {
             code,
             name: values.name,
             description: values.description,
-            parent_id: values.parent_id,
+            parent_id: values.parent_id || undefined, // Convertir string vacío a undefined
             is_active: values.is_active
           };
+          
+          console.log('🏢📝 Datos de creación preparados:', createData);
+          console.log('🏢🔍 Detalles de validación:');
+          console.log('  - Código:', createData.code, 'tipo:', typeof createData.code);
+          console.log('  - Nombre:', createData.name, 'tipo:', typeof createData.name, 'longitud:', createData.name?.length);
+          console.log('  - Descripción:', createData.description, 'tipo:', typeof createData.description, 'longitud:', createData.description?.length);
+          console.log('  - Parent ID:', createData.parent_id, 'tipo:', typeof createData.parent_id);
+          console.log('  - Is Active:', createData.is_active, 'tipo:', typeof createData.is_active);
+          
           await onSubmit(createData);
         }
       } catch (error) {
-        console.error('Error submitting form:', error);
+        console.error('🏢❌ Error submitting form:', error);
       } finally {
         setLoading2(false);
       }
+    } else {
+      console.log('🏢⚠️ Formulario no válido, errores:', errors);
     }
   };
 

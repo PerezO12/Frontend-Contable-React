@@ -344,8 +344,10 @@ export const AccountExportModal: React.FC<AccountExportModalProps> = ({
                       onChange={(e) => handleSelectAll(e.target.checked)}
                       disabled={isExporting || filteredAccounts.length === 0}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium">Seleccionar todas</span>
+                    />                    
+                    <span className="text-sm font-medium">
+                      {selectAll && filteredAccounts.length > 0 ? `${selectedAccounts.size} seleccionadas` : "Seleccionar todas"}
+                    </span>
                   </label>
                 </div>
               </div>

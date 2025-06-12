@@ -88,20 +88,13 @@ export const SimpleJournalEntryExportControls: React.FC<SimpleJournalEntryExport
             <span>Exportando...</span>
           </>
         ) : (
-          <>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <>            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
             </svg>
-            <span>Exportar {exportFormat.toUpperCase()}</span>
+            <span>Exportar {exportFormat.toUpperCase()}{selectedEntryIds.length > 0 ? ` (${entryCount})` : ''}</span>
           </>
         )}
       </Button>
-      
-      {selectedEntryIds.length > 0 && (
-        <span className="text-sm text-gray-600">
-          ({entryCount} seleccionado{entryCount === 1 ? '' : 's'})
-        </span>
-      )}
     </div>
   );
 };

@@ -5,9 +5,11 @@ import { Card } from '../../../components/ui/Card';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useJournalEntries } from '../hooks';
 import { useJournalEntryListListener } from '../hooks/useJournalEntryEvents';
+import { JournalEntryService } from '../services';
 import { SimpleJournalEntryExportControls } from './SimpleJournalEntryExportControls';
 import { BulkDeleteModal } from './BulkDeleteModal';
 import { BulkRestoreWrapper } from './BulkRestoreWrapper';
+import { BulkStatusChanger } from './BulkStatusChanger';
 import { formatCurrency } from '../../../shared/utils';
 import { 
   JournalEntryType,
@@ -48,7 +50,6 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
   const [selectAll, setSelectAll] = useState(false);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [showBulkRestoreModal, setShowBulkRestoreModal] = useState(false);
-  
   // Obtener funcionalidad del hook
   const { 
     entries, 
@@ -153,6 +154,20 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
     setShowBulkRestoreModal(false);
     handleClearSelection();
     // No llamamos refetch() aquí porque la restauración ya actualiza el estado local
+  };  // Función para cambio de estado masivo
+  const handleBulkStatusChange = async (entryIds: string[], newStatus: JournalEntryStatus, reason?: string) => {
+    try {
+      // Por ahora solo restaurar a borrador está implementado
+      if (newStatus === JournalEntryStatus.DRAFT && reason) {
+        await JournalEntryService.bulkRestoreToDraft(entryIds, reason);
+        refetch();
+      } else {
+        // Para otros estados, mostrar mensaje de no implementado
+        alert(`Cambio a estado "${newStatus}" estará disponible pronto.`);
+      }
+    } catch (error) {
+      console.error('Error al cambiar estado:', error);
+    }
   };
 
   const handleApproveEntry = async (entry: JournalEntry) => {
@@ -428,8 +443,7 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                         className="text-xs"
                       >
                         Limpiar selección
-                      </Button>
-                      <Button
+                      </Button>                      <Button
                         size="sm"
                         variant="danger"
                         onClick={handleBulkDelete}
@@ -437,14 +451,11 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                       >
                         🗑️ Eliminar Seleccionados
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="warning"
-                        onClick={handleBulkRestore}
-                        className="text-xs"
-                      >
-                        📝 Restaurar a Borrador
-                      </Button>
+                      <BulkStatusChanger
+                        selectedEntryIds={Array.from(selectedEntries)}
+                        onStatusChange={handleBulkStatusChange}
+                        onSuccess={handleClearSelection}
+                      />
                     </div>
                   )}
                 </div>

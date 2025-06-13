@@ -6,3 +6,4 @@ export { SimpleJournalEntryExportControls } from './SimpleJournalEntryExportCont
 export { ReasonModal } from './ReasonModal';
 export { JournalEntryListWithModals } from './JournalEntryListWithModals';
 export { BulkDeleteModal } from './BulkDeleteModal';
+export { BulkStatusChanger } from './BulkStatusChanger';

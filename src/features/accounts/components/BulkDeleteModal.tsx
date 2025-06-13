@@ -73,13 +73,26 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
 
   const canDeleteAccounts = validationResults.filter(v => v.can_delete);
   const blockedAccounts = validationResults.filter(v => !v.can_delete);
-  const accountsWithWarnings = validationResults.filter(v => v.can_delete && v.warnings.length > 0);
-
-  if (validating) {
+  const accountsWithWarnings = validationResults.filter(v => v.can_delete && v.warnings.length > 0);  if (validating) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <Card className="w-full max-w-lg">
-          <div className="card-body text-center py-8">
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{
+          backgroundColor: 'transparent',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}
+      >
+        <div 
+          className="w-full max-w-lg transform transition-all duration-300 ease-out animate-in slide-in-from-top-4 zoom-in-95"
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl overflow-hidden p-8 text-center"
+            style={{
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+            }}
+          >
             <Spinner size="lg" />
             <h3 className="text-lg font-medium text-gray-900 mt-4">
               Validando eliminación
@@ -87,26 +100,29 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
             <p className="text-gray-600 mt-2">
               Verificando {selectedAccounts.length} cuentas seleccionadas...
             </p>
-          </div>
-        </Card>
+          </div></div>
       </div>
-    );
-  }
-
+    );  }
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{
+        backgroundColor: 'transparent',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}
+    >
       <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
         <Card>
           <div className="card-header border-b">
             <div className="flex items-center justify-between">
               <h3 className="card-title text-red-600">
                 🗑️ Eliminación Masiva de Cuentas
-              </h3>
+              </h3>              
               <Button
                 variant="ghost"
-                size="sm"
                 onClick={onClose}
-                disabled={deleting}
+                className="text-gray-400 hover:text-gray-600"
               >
                 ✕
               </Button>

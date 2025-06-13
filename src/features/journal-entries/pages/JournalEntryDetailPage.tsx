@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { JournalEntryDetail } from '../components';
 import { useJournalEntries } from '../hooks';
 import { Card } from '../../../components/ui/Card';
-import { Button } from '../../../components/ui/Button';
 import type { JournalEntry } from '../types';
 
 export const JournalEntryDetailPage: React.FC = () => {
@@ -108,34 +107,15 @@ export const JournalEntryDetailPage: React.FC = () => {
           <Card>
             <div className="card-body text-center py-8">
               <p className="text-red-600 mb-4">ID de asiento contable no válido</p>
-              <button
-                onClick={() => navigate('/journal-entries')}
-                className="text-blue-600 hover:text-blue-800"
-              >
-                Volver al listado
-              </button>
             </div>
           </Card>
         </div>
       </>
     );
   }
-
   return (
     <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Back to List Button */}
-        <div className="mb-4">
-          <Button
-            variant="secondary"
-            onClick={() => navigate('/journal-entries')}
-            className="flex items-center space-x-2"
-          >
-            <span>←</span>
-            <span>Volver al Listado</span>
-          </Button>
-        </div>
-
         {/* Breadcrumb */}
         <nav className="flex mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center space-x-2">

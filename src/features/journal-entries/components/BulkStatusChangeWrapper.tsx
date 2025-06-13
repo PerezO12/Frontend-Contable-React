@@ -61,9 +61,8 @@ export const BulkStatusChangeWrapper: React.FC<BulkStatusChangeWrapperProps> = (
           throw new Error('Se requiere una razón para restaurar a borrador');
         }
         return await JournalEntryService.bulkRestoreToDraft(validIds, reason);
-      
-      case JournalEntryStatus.PENDING:
-        return await JournalEntryService.bulkMarkAsPending(validIds);
+        case JournalEntryStatus.PENDING:
+        return await JournalEntryService.bulkChangeStatus(validIds, JournalEntryStatus.PENDING);
       
       case JournalEntryStatus.APPROVED:
         return await JournalEntryService.bulkApproveEntries(validIds);

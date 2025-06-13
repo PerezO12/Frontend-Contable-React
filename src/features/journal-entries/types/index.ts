@@ -235,7 +235,7 @@ export interface JournalEntryOperationResponse {
 
 // Bulk deletion types
 export interface BulkJournalEntryDelete {
-  entry_ids: string[];  // Volvemos a entry_ids según la documentación oficial
+  journal_entry_ids: string[];  // Actualizado según la especificación del backend
   force_delete?: boolean;
   reason?: string;
 }

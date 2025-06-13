@@ -57,7 +57,6 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
       </Card>
     );
   }
-
   if (error || !entry) {
     return (
       <Card>
@@ -65,11 +64,6 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
           <p className="text-red-600 mb-4">
             {error || 'No se pudo cargar el asiento contable'}
           </p>
-          {onClose && (
-            <Button onClick={onClose} variant="secondary">
-              Volver
-            </Button>
-          )}
         </div>
       </Card>
     );
@@ -378,27 +372,8 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
         </div>
       </div>
     </div>
-  );
-  return (
+  );  return (
     <div className="space-y-6">
-      {/* Back Navigation */}
-      {onClose && (
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="secondary"
-            onClick={onClose}
-            className="flex items-center space-x-2"
-          >
-            <span>←</span>
-            <span>Volver al Listado</span>
-          </Button>
-          <div className="h-4 border-l border-gray-300"></div>
-          <span className="text-sm text-gray-500">
-            Navegación rápida hacia el listado de asientos contables
-          </span>
-        </div>
-      )}
-
       {/* Header */}
       <Card>
         <div className="card-header">

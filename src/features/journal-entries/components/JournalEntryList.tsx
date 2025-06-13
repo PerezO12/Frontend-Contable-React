@@ -138,16 +138,22 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
   
   const handleBulkDeleteSuccess = () => {
     setShowBulkDeleteModal(false);
-    handleClearSelection();  };
-  
-  // Función para cambio de estado masivo
-  const handleBulkStatusChange = async (entryIds: string[], newStatus: JournalEntryStatus, reason?: string) => {
+    handleClearSelection();  };  // Función para cambio de estado masivo
+  const handleBulkStatusChange = async (entryIds: string[], newStatus: JournalEntryStatus | 'REVERSE', reason?: string, forceOperation?: boolean) => {
     try {
-      console.log(`Cambiando ${entryIds.length} asientos al estado ${newStatus}`, reason ? `con razón: ${reason}` : '');
+      console.log(`Cambiando ${entryIds.length} asientos al estado/operación ${newStatus}`, reason ? `con razón: ${reason}` : '', forceOperation ? `(force_operation: ${forceOperation})` : '');
       
-      const result = await JournalEntryService.bulkChangeStatus(entryIds, newStatus, reason);
+      let result;
       
-      console.log('Resultado del cambio de estado:', result);
+      if (newStatus === 'REVERSE') {
+        // Operación especial de reversión
+        result = await JournalEntryService.bulkReverseOperation(entryIds, reason || 'Reversión masiva desde interfaz', undefined, forceOperation);
+      } else {
+        // Cambio de estado normal - pasar forceOperation para todas las operaciones
+        result = await JournalEntryService.bulkChangeStatus(entryIds, newStatus, reason, forceOperation);
+      }
+      
+      console.log('Resultado del cambio de estado/operación:', result);
       
       // Refrescar la lista después del cambio exitoso
       refetch();

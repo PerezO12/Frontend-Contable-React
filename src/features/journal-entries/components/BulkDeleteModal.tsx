@@ -72,10 +72,9 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
     }
 
     setLoading(true);
-    setError(null);    
-    try {
+    setError(null);      try {
       const result = await onBulkDelete({
-        entry_ids: selectedEntryIds, // Volvemos a entry_ids según la documentación oficial
+        journal_entry_ids: selectedEntryIds,
         force_delete: forceDelete,
         reason: deleteReason.trim()
       });
@@ -228,27 +227,43 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
       </div>
     );
   }
-
   if (validating) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <Card className="w-full max-w-lg">
-          <div className="card-body text-center py-8">
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{
+          backgroundColor: 'transparent',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}
+      >        <div className="w-full max-w-lg transform transition-all duration-300 ease-out animate-in slide-in-from-top-4 zoom-in-95">
+          <div 
+            className="bg-white rounded-2xl shadow-2xl overflow-hidden p-8 text-center"
+            style={{
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+            }}
+          >
             <Spinner size="lg" />
             <h3 className="text-lg font-medium text-gray-900 mt-4">
               Validando asientos contables
-            </h3>
-            <p className="text-gray-600 mt-2">
+            </h3>            <p className="text-gray-600 mt-2">
               Verificando {selectedEntryIds.length} asientos seleccionados...
             </p>
           </div>
-        </Card>
+        </div>
       </div>
-    );
-  }
+    );}
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{
+        backgroundColor: 'transparent',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}
+    >
       <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
         <Card>
           <div className="card-header border-b">
@@ -366,23 +381,34 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
                           placeholder="Describa el motivo de la eliminación (requerido para auditoría)"
                           className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           rows={3}
+                          disabled={loading}                        />
+                      </div>
+
+                      {/* Checkbox para forzar eliminación - siempre visible */}
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="forceDelete"
+                          checked={forceDelete}
+                          onChange={(e) => setForceDelete(e.target.checked)}
                           disabled={loading}
+                          className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                         />
+                        <label htmlFor="forceDelete" className="text-sm text-gray-700">
+                          <span className="font-medium">Forzar eliminación</span>
+                          <span className="text-gray-500 ml-1">(Omitir validaciones de seguridad)</span>
+                        </label>
                       </div>
 
                       {hasWarnings.length > 0 && (
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="forceDelete"
-                            checked={forceDelete}
-                            onChange={(e) => setForceDelete(e.target.checked)}
-                            disabled={loading}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <label htmlFor="forceDelete" className="text-sm text-gray-700">
-                            Forzar eliminación a pesar de las advertencias
-                          </label>
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                          <div className="flex items-start space-x-2">
+                            <span className="text-orange-600">⚠️</span>
+                            <div className="text-sm text-orange-800">
+                              <strong>Advertencias detectadas:</strong> Algunos asientos tienen restricciones.
+                              {!forceDelete && " Marque 'Forzar eliminación' para proceder."}
+                            </div>
+                          </div>
                         </div>
                       )}
 
@@ -421,11 +447,11 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
                   🔄 Revalidar
                 </Button>
                 
-                {canDelete.length > 0 && (
-                  <Button
+                {canDelete.length > 0 && (                  <Button
                     variant="danger"
                     onClick={handleDelete}
                     disabled={loading || !deleteReason.trim() || (hasWarnings.length > 0 && !forceDelete)}
+                    className={hasWarnings.length > 0 && !forceDelete ? "opacity-50" : ""}
                   >
                     {loading ? (
                       <>
@@ -433,10 +459,8 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
                         <span className="ml-2">Eliminando...</span>
                       </>
                     ) : (
-                      `🗑️ Eliminar ${canDelete.length} Asientos`
-                    )}
-                  </Button>
-                )}
+                      `🗑️ Eliminar ${canDelete.length} Asientos`                    )}
+                  </Button>                )}
               </div>
             </div>
           </div>

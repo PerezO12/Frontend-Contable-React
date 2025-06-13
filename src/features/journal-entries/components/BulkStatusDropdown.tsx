@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { JournalEntryStatus, JOURNAL_ENTRY_STATUS_LABELS } from '../types';
 
 interface StatusMenuOption {
-  value: JournalEntryStatus;
+  value: JournalEntryStatus | 'REVERSE';
   label: string;
   icon: string;
   requiresReason: boolean;
@@ -42,13 +42,19 @@ const STATUS_OPTIONS: StatusMenuOption[] = [
     label: JOURNAL_ENTRY_STATUS_LABELS[JournalEntryStatus.CANCELLED],
     icon: '❌',
     requiresReason: true
+  },
+  {
+    value: 'REVERSE' as const,
+    label: 'Revertir (crear reversión)',
+    icon: '↩️',
+    requiresReason: true
   }
 ];
 
 interface BulkStatusDropdownProps {
   isOpen: boolean;
   onClose: () => void;
-  onStatusSelect: (status: JournalEntryStatus, requiresReason: boolean) => void;
+  onStatusSelect: (status: JournalEntryStatus | 'REVERSE', requiresReason: boolean) => void;
   buttonRef: React.RefObject<HTMLButtonElement>;
 }
 

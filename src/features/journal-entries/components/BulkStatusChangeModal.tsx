@@ -123,11 +123,23 @@ export const BulkStatusChangeModal: React.FC<BulkStatusChangeModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+  if (!isOpen) return null;  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{
+        backgroundColor: 'transparent',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}
+    >
+      <div className="w-full max-w-2xl transform transition-all duration-300 ease-out animate-in slide-in-from-top-4 zoom-in-95">
+        <div 
+          className="bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+          style={{
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+          }}
+        >
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900">
@@ -240,9 +252,9 @@ export const BulkStatusChangeModal: React.FC<BulkStatusChangeModalProps> = ({
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 {isSubmitting ? 'Procesando...' : 'Cambiar Estado'}
-              </Button>
-            </div>
+              </Button>            </div>
           </form>
+        </div>
         </div>
       </div>
     </div>

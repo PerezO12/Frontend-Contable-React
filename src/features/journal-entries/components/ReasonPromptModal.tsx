@@ -3,9 +3,12 @@ import React, { useState, useEffect } from 'react';
 interface ReasonPromptModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (reason: string) => void;
+  onConfirm: (reason: string, forceOperation?: boolean) => void;
   title: string;
   placeholder: string;
+  showForceOption?: boolean;
+  forceOptionLabel?: string;
+  forceOptionDescription?: string;
 }
 
 export const ReasonPromptModal: React.FC<ReasonPromptModalProps> = ({
@@ -13,25 +16,26 @@ export const ReasonPromptModal: React.FC<ReasonPromptModalProps> = ({
   onClose,
   onConfirm,
   title,
-  placeholder
+  placeholder,
+  showForceOption = false,
+  forceOptionLabel = "Forzar operación",
+  forceOptionDescription = "Activa esta opción para forzar la operación aún si no se cumplen algunas validaciones. Usar con precaución."
 }) => {
   const [reason, setReason] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
+  const [forceOperation, setForceOperation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);  useEffect(() => {
     if (isOpen) {
       setReason('');
+      setForceOperation(false);
       setIsSubmitting(false);
     }
   }, [isOpen]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reason.trim()) return;
-    
-    setIsSubmitting(true);
+      setIsSubmitting(true);
     try {
-      await onConfirm(reason.trim());
+      await onConfirm(reason.trim(), showForceOption ? forceOperation : undefined);
       onClose();
     } catch (error) {
       console.error('Error al confirmar:', error);
@@ -110,11 +114,32 @@ export const ReasonPromptModal: React.FC<ReasonPromptModalProps> = ({
                     fontSize: '14px',
                     lineHeight: '1.5',
                   }}
-                />
-                <p className="mt-2 text-xs text-gray-500">
+                />                <p className="mt-2 text-xs text-gray-500">
                   Proporcione una explicación clara para esta operación
                 </p>
-              </div>
+              </div>              {/* Force Operation Checkbox */}
+              {showForceOption && (
+                <div className="mb-6">
+                  <label className="flex items-start space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={forceOperation}
+                      onChange={(e) => setForceOperation(e.target.checked)}
+                      disabled={isSubmitting}
+                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <div className="flex-1">
+                      <span className="text-sm font-medium text-gray-700">
+                        {forceOptionLabel}
+                      </span>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {forceOptionDescription}
+                        <span className="text-yellow-600 font-medium"> Usar con precaución.</span>
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex items-center justify-end space-x-3">

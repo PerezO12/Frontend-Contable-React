@@ -31,7 +31,6 @@ export const JournalEntryEditPage: React.FC = () => {
       </>
     );
   }
-
   if (error || !entry) {
     return (
       <>
@@ -40,12 +39,6 @@ export const JournalEntryEditPage: React.FC = () => {
             <p className="text-red-600 mb-4">
               {error || 'No se pudo cargar el asiento contable'}
             </p>
-            <button
-              onClick={() => navigate('/journal-entries')}
-              className="text-blue-600 hover:text-blue-800"
-            >
-              Volver al listado
-            </button>
           </div>
         </Card>
       </>

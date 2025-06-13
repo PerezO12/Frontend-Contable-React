@@ -10,7 +10,7 @@ interface BulkRestoreModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedEntryIds: string[];
-  onBulkRestore: (entryIds: string[], reason: string) => Promise<{
+  onBulkRestore: (entryIds: string[], reason: string, forceReset?: boolean) => Promise<{
     total_requested: number;
     total_restored: number;
     total_failed: number;
@@ -26,21 +26,21 @@ export const BulkRestoreModal: React.FC<BulkRestoreModalProps> = ({
   selectedEntryIds,
   onBulkRestore,
   onSuccess
-}) => {
-  const [loading, setLoading] = useState(false);
+}) => {  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [restoreReason, setRestoreReason] = useState('');
+  const [forceReset, setForceReset] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [restoreResult, setRestoreResult] = useState<any>(null);
   
   // Log para depurar los IDs recibidos
   console.log('BulkRestoreModal - IDs recibidos:', selectedEntryIds);
-
   // Resetear estado cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
       setError(null);
       setRestoreReason('');
+      setForceReset(false);
       setShowResults(false);
       setRestoreResult(null);
     }
@@ -75,11 +75,11 @@ export const BulkRestoreModal: React.FC<BulkRestoreModalProps> = ({
       if (cleanedIds.length !== selectedEntryIds.length) {
         console.warn(`Se filtraron ${selectedEntryIds.length - cleanedIds.length} IDs inválidos`);
       }
-      
-      // Llamar a la función de restauración con los IDs verificados
+        // Llamar a la función de restauración con los IDs verificados
       const result = await onBulkRestore(
         cleanedIds,
-        restoreReason.trim()
+        restoreReason.trim(),
+        forceReset
       );
       
       console.log('BulkRestoreModal - Resultado de la restauración:', result);
@@ -144,10 +144,30 @@ export const BulkRestoreModal: React.FC<BulkRestoreModalProps> = ({
             placeholder="Ingrese la razón para restaurar estos asientos a borrador..."
             className="w-full"
             rows={3}
-          />
-          <p className="mt-1 text-sm text-gray-500">
+          />          <p className="mt-1 text-sm text-gray-500">
             Esta información quedará registrada en el historial de cambios.
           </p>
+        </div>
+        
+        {/* Checkbox para forzar el reset */}
+        <div className="mb-6">
+          <label className="flex items-start space-x-3">
+            <input
+              type="checkbox"
+              checked={forceReset}
+              onChange={(e) => setForceReset(e.target.checked)}
+              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <div className="flex-1">
+              <span className="text-sm font-medium text-gray-700">
+                Forzar restauración
+              </span>
+              <p className="text-xs text-gray-500 mt-1">
+                Activa esta opción para forzar la restauración de asientos que normalmente no pueden ser restaurados a borrador. 
+                <span className="text-yellow-600 font-medium"> Usar con precaución.</span>
+              </p>
+            </div>
+          </label>
         </div>
         
         <div className="flex justify-end space-x-3 mt-6">

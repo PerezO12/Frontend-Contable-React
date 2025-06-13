@@ -19,10 +19,9 @@ export const BulkRestoreWrapper: React.FC<BulkRestoreWrapperProps> = ({
   onClose,
   selectedEntryIds,
   onSuccess
-}) => {
-  // Manejador para la operación de restauración masiva
-  const handleBulkRestore = async (entryIds: string[], reason: string) => {
-    console.log('BulkRestoreWrapper - IDs recibidos:', entryIds);
+}) => {  // Manejador para la operación de restauración masiva
+  const handleBulkRestore = async (entryIds: string[], reason: string, forceReset: boolean = false) => {
+    console.log('BulkRestoreWrapper - IDs recibidos:', entryIds, 'Force Reset:', forceReset);
     // Nos aseguramos de que los IDs son un array válido
     if (!Array.isArray(entryIds) || entryIds.length === 0) {
       throw new Error('No se proporcionaron asientos válidos para restaurar');
@@ -50,9 +49,8 @@ export const BulkRestoreWrapper: React.FC<BulkRestoreWrapperProps> = ({
     if (validIds.length === 0) {
       throw new Error('Ningún ID válido para procesar');
     }
-    
-    console.log('BulkRestoreWrapper - IDs validados:', validIds);
-    return await restoreToDraftHelper(validIds, reason);
+      console.log('BulkRestoreWrapper - IDs validados:', validIds);
+    return await restoreToDraftHelper(validIds, reason, forceReset);
   };
 
   return (

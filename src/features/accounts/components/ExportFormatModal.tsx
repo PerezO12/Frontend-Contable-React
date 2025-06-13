@@ -81,18 +81,30 @@ export const ExportFormatModal: React.FC<ExportFormatModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop más suave */}
+  if (!isOpen) return null;  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{
+        backgroundColor: 'transparent',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}
+    >
+      {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-gray-600 bg-opacity-60" 
+        className="absolute inset-0" 
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-auto">
+      <div className="relative w-full max-w-md transform transition-all duration-300 ease-out animate-in slide-in-from-top-4 zoom-in-95">
+        <div 
+          className="bg-white rounded-2xl shadow-2xl overflow-hidden"
+          style={{
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+          }}
+        >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div>
@@ -206,7 +218,7 @@ export const ExportFormatModal: React.FC<ExportFormatModalProps> = ({
                 <span className="ml-2">Exportar {exportFormat.toUpperCase()}</span>
               </div>
             )}
-          </Button>
+          </Button>        </div>
         </div>
       </div>
     </div>

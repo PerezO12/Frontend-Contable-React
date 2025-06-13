@@ -35,6 +35,23 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
   const { createEntry, updateEntry, loading } = useJournalEntries();
   const { accounts } = useAccounts({ is_active: true });
   const [accountSearchTerms, setAccountSearchTerms] = useState<Record<number, string>>({});
+  const [focusedInput, setFocusedInput] = useState<number | null>(null);
+  const [draftKey] = useState(`journal-entry-draft-${Date.now()}`); // Clave única para esta sesión
+
+  // Función para limpiar borradores del localStorage
+  const clearDrafts = useCallback(() => {
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('journal-entry-draft-')) {
+        localStorage.removeItem(key);
+      }
+    });
+  }, []);
+
+  // Función para limpiar el borrador actual específicamente
+  const clearCurrentDraft = useCallback(() => {
+    localStorage.removeItem(draftKey);
+  }, [draftKey]);
 
   const {
     data: values,
@@ -64,8 +81,7 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
         }));
       }
       return [];
-    },
-    onSubmit: async (formData) => {
+    },    onSubmit: async (formData) => {
       console.log('Enviando datos del asiento contable:', formData);
       
       const submitData = {
@@ -76,13 +92,23 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
 
       if (isEditMode && entryId) {
         const result = await updateEntry(entryId, { ...submitData, id: entryId });
-        if (result && onSuccess) {
-          onSuccess(result);
+        if (result) {
+          // Limpiar borrador actual y todos los borradores antiguos al actualizar exitosamente
+          clearCurrentDraft();
+          clearDrafts();
+          if (onSuccess) {
+            onSuccess(result);
+          }
         }
       } else {
         const result = await createEntry(submitData);
-        if (result && onSuccess) {
-          onSuccess(result);
+        if (result) {
+          // Limpiar borrador actual y todos los borradores antiguos al crear exitosamente
+          clearCurrentDraft();
+          clearDrafts();
+          if (onSuccess) {
+            onSuccess(result);
+          }
         }
       }
     }
@@ -90,10 +116,9 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
 
   // Balance validation hook
   const balance = useJournalEntryBalance(values.lines);
-
   // Filter accounts for autocomplete
   const getFilteredAccounts = useCallback((searchTerm: string) => {
-    if (!searchTerm) return accounts.slice(0, 10);
+    if (!searchTerm) return accounts.slice(0, 20);
     
     const term = searchTerm.toLowerCase();
     return accounts
@@ -101,7 +126,7 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
         account.code.toLowerCase().includes(term) ||
         account.name.toLowerCase().includes(term)
       )
-      .slice(0, 10);
+      .slice(0, 20);
   }, [accounts]);
 
   const handleInputChange = (field: keyof JournalEntryFormData) => 
@@ -123,9 +148,7 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
 
     updateField('lines', newLines);
     clearErrors();
-  };
-
-  const handleAccountSelect = (index: number, account: { id: string; code: string; name: string }) => {
+  };  const handleAccountSelect = (index: number, account: { id: string; code: string; name: string }) => {
     const newLines = [...values.lines];
     newLines[index] = {
       ...newLines[index],
@@ -135,10 +158,10 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
     };
     updateField('lines', newLines);
     
-    // Clear search term
+    // Clear search term and close dropdown
     setAccountSearchTerms(prev => ({ ...prev, [index]: '' }));
+    setFocusedInput(null);
   };
-
   const addLine = () => {
     const newLines = [...values.lines, {
       account_id: '',
@@ -170,18 +193,56 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
     newLines.splice(index + 1, 0, newLine);
     updateField('lines', newLines);
   };
-
   // Auto-save draft functionality
   useEffect(() => {
     if (!isEditMode && values.description && values.lines.some(line => line.account_id)) {
       const saveTimer = setTimeout(() => {
-        const draftKey = `journal-entry-draft-${Date.now()}`;
+        // Usar la clave específica de esta sesión en lugar de generar una nueva cada vez
         localStorage.setItem(draftKey, JSON.stringify(values));
+        console.log('Borrador guardado automáticamente:', draftKey);
       }, 5000); // Auto-save every 5 seconds
 
       return () => clearTimeout(saveTimer);
     }
-  }, [values, isEditMode]);
+  }, [values, isEditMode, draftKey]);
+
+  // Limpiar borrador al desmontar el componente o cancelar
+  useEffect(() => {
+    return () => {
+      // Limpiar solo el borrador actual al desmontar, no todos
+      if (!isEditMode) {
+        clearCurrentDraft();
+      }
+    };
+  }, [clearCurrentDraft, isEditMode]);
+
+  // Función para manejar cancelación
+  const handleCancel = useCallback(() => {
+    if (!isEditMode) {
+      clearCurrentDraft(); // Limpiar borrador al cancelar
+    }
+    if (onCancel) {
+      onCancel();
+    }
+  }, [clearCurrentDraft, isEditMode, onCancel]);
+
+  // Limpiar borradores antiguos al inicializar (solo una vez)
+  useEffect(() => {
+    if (!isEditMode) {
+      // Limpiar borradores que tengan más de 1 hora
+      const oneHourAgo = Date.now() - (60 * 60 * 1000);
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('journal-entry-draft-')) {
+          const timestamp = parseInt(key.replace('journal-entry-draft-', ''));
+          if (timestamp < oneHourAgo) {
+            localStorage.removeItem(key);
+            console.log('Borrador antiguo eliminado:', key);
+          }
+        }
+      });
+    }
+  }, []); // Solo ejecutar una vez al montar
 
   return (
     <div className="space-y-6">
@@ -375,10 +436,9 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
                   <tr key={index} className="border-b border-gray-100">
                     <td className="py-2 px-3">
                       <span className="text-sm text-gray-600">{index + 1}</span>
-                    </td>
+                    </td>                    
                     <td className="py-2 px-3">
-                      <div className="relative">
-                        <Input
+                      <div className="relative">                        <Input
                           value={accountSearchTerms[index] || line.account_code || ''}
                           onChange={(e) => {
                             setAccountSearchTerms(prev => ({ 
@@ -386,22 +446,24 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
                               [index]: e.target.value 
                             }));
                           }}
-                          placeholder="Buscar cuenta..."
-                          className="text-sm"
-                        />
-                        
-                        {/* Account dropdown */}
-                        {accountSearchTerms[index] && (
-                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-auto">
-                            {getFilteredAccounts(accountSearchTerms[index]).map((account) => (
+                          onFocus={() => setFocusedInput(index)}
+                          onBlur={() => setTimeout(() => setFocusedInput(null), 200)}
+                          placeholder="Escribe para buscar cuenta (código o nombre)..."
+                          className="text-sm w-64"
+                        />                          {/* Account dropdown */}
+                        {(accountSearchTerms[index] || (focusedInput === index && !line.account_id)) && (<div className="absolute z-20 w-96 mt-1 bg-white border border-gray-300 rounded-md shadow-xl max-h-80 overflow-auto">
+                            {getFilteredAccounts(accountSearchTerms[index] || '').map((account) => (
                               <div
                                 key={account.id}
-                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                                 onClick={() => handleAccountSelect(index, account)}
                               >
-                                <div className="text-sm">
-                                  <span className="font-mono text-gray-600">{account.code}</span>
-                                  <span className="ml-2">{account.name}</span>
+                                <div className="flex flex-col">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="font-mono text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">{account.code}</span>
+                                    <span className="text-sm font-medium text-gray-900">{account.name}</span>
+                                  </div>
+                                  <span className="text-xs text-gray-500 mt-1">{account.code} - {account.name}</span>
                                 </div>
                               </div>
                             ))}
@@ -489,12 +551,11 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
       {/* Form Actions */}
       <Card>
         <div className="card-body">
-          <div className="flex justify-end space-x-3">
-            {onCancel && (
+          <div className="flex justify-end space-x-3">            {onCancel && (
               <Button
                 type="button"
                 variant="secondary"
-                onClick={onCancel}
+                onClick={handleCancel}
                 disabled={loading}
               >
                 Cancelar

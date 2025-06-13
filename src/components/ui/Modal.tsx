@@ -28,15 +28,30 @@ export const Modal: React.FC<ModalProps> = ({
     md: 'max-w-lg',
     lg: 'max-w-2xl',
     xl: 'max-w-4xl',
-  };
-
-  return (    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50" onClick={onClose}>
+  };  
+  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{
+        backgroundColor: 'transparent',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}
+      onClick={onClose}
+    >
       <div 
-        className={`bg-white rounded-lg shadow-lg w-full ${sizeClasses[size]} overflow-hidden`}
+        className={`w-full ${sizeClasses[size]} transform transition-all duration-300 ease-out animate-in slide-in-from-top-4 zoom-in-95`}
         role="dialog"
         aria-modal="true"
         onClick={e => e.stopPropagation()}
-      >{title && (
+      >
+        <div 
+          className="bg-white rounded-2xl shadow-2xl overflow-hidden"
+          style={{
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+          }}
+        >{title && (
           <div className="p-4 border-b flex justify-between items-center">
             <h2 className="text-lg font-medium">{title}</h2>
             <button 
@@ -48,9 +63,9 @@ export const Modal: React.FC<ModalProps> = ({
             </button>
           </div>
         )}
-        
-        <div className="relative">
+          <div className="relative">
           {children}
+        </div>
         </div>
       </div>
     </div>

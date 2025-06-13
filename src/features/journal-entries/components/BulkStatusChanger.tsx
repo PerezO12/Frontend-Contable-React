@@ -5,7 +5,7 @@ import { JournalEntryStatus } from '../types';
 
 interface BulkStatusChangerProps {
   selectedEntryIds: string[];
-  onStatusChange: (entryIds: string[], newStatus: JournalEntryStatus, reason?: string) => Promise<any>;
+  onStatusChange: (entryIds: string[], newStatus: JournalEntryStatus | 'REVERSE', reason?: string, forceOperation?: boolean) => Promise<any>;
   onSuccess?: () => void;
 }
 
@@ -16,9 +16,8 @@ export const BulkStatusChanger: React.FC<BulkStatusChangerProps> = ({
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showReasonModal, setShowReasonModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [pendingStatusChange, setPendingStatusChange] = useState<{
-    status: JournalEntryStatus;
+  const [isLoading, setIsLoading] = useState(false);  const [pendingStatusChange, setPendingStatusChange] = useState<{
+    status: JournalEntryStatus | 'REVERSE';
     title: string;
     placeholder: string;
   } | null>(null);
@@ -30,20 +29,21 @@ export const BulkStatusChanger: React.FC<BulkStatusChangerProps> = ({
       setShowDropdown(!showDropdown);
     }
   };
-
-  const handleStatusSelect = async (status: JournalEntryStatus, requiresReason: boolean) => {
+  const handleStatusSelect = async (status: JournalEntryStatus | 'REVERSE', requiresReason: boolean) => {
     if (requiresReason) {
       // Si requiere razón, mostrar modal
       const titles: Record<string, string> = {
         [JournalEntryStatus.DRAFT]: 'Restaurar a Borrador',
         [JournalEntryStatus.POSTED]: 'Contabilizar Asientos',
-        [JournalEntryStatus.CANCELLED]: 'Cancelar Asientos'
+        [JournalEntryStatus.CANCELLED]: 'Cancelar Asientos',
+        'REVERSE': 'Revertir Asientos'
       };
       
       const placeholders: Record<string, string> = {
         [JournalEntryStatus.DRAFT]: 'Ingrese la razón para restaurar a borrador...',
         [JournalEntryStatus.POSTED]: 'Ingrese la razón para contabilizar...',
-        [JournalEntryStatus.CANCELLED]: 'Ingrese la razón para cancelar...'
+        [JournalEntryStatus.CANCELLED]: 'Ingrese la razón para cancelar...',
+        'REVERSE': 'Ingrese la razón para revertir los asientos...'
       };
       
       setPendingStatusChange({
@@ -56,12 +56,10 @@ export const BulkStatusChanger: React.FC<BulkStatusChangerProps> = ({
       // Si no requiere razón, ejecutar directamente
       await executeStatusChange(status);
     }
-  };
-
-  const executeStatusChange = async (status: JournalEntryStatus, reason?: string) => {
+  };  const executeStatusChange = async (status: JournalEntryStatus | 'REVERSE', reason?: string, forceOperation?: boolean) => {
     setIsLoading(true);
     try {
-      const result = await onStatusChange(selectedEntryIds, status, reason);
+      const result = await onStatusChange(selectedEntryIds, status, reason, forceOperation);
       
       // Mostrar mensaje de resultado si hay fallos
       if (result?.total_failed > 0) {
@@ -81,18 +79,37 @@ export const BulkStatusChanger: React.FC<BulkStatusChangerProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleReasonConfirm = async (reason: string) => {
+  };  const handleReasonConfirm = async (reason: string, forceOperation?: boolean) => {
     if (pendingStatusChange) {
-      await executeStatusChange(pendingStatusChange.status, reason);
+      await executeStatusChange(pendingStatusChange.status, reason, forceOperation);
       setPendingStatusChange(null);
     }
   };
-
   const handleCloseReasonModal = () => {
     setShowReasonModal(false);
     setPendingStatusChange(null);
+  };
+
+  const getForceOptionLabel = (status: JournalEntryStatus | 'REVERSE'): string => {
+    const labels: Record<string, string> = {
+      [JournalEntryStatus.DRAFT]: 'Forzar restauración',
+      [JournalEntryStatus.APPROVED]: 'Forzar aprobación',
+      [JournalEntryStatus.POSTED]: 'Forzar contabilización',
+      [JournalEntryStatus.CANCELLED]: 'Forzar cancelación',
+      'REVERSE': 'Forzar reversión'
+    };
+    return labels[status] || 'Forzar operación';
+  };
+
+  const getForceOptionDescription = (status: JournalEntryStatus | 'REVERSE'): string => {
+    const descriptions: Record<string, string> = {
+      [JournalEntryStatus.DRAFT]: 'Permite restaurar a borrador asientos que normalmente no pueden ser restaurados debido a validaciones de negocio.',
+      [JournalEntryStatus.APPROVED]: 'Permite aprobar asientos que normalmente no pueden ser aprobados debido a validaciones de negocio.',
+      [JournalEntryStatus.POSTED]: 'Permite contabilizar asientos que normalmente no pueden ser contabilizados debido a validaciones de negocio.',
+      [JournalEntryStatus.CANCELLED]: 'Permite cancelar asientos que normalmente no pueden ser cancelados debido a validaciones de negocio.',
+      'REVERSE': 'Permite revertir asientos que normalmente no pueden ser revertidos debido a validaciones de negocio.'
+    };
+    return descriptions[status] || 'Permite ejecutar la operación aún si no se cumplen algunas validaciones de negocio.';
   };
 
   return (    <div className="relative">      
@@ -124,15 +141,16 @@ export const BulkStatusChanger: React.FC<BulkStatusChangerProps> = ({
         onClose={() => setShowDropdown(false)}
         onStatusSelect={handleStatusSelect}
         buttonRef={buttonRef as React.RefObject<HTMLButtonElement>}
-      />
-      
-      {pendingStatusChange && (
+      />      {pendingStatusChange && (
         <ReasonPromptModal
           isOpen={showReasonModal}
           onClose={handleCloseReasonModal}
           onConfirm={handleReasonConfirm}
           title={pendingStatusChange.title}
           placeholder={pendingStatusChange.placeholder}
+          showForceOption={true}
+          forceOptionLabel={getForceOptionLabel(pendingStatusChange.status)}
+          forceOptionDescription={getForceOptionDescription(pendingStatusChange.status)}
         />
       )}
     </div>

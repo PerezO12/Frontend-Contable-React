@@ -8,7 +8,6 @@ import { useJournalEntryListListener } from '../hooks/useJournalEntryEvents';
 import { JournalEntryService } from '../services';
 import { SimpleJournalEntryExportControls } from './SimpleJournalEntryExportControls';
 import { BulkDeleteModal } from './BulkDeleteModal';
-import { BulkRestoreWrapper } from './BulkRestoreWrapper';
 import { BulkStatusChanger } from './BulkStatusChanger';
 import { formatCurrency } from '../../../shared/utils';
 import { 
@@ -47,9 +46,7 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
   const [filters, setFilters] = useState<JournalEntryFilters>(initialFilters || {});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
-  const [selectAll, setSelectAll] = useState(false);
-  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
-  const [showBulkRestoreModal, setShowBulkRestoreModal] = useState(false);
+  const [selectAll, setSelectAll] = useState(false);  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   // Obtener funcionalidad del hook
   const { 
     entries, 
@@ -141,32 +138,26 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
   
   const handleBulkDeleteSuccess = () => {
     setShowBulkDeleteModal(false);
-    handleClearSelection();
-    // No llamamos refetch() aquí porque bulkDeleteEntries ya actualiza el estado local
-  };
+    handleClearSelection();  };
   
-  // Abrir modal de restauración masiva
-  const handleBulkRestore = () => {
-    setShowBulkRestoreModal(true);
-  };
-  
-  const handleBulkRestoreSuccess = () => {
-    setShowBulkRestoreModal(false);
-    handleClearSelection();
-    // No llamamos refetch() aquí porque la restauración ya actualiza el estado local
-  };  // Función para cambio de estado masivo
+  // Función para cambio de estado masivo
   const handleBulkStatusChange = async (entryIds: string[], newStatus: JournalEntryStatus, reason?: string) => {
     try {
-      // Por ahora solo restaurar a borrador está implementado
-      if (newStatus === JournalEntryStatus.DRAFT && reason) {
-        await JournalEntryService.bulkRestoreToDraft(entryIds, reason);
-        refetch();
-      } else {
-        // Para otros estados, mostrar mensaje de no implementado
-        alert(`Cambio a estado "${newStatus}" estará disponible pronto.`);
-      }
-    } catch (error) {
-      console.error('Error al cambiar estado:', error);
+      console.log(`Cambiando ${entryIds.length} asientos al estado ${newStatus}`, reason ? `con razón: ${reason}` : '');
+      
+      const result = await JournalEntryService.bulkChangeStatus(entryIds, newStatus, reason);
+      
+      console.log('Resultado del cambio de estado:', result);
+      
+      // Refrescar la lista después del cambio exitoso
+      refetch();
+      
+      return result;
+    } catch (error: any) {
+      console.error('Error al cambiar estado masivo:', error);
+      
+      // Re-lanzar el error para que lo maneje el componente BulkStatusChanger
+      throw error;
     }
   };
 
@@ -707,16 +698,7 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
         selectedEntryIds={Array.from(selectedEntries)}
         onValidate={validateDeletion}
         onBulkDelete={bulkDeleteEntries}
-        onSuccess={handleBulkDeleteSuccess}
-      />
-      
-      {/* Modal de restauración masiva */}
-      <BulkRestoreWrapper
-        isOpen={showBulkRestoreModal}
-        onClose={() => setShowBulkRestoreModal(false)}
-        selectedEntryIds={Array.from(selectedEntries)}
-        onSuccess={handleBulkRestoreSuccess}
-      />
+        onSuccess={handleBulkDeleteSuccess}      />
     </div>
   );
 };

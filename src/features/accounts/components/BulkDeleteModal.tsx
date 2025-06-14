@@ -82,9 +82,8 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
         }}
-      >
-        <div 
-          className="w-full max-w-lg transform transition-all duration-300 ease-out animate-in slide-in-from-top-4 zoom-in-95"
+      >        <div 
+          className="w-[448px] max-w-[90vw] transform transition-all duration-300 ease-out animate-in slide-in-from-top-4 zoom-in-95"
         >
           <div 
             className="bg-white rounded-2xl shadow-2xl overflow-hidden p-8 text-center"
@@ -111,7 +110,7 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
         WebkitBackdropFilter: 'blur(12px)',
       }}
     >
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div className="w-[768px] max-w-[90vw] max-h-[90vh] overflow-hidden">
         <Card>
           <div className="card-header border-b">
             <div className="flex items-center justify-between">

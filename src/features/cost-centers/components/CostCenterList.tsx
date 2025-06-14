@@ -283,52 +283,59 @@ export const CostCenterList: React.FC<CostCenterListProps> = ({
 
       {/* Lista de centros de costo */}
       <Card>
-        <div className="card-body">
-          {/* Barra de herramientas de selección */}
-          <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center space-x-4">
-              <label className="flex items-center space-x-2">
+        <div className="card-body">          {/* Acciones masivas */}
+          {selectedCostCenters.size > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm font-medium text-blue-900">
+                    {selectedCostCenters.size} centro{selectedCostCenters.size !== 1 ? 's' : ''} seleccionado{selectedCostCenters.size !== 1 ? 's' : ''}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearSelection}
+                    className="text-blue-700 hover:text-blue-900"
+                  >
+                    Limpiar selección
+                  </Button>
+                </div>
+
+                {/* Controles de exportación y eliminación agrupados a la derecha */}
+                <div className="flex items-center space-x-3">
+                  <SimpleExportControls
+                    selectedCostCenterIds={Array.from(selectedCostCenters)}
+                    costCenterCount={selectedCostCenters.size}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                    className="border-red-300 text-red-700 hover:bg-red-100"
+                  >
+                    🗑️ Eliminar
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Controles de selección para cuando no hay elementos seleccionados */}
+          {filteredCostCenters.length > 0 && selectedCostCenters.size === 0 && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <div className="flex items-center">
                 <input
                   type="checkbox"
                   checked={selectAll && filteredCostCenters.length > 0}
                   onChange={(e) => handleSelectAll(e.target.checked)}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <span className="text-sm font-medium text-gray-700">
-                  {selectedCostCenters.size > 0 
-                    ? `${selectedCostCenters.size} centro${selectedCostCenters.size === 1 ? '' : 's'} seleccionado${selectedCostCenters.size === 1 ? '' : 's'}`
-                    : `Seleccionar todos (${filteredCostCenters.length})`}
-                </span>
-              </label>              {selectedCostCenters.size > 0 && (
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={handleBulkDelete}
-                    className="text-xs bg-red-600 hover:bg-red-700"
-                  >
-                    🗑️ Eliminar Seleccionados
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearSelection}
-                    className="text-xs"
-                  >
-                    Limpiar
-                  </Button>
-                </div>
-              )}
+                <label className="ml-2 text-sm text-gray-700">
+                  Seleccionar todos ({filteredCostCenters.length})
+                </label>
+              </div>
             </div>
-            
-            {/* Controles de exportación simples */}
-            <div className="flex items-center space-x-2">
-              <SimpleExportControls
-                selectedCostCenterIds={Array.from(selectedCostCenters)}
-                costCenterCount={selectedCostCenters.size}
-              />
-            </div>
-          </div>
+          )}
 
           {loading ? (
             <div className="text-center py-8">

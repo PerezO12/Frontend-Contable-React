@@ -5,8 +5,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { LoginForm } from '@/features/auth/components/LoginForm';
 import { Dashboard } from '@/components/layout/Dashboard';
 import { UnauthorizedPage } from '@/components/layout/UnauthorizedPage';
-import { ToastContainer } from '@/components/ui/Toast';
-import { useToast } from '@/shared/hooks/useToast';
+import { ToastProvider } from '@/shared/contexts/ToastContext';
 import { UserRole } from '@/features/auth/types';
 import { 
   JournalEntryListPage, 
@@ -28,14 +27,15 @@ import {
   CostCenterEditPage,
   CostCenterDetailPage
 } from '@/features/cost-centers/pages';
+import {
+  ThirdPartiesPage
+} from '@/features/third-parties/pages';
 import { DataImportRoutes } from '@/features/data-import';
 import { ReportsRoutes } from '@/features/reports';
 
 const AppContent = () => {
-  const { toasts, removeToast } = useToast();
-
   return (
-    <>
+    <ToastProvider>
       <Routes>
         {/* Ruta pública - Login */}
         <Route path="/login" element={<LoginForm />} />
@@ -202,6 +202,18 @@ const AppContent = () => {
           } 
         />
         
+        {/* Rutas de Terceros - Solo para ADMIN y CONTADOR */}
+        <Route 
+          path="/third-parties/*" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <ThirdPartiesPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
         {/* Rutas de Importación/Exportación - Solo para ADMIN y CONTADOR */}
         <Route 
           path="/import-export/*" 
@@ -268,10 +280,7 @@ const AppContent = () => {
           } 
         />
       </Routes>
-      
-      {/* Toast Container Global */}
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-    </>
+    </ToastProvider>
   );
 };
 

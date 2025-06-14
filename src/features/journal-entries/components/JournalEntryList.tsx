@@ -335,57 +335,62 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                 {entries.filter(e => e.status === JournalEntryStatus.APPROVED).length}
               </p>
             </div>
-          </div>
-
-          {/* Controles de selección y exportación */}
-          {filteredEntries.length > 0 && (
-            <div className="bg-gray-50 p-4 rounded-lg mb-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          </div>          {/* Acciones masivas */}
+          {selectedEntries.size > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={selectAll}
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />                    <label className="ml-2 text-sm text-gray-700">
-                      {selectedEntries.size > 0 
-                        ? `${selectedEntries.size} asiento${selectedEntries.size !== 1 ? 's' : ''} seleccionado${selectedEntries.size !== 1 ? 's' : ''}`
-                        : `Seleccionar todos (${filteredEntries.length})`}
-                    </label>
-                  </div>
-                  {selectedEntries.size > 0 && (
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={handleClearSelection}
-                        className="text-xs"
-                      >
-                        Limpiar selección
-                      </Button>                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={handleBulkDelete}
-                        className="text-xs"
-                      >
-                        🗑️ Eliminar Seleccionados
-                      </Button>
-                      <BulkStatusChanger
-                        selectedEntryIds={Array.from(selectedEntries)}
-                        onStatusChange={handleBulkStatusChange}
-                        onSuccess={handleClearSelection}
-                      />
-                    </div>
-                  )}
+                  <span className="text-sm font-medium text-blue-900">
+                    {selectedEntries.size} asiento{selectedEntries.size !== 1 ? 's' : ''} seleccionado{selectedEntries.size !== 1 ? 's' : ''}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearSelection}
+                    className="text-blue-700 hover:text-blue-900"
+                  >
+                    Limpiar selección
+                  </Button>
                 </div>
-                {selectedEntries.size > 0 && (
+
+                {/* Controles de exportación, estado y eliminación agrupados a la derecha */}
+                <div className="flex items-center space-x-3">
                   <SimpleJournalEntryExportControls
                     selectedEntryIds={Array.from(selectedEntries)}
                     entryCount={selectedEntries.size}
                     onExportEnd={handleClearSelection}
                   />
-                )}
+                  <BulkStatusChanger
+                    selectedEntryIds={Array.from(selectedEntries)}
+                    onStatusChange={handleBulkStatusChange}
+                    onSuccess={handleClearSelection}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                    className="border-red-300 text-red-700 hover:bg-red-100"
+                  >
+                    🗑️ Eliminar
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Controles de selección para cuando no hay elementos seleccionados */}
+          {filteredEntries.length > 0 && selectedEntries.size === 0 && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={selectAll}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label className="ml-2 text-sm text-gray-700">
+                  Seleccionar todos ({filteredEntries.length})
+                </label>
               </div>
             </div>
           )}

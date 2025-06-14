@@ -150,14 +150,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onToggle, isC
               icon: icons.accounts,
               path: '/cost-centers',
               roles: [UserRole.ADMIN, UserRole.CONTADOR],
-            },
-            {
+            },            {
               id: 'third-parties',
               label: 'Terceros',
               icon: icons.users,
               path: '/third-parties',
               roles: [UserRole.ADMIN, UserRole.CONTADOR],
-              disabled: true, // No implementado aún
             },
           ],
         },

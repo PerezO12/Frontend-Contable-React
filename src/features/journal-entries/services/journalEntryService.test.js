@@ -21,9 +21,9 @@ describe('JournalEntryService', () => {
     await JournalEntryService.bulkRestoreToDraft(entryIds, reason);
     
     expect(apiClient.post).toHaveBeenCalledWith(
-      `${JournalEntryService.BASE_URL}/bulk-restore-to-draft`,
+      `${JournalEntryService.BASE_URL}/bulk-reset-to-draft`,
       {
-        entry_ids: entryIds,
+        journal_entry_ids: entryIds,
         reason,
         operation: 'restore_to_draft'
       }

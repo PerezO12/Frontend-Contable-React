@@ -5,14 +5,16 @@ import { ExportTestComponent } from '../components/ExportTestComponent';
 import type { Account } from '../types';
 
 type ViewMode = 'list' | 'tree';
-type PageMode = 'view' | 'create' | 'detail' | 'cash-flow-manager';
+type PageMode = 'view' | 'create' | 'detail' | 'edit' | 'cash-flow-manager';
 
 export const AccountsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [pageMode, setPageMode] = useState<PageMode>('view');
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [parentAccount, setParentAccount] = useState<Account | null>(null);
-  const [showTestComponent, setShowTestComponent] = useState(false);// Helper function to convert tree item to Account for compatibility
+  const [showTestComponent, setShowTestComponent] = useState(false);
+
+  // Helper function to convert tree item to Account for compatibility
   const convertToAccount = (item: any): Account => {
     if ('category' in item) {
       // It's already an Account
@@ -34,6 +36,7 @@ export const AccountsPage: React.FC = () => {
       parent_id: undefined
     };
   };
+
   const handleCreateAccount = (parent?: any) => {
     setParentAccount(parent ? convertToAccount(parent) : null);
     setSelectedAccount(null);
@@ -43,6 +46,12 @@ export const AccountsPage: React.FC = () => {
   const handleViewAccount = (account: any) => {
     setSelectedAccount(convertToAccount(account));
     setPageMode('detail');
+  };
+  const handleEditAccount = (account: Account) => {
+    console.log('📝 Iniciando edición de cuenta:', account);
+    console.log('📝 Cambiando a modo edit, accountId:', account.id);
+    setSelectedAccount(account);
+    setPageMode('edit');
   };
 
   const handleFormSuccess = (account: Account) => {
@@ -126,14 +135,20 @@ export const AccountsPage: React.FC = () => {
             >
               Plan de Cuentas
             </button>
-          </li>
-          {pageMode === 'create' && (
+          </li>          {pageMode === 'create' && (
             <>
               <li className="text-gray-500">/</li>
               <li className="text-gray-700">
                 {parentAccount ? `Nueva cuenta hija de ${parentAccount.name}` : 'Nueva cuenta raíz'}
               </li>
-            </>          )}
+            </>
+          )}
+          {pageMode === 'edit' && selectedAccount && (
+            <>
+              <li className="text-gray-500">/</li>
+              <li className="text-gray-700">Editar {selectedAccount.name}</li>
+            </>
+          )}
           {pageMode === 'detail' && selectedAccount && (
             <>
               <li className="text-gray-500">/</li>
@@ -149,7 +164,6 @@ export const AccountsPage: React.FC = () => {
         </ol>
       </nav>    </div>
   );
-
   const renderContent = () => {
     switch (pageMode) {
       case 'create':
@@ -158,15 +172,44 @@ export const AccountsPage: React.FC = () => {
             parentAccount={parentAccount || undefined}
             onSuccess={handleFormSuccess}
             onCancel={handleCancel}
-          />        );
+          />
+        );
+
+      case 'edit':
+        if (!selectedAccount) return null;
+        return (
+          <AccountForm
+            initialData={{
+              code: selectedAccount.code,
+              name: selectedAccount.name,
+              description: selectedAccount.description,
+              account_type: selectedAccount.account_type,
+              category: selectedAccount.category,
+              cash_flow_category: selectedAccount.cash_flow_category,
+              parent_id: selectedAccount.parent_id,
+              is_active: selectedAccount.is_active,
+              allows_movements: selectedAccount.allows_movements,
+              requires_third_party: selectedAccount.requires_third_party,
+              requires_cost_center: selectedAccount.requires_cost_center,
+              notes: selectedAccount.notes
+            }}
+            onSuccess={handleFormSuccess}
+            onCancel={handleCancel}
+            isEditMode={true}
+            accountId={selectedAccount.id}
+          />
+        );
       
       case 'detail':
-        if (!selectedAccount) return null;        return (
+        if (!selectedAccount) return null;
+        return (
           <AccountDetail
             accountId={selectedAccount.id}
+            onEdit={handleEditAccount}
             onCreateChild={handleCreateAccount}
             onClose={handleCancel}
-          />        );
+          />
+        );
       
       case 'cash-flow-manager':
         return (

@@ -101,13 +101,14 @@ export const AccountDetail: React.FC<AccountDetailProps> = ({
               {account.description && (
                 <p className="text-gray-600 mt-1">{account.description}</p>
               )}
-            </div>
-
-            <div className="flex space-x-2">
+            </div>            <div className="flex space-x-2">
               {onEdit && (
                 <Button
                   variant="secondary"
-                  onClick={() => onEdit(account)}
+                  onClick={() => {
+                    console.log('🔧 Click en botón Editar - Cuenta:', account);
+                    onEdit(account);
+                  }}
                 >
                   Editar
                 </Button>

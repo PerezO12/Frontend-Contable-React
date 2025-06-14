@@ -8,6 +8,7 @@ import { useForm } from '../../../shared/hooks/useForm';
 import { useAccounts } from '../hooks';
 import { 
   accountCreateSchema, 
+  accountUpdateSchema,
   AccountType, 
   AccountCategory,
   ACCOUNT_TYPE_LABELS,
@@ -17,7 +18,7 @@ import {
   getRecommendedCashFlowCategories,
   getDefaultCashFlowCategory
 } from '../types';
-import type { AccountCreateForm } from '../types';
+import type { AccountCreateForm, AccountUpdate } from '../types';
 import type { Account } from '../types';
 
 interface AccountFormProps {
@@ -37,6 +38,13 @@ export const AccountForm: React.FC<AccountFormProps> = ({
   isEditMode = false,
   accountId
 }) => {
+  console.log('🔍 AccountForm renderizado con:', {
+    isEditMode,
+    accountId,
+    hasInitialData: !!initialData,
+    initialDataKeys: initialData ? Object.keys(initialData) : []
+  });
+
   const { createAccount, updateAccount, loading } = useAccounts();
   const {
     data: values,
@@ -56,32 +64,50 @@ export const AccountForm: React.FC<AccountFormProps> = ({
       requires_third_party: initialData?.requires_third_party ?? false,
       requires_cost_center: initialData?.requires_cost_center ?? false,
       notes: initialData?.notes || ''
-    },
-    validate: (data) => {
-      const result = accountCreateSchema.safeParse(data);
+    },    validate: (data) => {
+      // Usar diferente schema según el modo
+      const schema = isEditMode ? accountUpdateSchema : accountCreateSchema;
+      const result = schema.safeParse(data);
       if (!result.success) {
         return result.error.errors.map(err => ({
           field: err.path.join('.'),
           message: err.message
         }));
       }
-      return [];    },    onSubmit: async (formData) => {
-      console.log('Enviando datos al backend:', formData);
-      
-      // Clean up optional fields: convert empty strings to undefined
-      const cleanedData = {
-        ...formData,
-        cash_flow_category: (formData.cash_flow_category as any) === '' ? undefined : formData.cash_flow_category
-      };
+      return [];
+    },onSubmit: async (formData) => {
+      console.log('🚀 onSubmit ejecutado con:', {
+        isEditMode,
+        accountId,
+        formData
+      });
       
       if (isEditMode && accountId) {
-        // Modo edición
-        const result = await updateAccount(accountId, cleanedData);
+        // Modo edición - Solo enviar campos permitidos para actualización
+        const updateData: AccountUpdate = {
+          name: formData.name,
+          description: formData.description,
+          category: formData.category,
+          cash_flow_category: (formData.cash_flow_category as any) === '' ? undefined : formData.cash_flow_category,
+          is_active: formData.is_active,
+          allows_movements: formData.allows_movements,
+          requires_third_party: formData.requires_third_party,
+          requires_cost_center: formData.requires_cost_center,
+          notes: formData.notes
+        };
+        
+        console.log('Datos de actualización filtrados:', updateData);
+        const result = await updateAccount(accountId, updateData);
         if (result && onSuccess) {
           onSuccess(result);
         }
       } else {
-        // Modo creación
+        // Modo creación - Enviar todos los campos necesarios
+        const cleanedData = {
+          ...formData,
+          cash_flow_category: (formData.cash_flow_category as any) === '' ? undefined : formData.cash_flow_category
+        };
+        
         const result = await createAccount(cleanedData);
         if (result && onSuccess) {
           onSuccess(result);
@@ -398,6 +424,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({
           )}          <Button
             type="submit"
             disabled={loading || (!isEditMode && getFieldError('code') !== undefined)}
+            onClick={() => console.log('🔘 Click en botón submit - isEditMode:', isEditMode, 'loading:', loading)}
           >
             {loading ? <Spinner size="sm" /> : isEditMode ? 'Actualizar Cuenta' : 'Crear Cuenta'}
           </Button>

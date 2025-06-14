@@ -102,8 +102,7 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
             </p>
           </div></div>
       </div>
-    );  }
-  return (
+    );  }  return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{
@@ -112,7 +111,7 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
         WebkitBackdropFilter: 'blur(12px)',
       }}
     >
-      <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden">
         <Card>
           <div className="card-header border-b">
             <div className="flex items-center justify-between">
@@ -129,9 +128,8 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
             </div>
           </div>
 
-          <div className="card-body max-h-[60vh] overflow-y-auto">
-            {/* Resumen de validación */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="card-body max-h-[70vh] overflow-y-auto">            {/* Resumen de validación */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="bg-green-50 p-4 rounded-lg">
                 <h4 className="font-medium text-green-900">Se pueden eliminar</h4>
                 <p className="text-2xl font-bold text-green-600">{canDeleteAccounts.length}</p>
@@ -206,7 +204,7 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
                   <h4 className="font-medium text-green-900 mb-3">
                     ✅ Cuentas que se pueden eliminar sin problemas ({canDeleteAccounts.filter(v => v.warnings.length === 0).length})
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2">
                     {canDeleteAccounts.filter(v => v.warnings.length === 0).map((validation) => {
                       const account = selectedAccounts.find(a => a.id === validation.account_id);
                       return (

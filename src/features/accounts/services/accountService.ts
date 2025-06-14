@@ -67,16 +67,22 @@ export class AccountService {
   }
   /**
    * Actualizar una cuenta existente
-   */
-  static async updateAccount(id: string, updateData: AccountUpdate): Promise<Account> {
-    console.log('Actualizando cuenta:', id);
-    console.log('Datos de actualización:', updateData);
+   */  static async updateAccount(id: string, updateData: AccountUpdate): Promise<Account> {
+    console.log('🔄 AccountService.updateAccount - Iniciando actualización');
+    console.log('📋 ID de cuenta:', id);
+    console.log('📝 Datos de actualización:', updateData);
+    console.log('🌐 URL completa:', `${this.BASE_URL}/${id}`);
+    
     try {
       const response = await apiClient.put<Account>(`${this.BASE_URL}/${id}`, updateData);
-      console.log('Respuesta del servidor:', response.data);
+      console.log('✅ Respuesta exitosa del servidor:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error al actualizar cuenta:', error);
+      console.error('❌ Error al actualizar cuenta:', error);
+      if (error instanceof Error) {
+        console.error('📋 Mensaje de error:', error.message);
+        console.error('📊 Stack trace:', error.stack);
+      }
       throw error;
     }
   }

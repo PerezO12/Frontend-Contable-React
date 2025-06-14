@@ -12,9 +12,9 @@ Se ha implementado completamente el sistema de operaciones masivas para asientos
 - **Estados soportados**:
   - ✅ **Borrador** (requiere razón) → `/bulk/reset-to-draft`
   - ⏳ **Pendiente** (deshabilitado - no hay endpoint)
-  - ✅ **Aprobado** → `/bulk/approve`
-  - 📊 **Contabilizado** (requiere razón) → `/bulk/post`
-  - ❌ **Cancelado** (requiere razón) → `/bulk/cancel`
+  - ✅ **Aprobado** → `/bulk-approve`
+  - 📊 **Contabilizado** (requiere razón) → `/bulk-post`
+  - ❌ **Cancelado** (requiere razón) → `/bulk-cancel`
   - ↩️ **Revertir** (requiere razón) → `/bulk/reverse`
 
 ### 2. **Modal de Razón Moderna**
@@ -33,15 +33,15 @@ Se ha implementado completamente el sistema de operaciones masivas para asientos
 #### Endpoints Bulk Nuevos:
 ```typescript
 // Aprobación masiva
-POST /api/v1/journal-entries/bulk/approve
+POST /api/v1/journal-entries/bulk-approve
 bulkApproveEntries(entryIds: string[], reason?: string)
 
 // Contabilización masiva
-POST /api/v1/journal-entries/bulk/post
+POST /api/v1/journal-entries/bulk-post
 bulkPostEntries(entryIds: string[], reason?: string)
 
 // Cancelación masiva
-POST /api/v1/journal-entries/bulk/cancel
+POST /api/v1/journal-entries/bulk-cancel
 bulkCancelEntries(entryIds: string[], reason: string)
 
 // Reversión masiva
@@ -64,7 +64,7 @@ bulkRestoreToDraft(entryIds: string[], reason: string)
 ### Request Format (todos los endpoints):
 ```json
 {
-  "entry_ids": ["uuid1", "uuid2", "uuid3"],
+  "journal_entry_ids": ["uuid1", "uuid2", "uuid3"],
   "reason": "Razón para la operación",
   "reversal_date": "2024-01-15" // Solo para reversiones
 }

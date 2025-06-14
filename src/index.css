@@ -407,17 +407,52 @@ body {
 .main-content-with-fixed-layout .max-w-6xl,
 .main-content-with-fixed-layout .max-w-5xl,
 .main-content-with-fixed-layout .max-w-4xl {
+  max-width: none;
+  width: 100%;
   margin-left: auto;
   margin-right: auto;
   padding-left: 2rem;
   padding-right: 2rem;
 }
 
-/* Ajustes para contenido colapsado - más centrado */
+/* Ajustes para contenido colapsado - usar completamente el espacio liberado */
 .main-content-with-fixed-layout.content-sidebar-collapsed .max-w-7xl,
 .main-content-with-fixed-layout.content-sidebar-collapsed .max-w-6xl,
 .main-content-with-fixed-layout.content-sidebar-collapsed .max-w-5xl,
 .main-content-with-fixed-layout.content-sidebar-collapsed .max-w-4xl {
-  padding-left: 3rem;
-  padding-right: 3rem;
+  max-width: none;
+  width: 100%;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+/* Estilos adicionales para expansión de contenido cuando sidebar está colapsado */
+
+/* Tablas y contenedores se expanden más cuando sidebar está colapsado */
+.main-content-with-fixed-layout.content-sidebar-collapsed .table-container,
+.main-content-with-fixed-layout.content-sidebar-collapsed .overflow-x-auto,
+.main-content-with-fixed-layout.content-sidebar-collapsed .w-full {
+  width: 100% !important;
+}
+
+/* Cards y contenedores flexibles aprovechan más espacio */
+.main-content-with-fixed-layout.content-sidebar-collapsed .grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+}
+
+/* Formularios y secciones usan más ancho disponible */
+.main-content-with-fixed-layout.content-sidebar-collapsed .max-w-2xl,
+.main-content-with-fixed-layout.content-sidebar-collapsed .max-w-3xl {
+  max-width: none !important;
+  width: 100% !important;
+}
+
+/* Reducir márgenes internos para aprovechar más espacio */
+.main-content-with-fixed-layout.content-sidebar-collapsed .space-x-6 > * + * {
+  margin-left: 1rem !important;
+}
+
+.main-content-with-fixed-layout.content-sidebar-collapsed .px-6 {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
 }

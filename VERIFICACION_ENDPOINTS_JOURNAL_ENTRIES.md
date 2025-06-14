@@ -11,23 +11,23 @@ Todos los endpoints bulk están correctamente implementados y usan las URLs docu
 
 | Operación | Endpoint | Parámetro ID | Estado |
 |-----------|----------|--------------|--------|
-| Aprobar | `/api/v1/journal-entries/bulk/approve` | `entry_ids` | ✅ Correcto |
-| Contabilizar | `/api/v1/journal-entries/bulk/post` | `entry_ids` | ✅ Correcto |
-| Cancelar | `/api/v1/journal-entries/bulk/cancel` | `entry_ids` | ✅ Correcto |
-| Revertir | `/api/v1/journal-entries/bulk/reverse` | `entry_ids` | ✅ Correcto |
+| Aprobar | `/api/v1/journal-entries/bulk-approve` | `journal_entry_ids` | ✅ Correcto |
+| Contabilizar | `/api/v1/journal-entries/bulk-post` | `journal_entry_ids` | ✅ Correcto |
+| Cancelar | `/api/v1/journal-entries/bulk-cancel` | `journal_entry_ids` | ✅ Correcto |
+| Revertir | `/api/v1/journal-entries/bulk/reverse` | `journal_entry_ids` | ✅ Correcto |
 | Reset a Borrador | `/api/v1/journal-entries/bulk-reset-to-draft` | `journal_entry_ids` | ✅ Correcto |
 
 ### 2. Particularidades de Implementación
 
 #### Reset to Draft
 - **Endpoint único**: `/api/v1/journal-entries/bulk-reset-to-draft`
-- **Parámetro especial**: Usa `journal_entry_ids` en lugar de `entry_ids`
+- **Parámetro especial**: Usa `journal_entry_ids` en lugar de `journal_entry_ids`
 - **Razón**: Campo obligatorio para auditoría
 - **Estado**: ✅ Correctamente implementado
 
 #### Otros Endpoints Bulk
 - **Patrón URL**: `/api/v1/journal-entries/bulk/{operation}`
-- **Parámetro estándar**: `entry_ids`
+- **Parámetro estándar**: `journal_entry_ids`
 - **Estado**: ✅ Todos correctamente implementados
 
 ## 🔧 Cambios Realizados

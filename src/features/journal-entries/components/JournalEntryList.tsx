@@ -22,32 +22,18 @@ import {
 interface JournalEntryListProps {
   onEntrySelect?: (entry: JournalEntry) => void;
   onCreateEntry?: () => void;
-  onEditEntry?: (entry: JournalEntry) => void;
   initialFilters?: JournalEntryFilters;
-  showActions?: boolean;
-  // Handlers opcionales para operaciones
-  onApproveEntry?: (entry: JournalEntry) => Promise<void> | void;
-  onPostEntry?: (entry: JournalEntry) => Promise<void> | void;
-  onCancelEntry?: (entry: JournalEntry) => Promise<void> | void;
-  onReverseEntry?: (entry: JournalEntry) => Promise<void> | void;
 }
 
 export const JournalEntryList: React.FC<JournalEntryListProps> = ({
   onEntrySelect,
   onCreateEntry,
-  onEditEntry,
-  initialFilters,
-  showActions = true,
-  onApproveEntry: externalApproveHandler,
-  onPostEntry: externalPostHandler,
-  onCancelEntry: externalCancelHandler,
-  onReverseEntry: externalReverseHandler
+  initialFilters
 }) => {
   const [filters, setFilters] = useState<JournalEntryFilters>(initialFilters || {});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
-  const [selectAll, setSelectAll] = useState(false);  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
-  // Obtener funcionalidad del hook
+  const [selectAll, setSelectAll] = useState(false);  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);  // Obtener funcionalidad del hook
   const { 
     entries, 
     pagination, 
@@ -55,10 +41,6 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
     error,    
     refetch,
     refetchWithFilters,
-    approveEntry,
-    postEntry,
-    cancelEntry,
-    reverseEntry,
     searchEntries,
     validateDeletion,
     bulkDeleteEntries
@@ -163,70 +145,9 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
       console.error('Error al cambiar estado masivo:', error);
       
       // Re-lanzar el error para que lo maneje el componente BulkStatusChanger
-      throw error;
-    }
+      throw error;    }
   };
 
-  const handleApproveEntry = async (entry: JournalEntry) => {
-    if (externalApproveHandler) {
-      await externalApproveHandler(entry);
-    } else {
-      const confirmed = window.confirm(
-        `¿Está seguro de que desea aprobar el asiento contable ${entry.number}?`
-      );
-
-      if (confirmed) {
-        await approveEntry(entry.id);
-      }
-    }
-  };
-  
-  const handlePostEntry = async (entry: JournalEntry) => {
-    if (externalPostHandler) {
-      await externalPostHandler(entry);
-    } else {
-      const confirmed = window.confirm(
-        `¿Está seguro de que desea contabilizar el asiento ${entry.number}?\n\nEsta acción afectará los saldos de las cuentas contables.`
-      );
-
-      if (confirmed) {
-        const reason = window.prompt(
-          `Ingrese una razón para la contabilización (opcional):`
-        );
-        // El reason puede ser null, undefined o string vacío - todos son válidos
-        await postEntry(entry.id, reason || undefined);
-      }
-    }
-  };
-  
-  const handleCancelEntry = async (entry: JournalEntry) => {
-    if (externalCancelHandler) {
-      await externalCancelHandler(entry);
-    } else {
-      const reason = window.prompt(
-        `Ingrese la razón para cancelar el asiento ${entry.number}:`
-      );
-
-      if (reason !== null && reason.trim()) {
-        await cancelEntry(entry.id, reason.trim());
-      }
-    }
-  };
-  
-  const handleReverseEntry = async (entry: JournalEntry) => {
-    if (externalReverseHandler) {
-      await externalReverseHandler(entry);
-    } else {
-      const reason = window.prompt(
-        `Ingrese la razón para crear una reversión del asiento ${entry.number}:`
-      );
-
-      if (reason !== null && reason.trim()) {
-        await reverseEntry(entry.id, reason.trim());
-      }
-    }
-  };
-  
   const getStatusColor = (status: JournalEntryStatus) => {
     const colors = {
       [JournalEntryStatus.DRAFT]: 'bg-gray-100 text-gray-800',
@@ -249,15 +170,6 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
     };
     return colors[type];
   };
-  
-  const canEdit = (entry: JournalEntry) => entry.status === JournalEntryStatus.DRAFT;
-  const canApprove = (entry: JournalEntry) => entry.status === JournalEntryStatus.DRAFT || entry.status === JournalEntryStatus.PENDING;
-  const canPost = (entry: JournalEntry) => entry.status === JournalEntryStatus.APPROVED;
-  const canCancel = (entry: JournalEntry) => 
-    entry.status === JournalEntryStatus.DRAFT || entry.status === JournalEntryStatus.PENDING || entry.status === JournalEntryStatus.APPROVED;
-  const canReverse = (entry: JournalEntry) => 
-    entry.status === JournalEntryStatus.POSTED && entry.entry_type !== JournalEntryType.REVERSAL;
-
   if (error) {
     return (
       <Card>
@@ -280,10 +192,9 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
             <div>
               <h2 className="card-title">Asientos Contables</h2>
               <p className="text-sm text-gray-600 mt-1">
-                {pagination.total} asiento{pagination.total !== 1 ? 's' : ''} encontrado{pagination.total !== 1 ? 's' : ''}
-              </p>
+                {pagination.total} asiento{pagination.total !== 1 ? 's' : ''} encontrado{pagination.total !== 1 ? 's' : ''}              </p>
             </div>
-            {showActions && onCreateEntry && (
+            {onCreateEntry && (
               <Button 
                 onClick={onCreateEntry}
                 className="bg-blue-600 hover:bg-blue-700"
@@ -511,9 +422,7 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Descripción</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Tipo</th>
                     <th className="text-right py-3 px-4 font-medium text-gray-900">Total</th>
-                    <th className="text-center py-3 px-4 font-medium text-gray-900">Estado</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Creado por</th>
-                    {showActions && <th className="text-center py-3 px-4 font-medium text-gray-900">Acciones</th>}
+                    <th className="text-center py-3 px-4 font-medium text-gray-900">Estado</th>                    <th className="text-left py-3 px-4 font-medium text-gray-900">Creado por</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -587,82 +496,10 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                       <td 
                         className="py-3 px-4"
                         onClick={() => onEntrySelect?.(entry)}
-                      >
-                        <span className="text-sm text-gray-600">
+                      >                        <span className="text-sm text-gray-600">
                           {entry.created_by_name || 'Usuario'}
                         </span>
                       </td>
-                      {showActions && (
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex justify-center space-x-1">
-                            {canEdit(entry) && onEditEntry && (
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onEditEntry(entry);
-                                }}
-                                className="text-blue-600 hover:text-blue-700"
-                              >
-                                Editar
-                              </Button>
-                            )}
-                            {canApprove(entry) && (
-                              <Button
-                                size="sm"
-                                variant="success"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleApproveEntry(entry);
-                                }}
-                                className="text-green-600 hover:text-green-700"
-                              >
-                                Aprobar
-                              </Button>
-                            )}
-                            {canPost(entry) && (
-                              <Button
-                                size="sm"
-                                variant="primary"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePostEntry(entry);
-                                }}
-                                className="text-blue-600 hover:text-blue-700"
-                              >
-                                Contabilizar
-                              </Button>
-                            )}
-                            {canReverse(entry) && (
-                              <Button
-                                size="sm"
-                                variant="warning"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleReverseEntry(entry);
-                                }}
-                                className="text-orange-600 hover:text-orange-700"
-                              >
-                                Revertir
-                              </Button>
-                            )}
-                            {canCancel(entry) && (
-                              <Button
-                                size="sm"
-                                variant="danger"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCancelEntry(entry);
-                                }}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                Cancelar
-                              </Button>                            
-                            )}
-                          </div>
-                        </td>
-                      )}
                     </tr>
                   ))}
                 </tbody>

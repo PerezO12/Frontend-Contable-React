@@ -254,7 +254,6 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
         </div>
       </div>
     );}
-
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -264,7 +263,7 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
         WebkitBackdropFilter: 'blur(12px)',
       }}
     >
-      <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden">
         <Card>
           <div className="card-header border-b">
             <div className="flex items-center justify-between">

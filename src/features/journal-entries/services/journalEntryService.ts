@@ -16,12 +16,11 @@ import { JournalEntryStatus } from '../types';
 /**
  * Servicio para operaciones relacionadas con asientos contables
  * Maneja todas las interacciones con el API backend
- * 
- * VERIFICADO: Los endpoints bulk están alineados con la documentación actualizada:
- * - POST /api/v1/journal-entries/bulk/approve (usa 'entry_ids')
- * - POST /api/v1/journal-entries/bulk/post (usa 'entry_ids')
- * - POST /api/v1/journal-entries/bulk/cancel (usa 'entry_ids')
- * - POST /api/v1/journal-entries/bulk/reverse (usa 'entry_ids')
+ *  * VERIFICADO: Los endpoints bulk están alineados con la documentación actualizada:
+ * - POST /api/v1/journal-entries/bulk-approve (usa 'journal_entry_ids')
+ * - POST /api/v1/journal-entries/bulk-post (usa 'journal_entry_ids')
+ * - POST /api/v1/journal-entries/bulk-cancel (usa 'journal_entry_ids')
+ * - POST /api/v1/journal-entries/bulk-reverse (usa 'journal_entry_ids')
  * - POST /api/v1/journal-entries/bulk-reset-to-draft (usa 'journal_entry_ids')
  * 
  * Fecha de última verificación: 2025-06-13
@@ -445,12 +444,12 @@ export class JournalEntryService {
     console.log('🔄 Restaurando asiento contable a borrador:', {
       id,
       reason,
-      endpoint: `${this.BASE_URL}/${id}/restore-to-draft`
+      endpoint: `${this.BASE_URL}/${id}/reset-to-draft`
     });
     
     try {
       const response = await apiClient.post<JournalEntry>(
-        `${this.BASE_URL}/${id}/restore-to-draft`,
+        `${this.BASE_URL}/${id}/reset-to-draft`,
         { reason }
       );
       console.log('✅ Asiento contable restaurado a borrador exitosamente:', response.data);
@@ -459,7 +458,7 @@ export class JournalEntryService {
       console.error('❌ Error al restaurar asiento contable a borrador:', {
         id,
         reason,
-        endpoint: `${this.BASE_URL}/${id}/restore-to-draft`,
+        endpoint: `${this.BASE_URL}/${id}/reset-to-draft`,
         status: error.response?.status,
         statusText: error.response?.statusText,
         method: 'POST',
@@ -474,7 +473,7 @@ export class JournalEntryService {
    * Restauración masiva usando llamadas individuales como fallback
    */  /**
    * Aprobar múltiples asientos contables usando el nuevo endpoint bulk
-   */
+   */  
   static async bulkApproveEntries(entryIds: string[], reason?: string, forceApprove: boolean = false): Promise<{
     total_requested: number;
     total_approved: number;
@@ -482,22 +481,28 @@ export class JournalEntryService {
     successful_entries: JournalEntry[];
     failed_entries: { id: string; error: string }[];
   }> {
-    console.log('Aprobando múltiples asientos contables con endpoint bulk:', entryIds, 'Razón:', reason, 'Force Approve:', forceApprove);
+    console.log('🔄 Iniciando aprobación masiva de asientos contables');
+    console.log('📋 Entry IDs recibidos:', entryIds);
+    console.log('📝 Razón:', reason);
+    console.log('⚡ Force Approve:', forceApprove);
     
     if (!entryIds || entryIds.length === 0) {
       throw new Error('No se proporcionaron asientos para aprobar');
-    }
-
-    try {
+    }    try {
       const requestData = {
-        entry_ids: entryIds,
+        journal_entry_ids: entryIds,
         reason: reason || 'Aprobación masiva desde interfaz',
         force_approve: forceApprove
       };
 
-      const response = await apiClient.post(`${this.BASE_URL}/bulk/approve`, requestData);
+      console.log('🌐 URL completa:', `${this.BASE_URL}/bulk-approve`);
+      console.log('📦 CUERPO DE LA SOLICITUD (JSON):', JSON.stringify(requestData, null, 2));
+      console.log('📦 CUERPO DE LA SOLICITUD (objeto):', requestData);
       
-      console.log('Respuesta de aprobación masiva:', response.data);
+      const response = await apiClient.post(`${this.BASE_URL}/bulk-approve`, requestData);
+      
+      console.log('✅ Respuesta de aprobación masiva:', response.data);
+      console.log('📊 Status de respuesta:', response.status);
       
       return {
         total_requested: response.data.total_requested || entryIds.length,
@@ -509,37 +514,51 @@ export class JournalEntryService {
           error: item.errors?.join(', ') || 'Error desconocido'
         })) || []
       };
-    } catch (error: any) {
-      console.error('Error en aprobación masiva:', error);
+    } catch (error: any) {      console.error('❌ Error en aprobación masiva:', error);
+      console.error('📋 Request data que falló:', {
+        journal_entry_ids: entryIds,
+        reason: reason || 'Aprobación masiva desde interfaz',
+        force_approve: forceApprove
+      });
+      if (error.response) {
+        console.error('📊 Status del error:', error.response.status);
+        console.error('📝 Datos del error:', error.response.data);
+        console.error('🔗 Headers del error:', error.response.headers);
+      }
       throw error;
     }
   }
   /**
    * Contabilizar múltiples asientos contables usando el nuevo endpoint bulk
-   */
-  static async bulkPostEntries(entryIds: string[], reason?: string, forcePost: boolean = false): Promise<{
+   */  static async bulkPostEntries(entryIds: string[], reason?: string, forcePost: boolean = false): Promise<{
     total_requested: number;
     total_posted: number;
     total_failed: number;
     successful_entries: JournalEntry[];
     failed_entries: { id: string; error: string }[];
   }> {
-    console.log('Contabilizando múltiples asientos contables con endpoint bulk:', entryIds, 'Razón:', reason, 'Force Post:', forcePost);
+    console.log('🔄 Iniciando contabilización masiva de asientos contables');
+    console.log('📋 Entry IDs recibidos:', entryIds);
+    console.log('📝 Razón:', reason);
+    console.log('⚡ Force Post:', forcePost);
     
     if (!entryIds || entryIds.length === 0) {
       throw new Error('No se proporcionaron asientos para contabilizar');
-    }
-
-    try {
+    }    try {
       const requestData = {
-        entry_ids: entryIds,
+        journal_entry_ids: entryIds,
         reason: reason || 'Contabilización masiva desde interfaz',
         force_post: forcePost
       };
 
-      const response = await apiClient.post(`${this.BASE_URL}/bulk/post`, requestData);
+      console.log('🌐 URL completa:', `${this.BASE_URL}/bulk-post`);
+      console.log('📦 CUERPO DE LA SOLICITUD (JSON):', JSON.stringify(requestData, null, 2));
+      console.log('📦 CUERPO DE LA SOLICITUD (objeto):', requestData);
+
+      const response = await apiClient.post(`${this.BASE_URL}/bulk-post`, requestData);
       
-      console.log('Respuesta de contabilización masiva:', response.data);
+      console.log('✅ Respuesta de contabilización masiva:', response.data);
+      console.log('📊 Status de respuesta:', response.status);
       
       return {
         total_requested: response.data.total_requested || entryIds.length,
@@ -549,24 +568,34 @@ export class JournalEntryService {
         failed_entries: response.data.failed_entries?.map((item: any) => ({
           id: item.journal_entry_id,
           error: item.errors?.join(', ') || 'Error desconocido'
-        })) || []
-      };
-    } catch (error: any) {
-      console.error('Error en contabilización masiva:', error);
+        })) || []      };
+    } catch (error: any) {      console.error('❌ Error en contabilización masiva:', error);
+      console.error('📋 Request data que falló:', {
+        journal_entry_ids: entryIds,
+        reason: reason || 'Contabilización masiva desde interfaz',
+        force_post: forcePost
+      });
+      if (error.response) {
+        console.error('📊 Status del error:', error.response.status);
+        console.error('📝 Datos del error:', error.response.data);
+        console.error('🔗 Headers del error:', error.response.headers);
+      }
       throw error;
     }
   }
   /**
    * Cancelar múltiples asientos contables usando el nuevo endpoint bulk
-   */
-  static async bulkCancelEntries(entryIds: string[], reason: string, forceCancel: boolean = false): Promise<{
+   */  static async bulkCancelEntries(entryIds: string[], reason: string, forceCancel: boolean = false): Promise<{
     total_requested: number;
     total_cancelled: number;
     total_failed: number;
     successful_entries: JournalEntry[];
     failed_entries: { id: string; error: string }[];
   }> {
-    console.log('Cancelando múltiples asientos contables con endpoint bulk:', entryIds, 'Razón:', reason, 'Force Cancel:', forceCancel);
+    console.log('🔄 Iniciando cancelación masiva de asientos contables');
+    console.log('📋 Entry IDs recibidos:', entryIds);
+    console.log('📝 Razón:', reason);
+    console.log('⚡ Force Cancel:', forceCancel);
     
     if (!entryIds || entryIds.length === 0) {
       throw new Error('No se proporcionaron asientos para cancelar');
@@ -576,16 +605,20 @@ export class JournalEntryService {
       throw new Error('La razón es requerida para cancelar asientos');
     }
 
-    try {
-      const requestData = {
-        entry_ids: entryIds,
+    try {      const requestData = {
+        journal_entry_ids: entryIds,
         reason: reason.trim(),
         force_cancel: forceCancel
       };
 
-      const response = await apiClient.post(`${this.BASE_URL}/bulk/cancel`, requestData);
+      console.log('🌐 URL completa:', `${this.BASE_URL}/bulk-cancel`);
+      console.log('📦 CUERPO DE LA SOLICITUD (JSON):', JSON.stringify(requestData, null, 2));
+      console.log('📦 CUERPO DE LA SOLICITUD (objeto):', requestData);
+
+      const response = await apiClient.post(`${this.BASE_URL}/bulk-cancel`, requestData);
       
-      console.log('Respuesta de cancelación masiva:', response.data);
+      console.log('✅ Respuesta de cancelación masiva:', response.data);
+      console.log('📊 Status de respuesta:', response.status);
       
       return {
         total_requested: response.data.total_requested || entryIds.length,
@@ -594,11 +627,19 @@ export class JournalEntryService {
         successful_entries: response.data.cancelled_entries || [],
         failed_entries: response.data.failed_entries?.map((item: any) => ({
           id: item.journal_entry_id,
-          error: item.errors?.join(', ') || 'Error desconocido'
-        })) || []
+          error: item.errors?.join(', ') || 'Error desconocido'        })) || []
       };
-    } catch (error: any) {
-      console.error('Error en cancelación masiva:', error);
+    } catch (error: any) {      console.error('❌ Error en cancelación masiva:', error);
+      console.error('📋 Request data que falló:', {
+        journal_entry_ids: entryIds,
+        reason: reason.trim(),
+        force_cancel: forceCancel
+      });
+      if (error.response) {
+        console.error('📊 Status del error:', error.response.status);
+        console.error('📝 Datos del error:', error.response.data);
+        console.error('🔗 Headers del error:', error.response.headers);
+      }
       throw error;
     }
   }
@@ -622,9 +663,8 @@ export class JournalEntryService {
       throw new Error('La razón es requerida para revertir asientos');
     }
 
-    try {
-      const requestData = {
-        entry_ids: entryIds,
+    try {      const requestData = {
+        journal_entry_ids: entryIds,
         reason: reason.trim(),
         force_reverse: forceReverse,
         ...(reversalDate && { reversal_date: reversalDate })
@@ -669,7 +709,7 @@ export class JournalEntryService {
       throw new Error('La razón es requerida para restablecer asientos a borrador');
     }
 
-    try {      // IMPORTANTE: Este endpoint usa 'journal_entry_ids' en lugar de 'entry_ids'
+    try {      // IMPORTANTE: Este endpoint usa 'journal_entry_ids' en lugar de 'journal_entry_ids'
       const requestData = {
         journal_entry_ids: entryIds,
         reason: reason.trim(),

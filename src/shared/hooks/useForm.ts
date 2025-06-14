@@ -44,27 +44,33 @@ export const useForm = <T extends Record<string, any>>({
       isDirty: false
     });
   }, [initialData]);
-
   const handleSubmit = useCallback(async (e?: React.FormEvent) => {
+    console.log('🔥 handleSubmit ejecutado - evento:', e);
     if (e) {
       e.preventDefault();
-    }
-
+    }    
     // Validar formulario
     const validationErrors = validate ? validate(formState.data) : [];
-    
-    if (validationErrors.length > 0) {
+    console.log('🔥 Datos del formulario:', formState.data);
+    console.log('🔥 Errores de validación:', validationErrors);
+      if (validationErrors.length > 0) {
+      console.log('❌ Formulario no enviado debido a errores de validación:', validationErrors);
       setErrors(validationErrors);
       return;
     }
 
-    if (!onSubmit) return;
+    if (!onSubmit) {
+      console.log('🔥 No hay función onSubmit');
+      return;
+    }
 
+    console.log('🔥 Ejecutando onSubmit con datos:', formState.data);
     setFormState(prev => ({ ...prev, isSubmitting: true, errors: [] }));
 
     try {
       await onSubmit(formState.data);
     } catch (error) {
+      console.log('🔥 Error en onSubmit:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error en el formulario';
       setErrors([{ field: 'general', message: errorMessage }]);
     } finally {

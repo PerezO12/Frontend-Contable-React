@@ -32,6 +32,13 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
   isEditMode = false,
   entryId
 }) => {
+  console.log('🔍 JournalEntryForm renderizado con:', {
+    isEditMode,
+    entryId,
+    hasInitialData: !!initialData,
+    initialDataKeys: initialData ? Object.keys(initialData) : []
+  });
+
   const { createEntry, updateEntry, loading } = useJournalEntries();
   const { accounts } = useAccounts({ is_active: true });
   const [accountSearchTerms, setAccountSearchTerms] = useState<Record<number, string>>({});
@@ -71,18 +78,59 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
         { account_id: '', debit_amount: '0.00', credit_amount: '0.00', description: '' },
         { account_id: '', debit_amount: '0.00', credit_amount: '0.00', description: '' }
       ]
-    },
-    validate: (data) => {
-      const result = journalEntryCreateSchema.safeParse(data);
-      if (!result.success) {
-        return result.error.errors.map(err => ({
-          field: err.path.join('.'),
-          message: err.message
-        }));
+    },    validate: (data) => {
+      console.log('🔍 Validando datos en modo:', isEditMode ? 'edición' : 'creación');
+      console.log('🔍 Datos a validar:', data);
+      
+      if (isEditMode) {
+        // Para modo edición, hacer validaciones básicas sin schema estricto
+        const errors: any[] = [];
+        
+        // Validar descripción si está presente
+        if (data.description && data.description.length < 3) {
+          errors.push({
+            field: 'description',
+            message: 'La descripción debe tener al menos 3 caracteres'
+          });
+        }
+        
+        // Validar fecha si está presente
+        if (data.entry_date && isNaN(Date.parse(data.entry_date))) {
+          errors.push({
+            field: 'entry_date',
+            message: 'Fecha inválida'
+          });
+        }
+        
+        // Validar líneas básicamente
+        if (data.lines && data.lines.length < 2) {
+          errors.push({
+            field: 'lines',
+            message: 'Un asiento debe tener al menos 2 líneas'
+          });
+        }
+        
+        console.log('🔍 Errores de validación manual:', errors);
+        return errors;
+      } else {
+        // Para modo creación, usar schema de creación
+        const result = journalEntryCreateSchema.safeParse(data);
+        if (!result.success) {
+          const errors = result.error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message
+          }));
+          console.log('🔍 Errores de validación schema:', errors);
+          return errors;
+        }
       }
       return [];
-    },    onSubmit: async (formData) => {
-      console.log('Enviando datos del asiento contable:', formData);
+    },onSubmit: async (formData) => {
+      console.log('🚀 JournalEntry onSubmit ejecutado con:', {
+        isEditMode,
+        entryId,
+        formData
+      });
       
       const submitData = {
         ...formData,
@@ -416,10 +464,14 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
                 {formatCurrency(Math.abs(balance.difference))}
               </p>
             </div>
-          </div>
-
-          {/* Lines Table */}
-          <div className="overflow-x-auto">
+          </div>          {/* Lines Table */}
+          <div 
+            className="overflow-x-auto"
+            style={{
+              paddingBottom: focusedInput !== null ? '320px' : '0px',
+              transition: 'padding-bottom 0.2s ease-in-out'
+            }}
+          >
             <table className="min-w-full">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -436,26 +488,50 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
                   <tr key={index} className="border-b border-gray-100">
                     <td className="py-2 px-3">
                       <span className="text-sm text-gray-600">{index + 1}</span>
-                    </td>                    
-                    <td className="py-2 px-3">
+                    </td>                    <td className="py-2 px-3 relative">
                       <div className="relative">                        <Input
                           value={accountSearchTerms[index] || line.account_code || ''}
                           onChange={(e) => {
+                            const searchTerm = e.target.value;
                             setAccountSearchTerms(prev => ({ 
                               ...prev, 
-                              [index]: e.target.value 
+                              [index]: searchTerm 
                             }));
+                            
+                            // Si se está borrando el contenido, limpiar la cuenta seleccionada
+                            if (searchTerm === '' && line.account_id) {
+                              const newLines = [...values.lines];
+                              newLines[index] = {
+                                ...newLines[index],
+                                account_id: '',
+                                account_code: '',
+                                account_name: ''
+                              };
+                              updateField('lines', newLines);
+                            }
                           }}
                           onFocus={() => setFocusedInput(index)}
                           onBlur={() => setTimeout(() => setFocusedInput(null), 200)}
                           placeholder="Escribe para buscar cuenta (código o nombre)..."
-                          className="text-sm w-64"
-                        />                          {/* Account dropdown */}
-                        {(accountSearchTerms[index] || (focusedInput === index && !line.account_id)) && (<div className="absolute z-20 w-96 mt-1 bg-white border border-gray-300 rounded-md shadow-xl max-h-80 overflow-auto">
+                          className="text-sm w-full"
+                        />{/* Account dropdown */}
+                        {(accountSearchTerms[index] || focusedInput === index) && (
+                          <div 
+                            className="absolute z-50 bg-white border border-gray-200 rounded-lg shadow-xl overflow-auto"
+                            style={{
+                              width: '450px',
+                              maxHeight: '280px',
+                              left: '0',
+                              top: '100%',
+                              marginTop: '4px',
+                              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                              border: '1px solid #e5e7eb'
+                            }}
+                          >
                             {getFilteredAccounts(accountSearchTerms[index] || '').map((account) => (
                               <div
                                 key={account.id}
-                                className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
                                 onClick={() => handleAccountSelect(index, account)}
                               >
                                 <div className="flex flex-col">
@@ -468,10 +544,8 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
                               </div>
                             ))}
                           </div>
-                        )}
-
-                        {/* Selected account display */}
-                        {line.account_id && !accountSearchTerms[index] && (
+                        )}                        {/* Selected account display */}
+                        {line.account_id && !accountSearchTerms[index] && focusedInput !== index && (
                           <div className="text-xs text-gray-500 mt-1">
                             {line.account_code} - {line.account_name}
                           </div>
@@ -560,11 +634,13 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
               >
                 Cancelar
               </Button>
-            )}
-            <Button
+            )}            <Button
               type="submit"
               disabled={loading || !balance.is_balanced}
-              onClick={handleSubmit}
+              onClick={() => {
+                console.log('🔘 Click en botón submit JournalEntry - isEditMode:', isEditMode, 'loading:', loading, 'balanced:', balance.is_balanced);
+                handleSubmit();
+              }}
               className="bg-blue-600 hover:bg-blue-700"
             >
               {loading ? (

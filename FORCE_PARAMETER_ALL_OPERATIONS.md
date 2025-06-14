@@ -17,19 +17,19 @@ Se completó la implementación del parámetro "force" para todas las operacione
 #### Parámetros Enviados al Backend por Estado:
 ```typescript
 // Restaurar a borrador
-{ entry_ids, reason, force_reset: boolean }
+{ journal_entry_ids, reason, force_reset: boolean }
 
 // Aprobar 
-{ entry_ids, reason, force_approve: boolean }
+{ journal_entry_ids, reason, force_approve: boolean }
 
 // Contabilizar
-{ entry_ids, reason, force_post: boolean }
+{ journal_entry_ids, reason, force_post: boolean }
 
 // Cancelar
-{ entry_ids, reason, force_cancel: boolean }
+{ journal_entry_ids, reason, force_cancel: boolean }
 
 // Revertir
-{ entry_ids, reason, force_reverse: boolean }
+{ journal_entry_ids, reason, force_reverse: boolean }
 ```
 
 ### 2. **Modal de Razón (`ReasonPromptModal.tsx`)**

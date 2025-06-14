@@ -1,18 +1,11 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { DataImportWizard } from '../components';
 
 export function DataImportMainPage() {
-  const navigate = useNavigate();
   const [selectedDataType, setSelectedDataType] = React.useState<'accounts' | 'journal_entries' | null>(null);
-
   const handleImportComplete = (result: any) => {
     console.log('Import completed:', result);
     // Aquí puedes agregar lógica adicional como navegación o notificaciones
-  };
-
-  const handleBackToDashboard = () => {
-    navigate('/dashboard');
   };
 
   const handleBackToSelection = () => {
@@ -23,20 +16,9 @@ export function DataImportMainPage() {
       <div className="min-h-screen bg-gray-50">
         {/* Header con navegación */}
         <div className="bg-white border-b border-gray-200 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">            <div className="flex items-center justify-between h-16">
               {/* Navegación izquierda */}
               <div className="flex items-center space-x-4">
-                <button
-                  onClick={handleBackToDashboard}
-                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                  Volver al Dashboard
-                </button>
-                
                 {/* Breadcrumb */}
                 <nav className="flex items-center space-x-2 text-sm text-gray-500">
                   <span>Dashboard</span>
@@ -188,20 +170,9 @@ export function DataImportMainPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header con navegación */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">          <div className="flex items-center justify-between h-16">
             {/* Navegación izquierda */}
             <div className="flex items-center space-x-4">
-              <button
-                onClick={handleBackToDashboard}
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Dashboard
-              </button>
-              
               {/* Breadcrumb */}
               <nav className="flex items-center space-x-2 text-sm text-gray-500">
                 <span>Dashboard</span>

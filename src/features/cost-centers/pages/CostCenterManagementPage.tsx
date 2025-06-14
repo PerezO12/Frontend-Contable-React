@@ -8,10 +8,8 @@ type ViewMode = 'list' | 'detail' | 'create' | 'edit' | 'movements' | 'analysis'
 export const CostCenterManagementPage: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewMode>('list');
   const [selectedCostCenter, setSelectedCostCenter] = useState<CostCenter | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const { createCostCenter, updateCostCenter, refetch } = useCostCenters();
-
   const handleCostCenterSelect = (costCenter: CostCenter) => {
     setSelectedCostCenter(costCenter);
     setCurrentView('detail');
@@ -36,9 +34,7 @@ export const CostCenterManagementPage: React.FC = () => {
     setSelectedCostCenter(costCenter);
     setCurrentView('analysis');
   };
-
   const handleFormSubmit = async (data: CostCenterCreate | CostCenterUpdate) => {
-    setLoading(true);
     try {
       if (currentView === 'create') {
         const result = await createCostCenter(data as CostCenterCreate);
@@ -56,8 +52,6 @@ export const CostCenterManagementPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error in form submission:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -69,11 +63,9 @@ export const CostCenterManagementPage: React.FC = () => {
   const renderCurrentView = () => {
     switch (currentView) {
       case 'list':
-        return (
-          <CostCenterList
+        return (          <CostCenterList
             onCostCenterSelect={handleCostCenterSelect}
             onCreateCostCenter={handleCreateCostCenter}
-            onEditCostCenter={handleEditCostCenter}
             showActions={true}
           />
         );
@@ -88,9 +80,8 @@ export const CostCenterManagementPage: React.FC = () => {
               >
                 ← Volver a la lista
               </button>
-            </div>
-            <CostCenterDetail
-              costCenter={selectedCostCenter}
+            </div>            <CostCenterDetail
+              costCenterId={selectedCostCenter.id}
               onEdit={handleEditCostCenter}
               onViewMovements={handleViewMovements}
               onViewAnalysis={handleViewAnalysis}
@@ -108,11 +99,11 @@ export const CostCenterManagementPage: React.FC = () => {
               >
                 ← Volver a la lista
               </button>
-            </div>
-            <CostCenterForm
-              onSubmit={handleFormSubmit}
+            </div>            <CostCenterForm
+              onSuccess={(costCenter) => {
+                handleFormSubmit(costCenter);
+              }}
               onCancel={handleBackToList}
-              loading={loading}
             />
           </div>
         );
@@ -127,12 +118,14 @@ export const CostCenterManagementPage: React.FC = () => {
               >
                 ← Volver al detalle
               </button>
-            </div>
-            <CostCenterForm
-              costCenter={selectedCostCenter}
-              onSubmit={handleFormSubmit}
+            </div>            <CostCenterForm
+              costCenterId={selectedCostCenter.id}
+              isEditMode={true}
+              onSuccess={(costCenter) => {
+                handleFormSubmit(costCenter);
+                setCurrentView('detail');
+              }}
               onCancel={() => setCurrentView('detail')}
-              loading={loading}
             />
           </div>
         ) : null;

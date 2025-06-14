@@ -21,7 +21,13 @@ import {
   AccountEditPage,
   AccountDetailPage
 } from '@/features/accounts/pages';
-import { CostCenterManagementPage } from '@/features/cost-centers/pages';
+import {
+  CostCentersPage,
+  CostCenterListPage,
+  CostCenterCreatePage,
+  CostCenterEditPage,
+  CostCenterDetailPage
+} from '@/features/cost-centers/pages';
 import { DataImportRoutes } from '@/features/data-import';
 import { ReportsRoutes } from '@/features/reports';
 
@@ -146,7 +152,51 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
               <MainLayout>
-                <CostCenterManagementPage />
+                <CostCentersPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/cost-centers/list" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <CostCenterListPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/cost-centers/new" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <CostCenterCreatePage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/cost-centers/:id" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <CostCenterDetailPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/cost-centers/:id/edit" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <CostCenterEditPage />
               </MainLayout>
             </ProtectedRoute>
           } 

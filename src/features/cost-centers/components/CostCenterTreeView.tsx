@@ -149,7 +149,7 @@ export const CostCenterTreeView: React.FC<CostCenterTreeViewProps> = ({
   activeOnly = true,
   className = ''
 }) => {
-  const { costCenterTree, loading, error, refetch } = useCostCenterTree(undefined, activeOnly);
+  const { costCenterTree, loading, error, refetch } = useCostCenterTree(activeOnly);
 
   if (loading) {
     return (

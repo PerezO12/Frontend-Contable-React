@@ -172,27 +172,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onToggle, isC
           path: '/reports',
         },
       ],
-    },
-    {
+    },    {
       title: 'Procesos',
       items: [
         {
-          id: 'closing',
-          label: 'Cierre Contable',
-          icon: icons.settings,
-          path: '/closing',
-          roles: [UserRole.ADMIN, UserRole.CONTADOR],
-        },
-        {
-          id: 'backup',
-          label: 'Respaldo',
-          icon: icons.settings,
-          path: '/backup',
-          roles: [UserRole.ADMIN],
-        },
-        {
           id: 'import-export',
-          label: 'Importar/Exportar',
+          label: 'Importar',
           icon: icons.settings,
           path: '/import-export',
           roles: [UserRole.ADMIN, UserRole.CONTADOR],
@@ -219,19 +204,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onToggle, isC
               icon: icons.settings,
               path: '/admin/roles',
               roles: [UserRole.ADMIN],
-            },
-            {
+            },            {
               id: 'company',
               label: 'Datos de la Empresa',
               icon: icons.settings,
               path: '/admin/company',
-              roles: [UserRole.ADMIN],
-            },
-            {
-              id: 'backup',
-              label: 'Respaldos',
-              icon: icons.settings,
-              path: '/admin/backup',
               roles: [UserRole.ADMIN],
             },
           ],

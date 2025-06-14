@@ -1,15 +1,18 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Card } from '../../../components/ui/Card';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useCostCenters } from '../hooks';
-import type { CostCenter, CostCenterFilters } from '../types';
+import { useCostCenterListListener } from '../hooks/useCostCenterEvents';
+import { SimpleExportControls } from './SimpleExportControls';
+import { BulkDeleteModal } from './BulkDeleteModal';
+import { formatDate } from '../../../shared/utils';
+import type { CostCenter, CostCenterFilters, BulkCostCenterDeleteResult } from '../types';
 
 interface CostCenterListProps {
   onCostCenterSelect?: (costCenter: CostCenter) => void;
   onCreateCostCenter?: () => void;
-  onEditCostCenter?: (costCenter: CostCenter) => void;
   initialFilters?: CostCenterFilters;
   showActions?: boolean;
 }
@@ -17,16 +20,30 @@ interface CostCenterListProps {
 export const CostCenterList: React.FC<CostCenterListProps> = ({
   onCostCenterSelect,
   onCreateCostCenter,
-  onEditCostCenter,
   initialFilters,
   showActions = true
-}) => {
-  const [filters, setFilters] = useState<CostCenterFilters>(initialFilters || {});
+}) => {const [filters, setFilters] = useState<CostCenterFilters>(initialFilters || {});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCostCenters, setSelectedCostCenters] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   
-  const { costCenters = [], total = 0, loading, error, refetch, refetchWithFilters, deleteCostCenter } = useCostCenters(filters);
+  const { costCenters = [], total = 0, loading, error, refetch, refetchWithFilters } = useCostCenters(filters);
+  
+  // Escuchar eventos de otros componentes para refrescar la lista automáticamente
+  useCostCenterListListener((event) => {
+    console.log('🏢📡 CostCenterList - Evento recibido:', event);
+    // Recargar la lista cuando se crea, actualiza o elimina un centro de costo
+    if (['created', 'updated', 'deleted', 'status_changed'].includes(event.type)) {
+      console.log('🏢🔄 CostCenterList - Refrescando lista debido al evento:', event.type);
+      refetch();
+    }  });
+  
+  // Refrescar la lista cuando el componente se monte para asegurar datos actualizados
+  useEffect(() => {
+    console.log('🏢⚡ CostCenterList - Componente montado, refrescando datos');
+    refetch();
+  }, [refetch]);
   
   // Logging para debug - ver qué datos está recibiendo el componente
   console.log('🏢🖥️ CostCenterList - Datos recibidos del hook:');
@@ -92,35 +109,30 @@ export const CostCenterList: React.FC<CostCenterListProps> = ({
     }
     setSelectAll(checked);
   };
-
   // Limpiar selección
   const handleClearSelection = () => {
     setSelectedCostCenters(new Set());
     setSelectAll(false);
   };
 
-  const handleDeleteCostCenter = async (costCenter: CostCenter) => {
-    const confirmMessage = `⚠️ CONFIRMACIÓN DE ELIMINACIÓN
-
-¿Estás seguro de que deseas eliminar permanentemente el centro de costo?
-
-Código: ${costCenter.code}
-Nombre: ${costCenter.name}
-Nivel: ${costCenter.level}
-
-⚠️ ADVERTENCIA: Esta acción es IRREVERSIBLE
-• Se eliminará toda la información del centro de costo
-• No se podrán recuperar los datos
-• Si el centro de costo tiene movimientos asociados, la eliminación podría fallar
-
-¿Continuar con la eliminación?`;
-
-    if (window.confirm(confirmMessage)) {
-      const success = await deleteCostCenter(costCenter.id);
-      if (success) {
-        refetch();
-      }
+  // Manejar eliminación masiva
+  const handleBulkDelete = () => {
+    if (selectedCostCenters.size === 0) {
+      return;
     }
+    setShowBulkDeleteModal(true);
+  };
+
+  // Manejar éxito de eliminación masiva
+  const handleBulkDeleteSuccess = (_result: BulkCostCenterDeleteResult) => {
+    setShowBulkDeleteModal(false);
+    setSelectedCostCenters(new Set());
+    setSelectAll(false);
+    refetch(); // Recargar la lista de centros de costo
+  };
+  // Obtener centros de costo seleccionados como objetos
+  const getSelectedCostCentersObjects = (): CostCenter[] => {
+    return costCenters.filter(costCenter => selectedCostCenters.has(costCenter.id));
   };
 
   const getLevelColor = (level: number) => {
@@ -287,9 +299,16 @@ Nivel: ${costCenter.level}
                     ? `${selectedCostCenters.size} centro${selectedCostCenters.size === 1 ? '' : 's'} seleccionado${selectedCostCenters.size === 1 ? '' : 's'}`
                     : `Seleccionar todos (${filteredCostCenters.length})`}
                 </span>
-              </label>
-              {selectedCostCenters.size > 0 && (
+              </label>              {selectedCostCenters.size > 0 && (
                 <div className="flex items-center space-x-2">
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                    className="text-xs bg-red-600 hover:bg-red-700"
+                  >
+                    🗑️ Eliminar Seleccionados
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -300,6 +319,14 @@ Nivel: ${costCenter.level}
                   </Button>
                 </div>
               )}
+            </div>
+            
+            {/* Controles de exportación simples */}
+            <div className="flex items-center space-x-2">
+              <SimpleExportControls
+                selectedCostCenterIds={Array.from(selectedCostCenters)}
+                costCenterCount={selectedCostCenters.size}
+              />
             </div>
           </div>
 
@@ -333,15 +360,12 @@ Nivel: ${costCenter.level}
                         onChange={(e) => handleSelectAll(e.target.checked)}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Código</th>
+                    </th>                    <th className="text-left py-3 px-4 font-medium text-gray-900">Código</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Nombre</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Código Completo</th>
                     <th className="text-center py-3 px-4 font-medium text-gray-900">Nivel</th>
-                    <th className="text-center py-3 px-4 font-medium text-gray-900">Movimientos</th>
                     <th className="text-center py-3 px-4 font-medium text-gray-900">Hijos</th>
                     <th className="text-center py-3 px-4 font-medium text-gray-900">Estado</th>
-                    {showActions && <th className="text-center py-3 px-4 font-medium text-gray-900">Acciones</th>}
+                    <th className="text-center py-3 px-4 font-medium text-gray-900">Fecha Creación</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -360,8 +384,7 @@ Nivel: ${costCenter.level}
                           }}
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
-                      </td>
-                      <td 
+                      </td>                      <td 
                         className="py-3 px-4 cursor-pointer"
                         onClick={() => onCostCenterSelect?.(costCenter)}
                       >
@@ -381,27 +404,11 @@ Nivel: ${costCenter.level}
                         </div>
                       </td>
                       <td 
-                        className="py-3 px-4 cursor-pointer"
-                        onClick={() => onCostCenterSelect?.(costCenter)}
-                      >
-                        <code className="text-xs font-mono text-gray-600">
-                          {costCenter.full_code}
-                        </code>
-                      </td>
-                      <td 
                         className="py-3 px-4 text-center cursor-pointer"
                         onClick={() => onCostCenterSelect?.(costCenter)}
                       >
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getLevelColor(costCenter.level)}`}>
                           Nivel {costCenter.level}
-                        </span>
-                      </td>
-                      <td 
-                        className="py-3 px-4 text-center cursor-pointer"
-                        onClick={() => onCostCenterSelect?.(costCenter)}
-                      >
-                        <span className="text-sm text-gray-600">
-                          {costCenter.movements_count}
                         </span>
                       </td>
                       <td 
@@ -415,8 +422,7 @@ Nivel: ${costCenter.level}
                         }`}>
                           {costCenter.children_count}
                         </span>
-                      </td>
-                      <td 
+                      </td>                      <td 
                         className="py-3 px-4 text-center cursor-pointer"
                         onClick={() => onCostCenterSelect?.(costCenter)}
                       >
@@ -427,45 +433,30 @@ Nivel: ${costCenter.level}
                         }`}>
                           {costCenter.is_active ? 'Activo' : 'Inactivo'}
                         </span>
+                      </td>                      <td 
+                        className="py-3 px-4 text-center cursor-pointer"
+                        onClick={() => onCostCenterSelect?.(costCenter)}
+                      >
+                        <span className="text-sm text-gray-900">
+                          {costCenter.created_at ? formatDate(costCenter.created_at) : '-'}
+                        </span>
                       </td>
-                      {showActions && (
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex justify-center space-x-2">
-                            {onEditCostCenter && (
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onEditCostCenter(costCenter);
-                                }}
-                                className="text-blue-600 hover:text-blue-700 border-blue-300 hover:border-blue-400"
-                              >
-                                Editar
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="danger"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteCostCenter(costCenter);
-                              }}
-                              className="text-red-600 hover:text-red-700 border-red-300 hover:border-red-400"
-                            >
-                              Eliminar
-                            </Button>
-                          </div>
-                        </td>
-                      )}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+          )}        </div>
       </Card>
+
+      {/* Modal de eliminación masiva */}
+      {showBulkDeleteModal && (
+        <BulkDeleteModal
+          selectedCostCenters={getSelectedCostCentersObjects()}
+          onClose={() => setShowBulkDeleteModal(false)}
+          onSuccess={handleBulkDeleteSuccess}
+        />
+      )}
     </div>
   );
 };

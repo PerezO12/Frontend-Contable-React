@@ -28,8 +28,12 @@ export interface CostCenterTree {
   id: string;
   code: string;
   name: string;
-  level: number;
+  description?: string;
   is_active: boolean;
+  allows_direct_assignment: boolean;
+  manager_name?: string;
+  level: number;
+  is_leaf: boolean;
   children: CostCenterTree[];
 }
 
@@ -126,3 +130,35 @@ export const COST_CENTER_DEFAULT_FILTERS: CostCenterFilters = {
 // Validation patterns
 export const COST_CENTER_CODE_PATTERN = /^[A-Z0-9][A-Z0-9_-]*$/;
 export const COST_CENTER_MAX_LEVELS = 5; // Maximum hierarchy levels
+
+// Bulk deletion types for cost centers
+export interface BulkCostCenterDelete {
+  cost_center_ids: string[];
+  force_delete?: boolean;
+  delete_reason?: string;
+}
+
+export interface CostCenterDeleteValidation {
+  cost_center_id: string;
+  can_delete: boolean;
+  blocking_reasons: string[];
+  warnings: string[];
+  dependencies: Record<string, any>;
+}
+
+export interface BulkCostCenterDeleteResult {
+  total_requested: number;
+  successfully_deleted: string[];
+  failed_to_delete: Array<{
+    cost_center_id: string;
+    reason: string;
+    details: Record<string, any>;
+  }>;
+  validation_errors: Array<{
+    cost_center_id: string;
+    error: string;
+  }>;
+  warnings: string[];
+  success_count: number;
+  failure_count: number;
+}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CostCenterService } from '../services';
 import { useToast } from '../../../shared/hooks/useToast';
+import { useCostCenterEventEmitter } from './useCostCenterEvents';
 import type { 
   CostCenter, 
   CostCenterTree, 
@@ -17,6 +18,7 @@ export const useCostCenters = (initialFilters?: CostCenterFilters) => {
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const { success, error: showError } = useToast();
+  const { emitCreated, emitUpdated, emitDeleted, emitStatusChanged } = useCostCenterEventEmitter();
 
   const fetchCostCenters = useCallback(async (filters?: CostCenterFilters) => {
     setLoading(true);
@@ -55,9 +57,13 @@ export const useCostCenters = (initialFilters?: CostCenterFilters) => {
     
     try {
       console.log('🏢 Intentando crear centro de costo:', costCenterData);
-      const newCostCenter = await CostCenterService.createCostCenter(costCenterData);
-      console.log('🏢✅ Centro de costo creado exitosamente:', newCostCenter);
+      const newCostCenter = await CostCenterService.createCostCenter(costCenterData);      console.log('🏢✅ Centro de costo creado exitosamente:', newCostCenter);
       setCostCenters(prev => [...prev, newCostCenter]);
+      
+      // Emitir evento para notificar a otros componentes
+      emitCreated(newCostCenter.id, newCostCenter);
+      console.log('🏢📢 Evento "created" emitido para:', newCostCenter.id);
+      
       success('Centro de costo creado exitosamente');
       return newCostCenter;
     } catch (err) {
@@ -99,10 +105,14 @@ export const useCostCenters = (initialFilters?: CostCenterFilters) => {
     setError(null);
     
     try {
-      const updatedCostCenter = await CostCenterService.updateCostCenter(id, updateData);
-      setCostCenters(prev => prev.map(costCenter => 
+      const updatedCostCenter = await CostCenterService.updateCostCenter(id, updateData);      setCostCenters(prev => prev.map(costCenter => 
         costCenter.id === id ? updatedCostCenter : costCenter
       ));
+      
+      // Emitir evento para notificar a otros componentes
+      emitUpdated(id, updatedCostCenter);
+      console.log('🏢📢 Evento "updated" emitido para:', id);
+      
       success('Centro de costo actualizado exitosamente');
       return updatedCostCenter;
     } catch (err) {
@@ -119,9 +129,13 @@ export const useCostCenters = (initialFilters?: CostCenterFilters) => {
     setLoading(true);
     setError(null);
     
-    try {
-      await CostCenterService.deleteCostCenter(id);
+    try {      await CostCenterService.deleteCostCenter(id);
       setCostCenters(prev => prev.filter(costCenter => costCenter.id !== id));
+      
+      // Emitir evento para notificar a otros componentes
+      emitDeleted(id);
+      console.log('🏢📢 Evento "deleted" emitido para:', id);
+      
       success('Centro de costo eliminado exitosamente');
       return true;
     } catch (err) {
@@ -139,10 +153,14 @@ export const useCostCenters = (initialFilters?: CostCenterFilters) => {
     setError(null);
     
     try {
-      const updatedCostCenter = await CostCenterService.toggleCostCenterStatus(id, isActive);
-      setCostCenters(prev => prev.map(costCenter => 
+      const updatedCostCenter = await CostCenterService.toggleCostCenterStatus(id, isActive);      setCostCenters(prev => prev.map(costCenter => 
         costCenter.id === id ? updatedCostCenter : costCenter
       ));
+      
+      // Emitir evento para notificar a otros componentes
+      emitStatusChanged(id, updatedCostCenter);
+      console.log('🏢📢 Evento "status_changed" emitido para:', id);
+      
       success(`Centro de costo ${isActive ? 'activado' : 'desactivado'} exitosamente`);
       return true;
     } catch (err) {
@@ -178,30 +196,30 @@ export const useCostCenters = (initialFilters?: CostCenterFilters) => {
   };
 };
 
-export const useCostCenterTree = (parentId?: string, activeOnly: boolean = true) => {
+export const useCostCenterTree = (activeOnly: boolean = true) => {
   const [costCenterTree, setCostCenterTree] = useState<CostCenterTree[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { error: showError } = useToast();
 
-  const fetchCostCenterTree = useCallback(async (parent?: string, active?: boolean) => {
+  const fetchCostCenterTree = useCallback(async (active?: boolean) => {
     setLoading(true);
     setError(null);
     
     try {
-      const data = await CostCenterService.getCostCenterTree(parent, active);
+      const data = await CostCenterService.getCostCenterTree(active ?? activeOnly);
       setCostCenterTree(data);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al cargar la estructura de centros de costo';
+      const errorMessage = err instanceof Error ? err.message : 'Error al cargar el árbol de centros de costo';
       setError(errorMessage);
       showError(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [showError]);
+  }, [showError, activeOnly]);
 
   useEffect(() => {
-    fetchCostCenterTree(parentId, activeOnly);
+    fetchCostCenterTree(activeOnly);
   }, []); // Array vacío para ejecutar solo una vez
 
   return {
@@ -370,9 +388,7 @@ export const useCostCenterAnalysis = () => {
     } finally {
       setLoading(false);
     }
-  }, [showError]);
-
-  return {
+  }, [showError]);  return {
     analysis,
     loading,
     error,

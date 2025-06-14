@@ -311,7 +311,7 @@ export const CashFlowViewer: React.FC<CashFlowViewerProps> = ({
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          📥📤 Importar/Exportar
+          📥 Importar
         </button>
       </div>      {/* Content sections */}
       {activeSection === 'main' && (

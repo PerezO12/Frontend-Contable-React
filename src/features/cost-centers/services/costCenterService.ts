@@ -6,7 +6,10 @@ import type {
   CostCenterCreate, 
   CostCenterUpdate, 
   CostCenterFilters,
-  CostCenterAnalysis
+  CostCenterAnalysis,
+  CostCenterDeleteValidation,
+  BulkCostCenterDelete,
+  BulkCostCenterDeleteResult
 } from '../types';
 
 export class CostCenterService {
@@ -98,19 +101,14 @@ export class CostCenterService {
   static async deleteCostCenter(id: string): Promise<void> {
     await apiClient.delete(`${this.BASE_URL}/${id}`);
   }
-
   /**
-   * Obtener estructura jerárquica de centros de costo
+   * Obtener estructura jerárquica de centros de costo como árbol
    */
-  static async getCostCenterTree(parentId?: string, activeOnly: boolean = true): Promise<CostCenterTree[]> {
+  static async getCostCenterTree(activeOnly: boolean = true): Promise<CostCenterTree[]> {
     const params = new URLSearchParams();
-    if (parentId) params.append('parent_id', parentId);
-    if (activeOnly) params.append('active_only', 'true');
+    params.append('active_only', activeOnly.toString());
 
-    const url = params.toString() 
-      ? `${this.BASE_URL}/hierarchy?${params}` 
-      : `${this.BASE_URL}/hierarchy`;
-    
+    const url = `${this.BASE_URL}/tree?${params}`;
     const response = await apiClient.get<CostCenterTree[]>(url);
     return response.data;
   }
@@ -194,7 +192,42 @@ export class CostCenterService {
     const response = await apiClient.get<CostCenterAnalysis>(
       `${this.BASE_URL}/${id}/analysis?${params}`
     );
-    return response.data;
+    return response.data;  }
+
+  /**
+   * Validar si múltiples centros de costo pueden ser eliminados
+   */
+  static async validateDeletion(costCenterIds: string[]): Promise<CostCenterDeleteValidation[]> {
+    console.log('Validando eliminación de centros de costo:', costCenterIds);
+    try {
+      const response = await apiClient.post<CostCenterDeleteValidation[]>(
+        `${this.BASE_URL}/validate-deletion`,
+        costCenterIds
+      );
+      console.log('Validación completada:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error al validar eliminación:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Eliminar múltiples centros de costo con validaciones
+   */
+  static async bulkDeleteCostCenters(deleteData: BulkCostCenterDelete): Promise<BulkCostCenterDeleteResult> {
+    console.log('Eliminación masiva de centros de costo:', deleteData);
+    try {
+      const response = await apiClient.post<BulkCostCenterDeleteResult>(
+        `${this.BASE_URL}/bulk-delete`,
+        deleteData
+      );
+      console.log('Eliminación masiva completada:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error en eliminación masiva:', error);
+      throw error;
+    }
   }
 
   /**

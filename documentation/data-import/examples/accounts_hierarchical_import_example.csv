@@ -1,53 +1,61 @@
-code,name,account_type,category,parent_code,description,is_active,allows_movements,requires_third_party,requires_cost_center,notes
-1000,ACTIVOS,ACTIVO,ACTIVO_CORRIENTE,,Grupo principal de activos,true,false,false,false,Cuenta padre para todos los activos
-1100,ACTIVOS CORRIENTES,ACTIVO,ACTIVO_CORRIENTE,1000,Activos de corto plazo,true,false,false,false,Subgrupo de activos corrientes
-1110,DISPONIBLE,ACTIVO,ACTIVO_CORRIENTE,1100,Efectivo y equivalentes,true,false,false,false,Subgrupo de disponible
-1111,CAJA GENERAL,ACTIVO,ACTIVO_CORRIENTE,1110,Dinero en efectivo,true,true,false,false,Cuenta de movimiento para caja
-1112,CAJA MENOR,ACTIVO,ACTIVO_CORRIENTE,1110,Fondo fijo de caja menor,true,true,false,false,Cuenta de movimiento para caja menor
-1120,BANCOS,ACTIVO,ACTIVO_CORRIENTE,1100,Depósitos bancarios,true,false,false,false,Subgrupo de bancos
-1121,BANCO NACIONAL CTA CTE,ACTIVO,ACTIVO_CORRIENTE,1120,Cuenta corriente banco nacional,true,true,true,false,Requiere especificar banco como tercero
-1122,BANCO INTERNACIONAL CTA AHO,ACTIVO,ACTIVO_CORRIENTE,1120,Cuenta de ahorros banco internacional,true,true,true,false,Requiere especificar banco como tercero
-1130,CUENTAS POR COBRAR,ACTIVO,ACTIVO_CORRIENTE,1100,Créditos a favor de la empresa,true,false,false,false,Subgrupo de cuentas por cobrar
-1131,CLIENTES NACIONALES,ACTIVO,ACTIVO_CORRIENTE,1130,Cuentas por cobrar a clientes locales,true,true,true,false,Requiere especificar cliente
-1132,CLIENTES EXTRANJEROS,ACTIVO,ACTIVO_CORRIENTE,1130,Cuentas por cobrar a clientes extranjeros,true,true,true,false,Requiere especificar cliente
-1140,INVENTARIOS,ACTIVO,ACTIVO_CORRIENTE,1100,Productos en almacén,true,false,false,false,Subgrupo de inventarios
-1141,MATERIA PRIMA,ACTIVO,ACTIVO_CORRIENTE,1140,Materiales para producción,true,true,false,true,Requiere centro de costo
-1142,PRODUCTOS TERMINADOS,ACTIVO,ACTIVO_CORRIENTE,1140,Inventario disponible para venta,true,true,false,true,Requiere centro de costo
+code,name,account_type,category,parent_code,description,cash_flow_category,is_active,allows_movements,requires_third_party,requires_cost_center,notes
+1,ACTIVOS,ACTIVO,activo_corriente,,Grupo principal de activos,operating,true,false,false,false,Cuenta padre para todos los activos
+1.1,ACTIVOS CORRIENTES,ACTIVO,activo_corriente,1,Activos de corto plazo,operating,true,false,false,false,Subgrupo de activos corrientes
+1.1.05,DISPONIBLE,ACTIVO,activo_corriente,1.1,Efectivo y equivalentes de efectivo,cash,true,false,false,false,Subgrupo de disponible
+1.1.05.01,CAJA GENERAL,ACTIVO,activo_corriente,1.1.05,Dinero en efectivo disponible,cash,true,true,false,false,Cuenta de movimiento para caja general
+1.1.05.05,CAJA MENOR,ACTIVO,activo_corriente,1.1.05,Fondo fijo de caja menor,cash,true,true,false,false,Cuenta de movimiento para caja menor - Límite $50000
+1.1.10,BANCOS,ACTIVO,activo_corriente,1.1,Depósitos bancarios,cash_equivalents,true,false,false,false,Subgrupo de bancos
+1.1.10.01,BANCO NACIONAL CTA CTE,ACTIVO,activo_corriente,1.1.10,Cuenta corriente banco nacional,cash_equivalents,true,true,true,false,Requiere especificar banco como tercero
+1.1.10.05,BANCO INTERNACIONAL CTA AHO,ACTIVO,activo_corriente,1.1.10,Cuenta de ahorros banco internacional,cash_equivalents,true,true,true,false,Requiere especificar banco como tercero
+1.1.35,CUENTAS POR COBRAR,ACTIVO,activo_corriente,1.1,Créditos a favor de la empresa,operating,true,false,false,false,Subgrupo de cuentas por cobrar
+1.1.35.01,CLIENTES NACIONALES,ACTIVO,activo_corriente,1.1.35,Cuentas por cobrar a clientes locales,operating,true,true,true,false,Requiere especificar cliente - Plazo máximo 90 días
+1.1.35.05,CLIENTES EXTRANJEROS,ACTIVO,activo_corriente,1.1.35,Cuentas por cobrar a clientes extranjeros,operating,true,true,true,false,Requiere especificar cliente - Moneda extranjera
+1.1.40,INVENTARIOS,ACTIVO,activo_corriente,1.1,Productos y materiales en almacén,operating,true,false,false,false,Subgrupo de inventarios
+1.1.40.01,MATERIA PRIMA,ACTIVO,activo_corriente,1.1.40,Materiales para producción,operating,true,true,false,true,Requiere centro de costo para control
+1.1.40.05,PRODUCTOS TERMINADOS,ACTIVO,activo_corriente,1.1.40,Inventario disponible para venta,operating,true,true,false,true,Requiere centro de costo para análisis
 
-1200,ACTIVOS NO CORRIENTES,ACTIVO,ACTIVO_NO_CORRIENTE,1000,Activos de largo plazo,true,false,false,false,Subgrupo de activos no corrientes
-1210,PROPIEDAD PLANTA Y EQUIPO,ACTIVO,ACTIVO_NO_CORRIENTE,1200,Activos fijos,true,false,false,false,Subgrupo de PPE
-1211,MUEBLES Y ENSERES,ACTIVO,ACTIVO_NO_CORRIENTE,1210,Mobiliario de oficina,true,true,false,true,Requiere centro de costo
-1212,EQUIPOS DE COMPUTO,ACTIVO,ACTIVO_NO_CORRIENTE,1210,Computadoras y tecnología,true,true,false,true,Requiere centro de costo
-1213,VEHICULOS,ACTIVO,ACTIVO_NO_CORRIENTE,1210,Transporte y logística,true,true,false,true,Requiere centro de costo
-1220,INTANGIBLES,ACTIVO,ACTIVO_NO_CORRIENTE,1200,Activos no físicos,true,false,false,false,Subgrupo de activos intangibles
-1221,SOFTWARE,ACTIVO,ACTIVO_NO_CORRIENTE,1220,Licencias y sistemas,true,true,false,true,Requiere centro de costo
-1222,MARCAS Y PATENTES,ACTIVO,ACTIVO_NO_CORRIENTE,1220,Propiedad intelectual,true,true,false,true,Requiere centro de costo
+1.2,ACTIVOS NO CORRIENTES,ACTIVO,activo_no_corriente,1,Activos de largo plazo,investing,true,false,false,false,Subgrupo de activos no corrientes
+1.2.40,PROPIEDAD PLANTA Y EQUIPO,ACTIVO,activo_no_corriente,1.2,Activos fijos tangibles,investing,true,false,false,false,Subgrupo de PPE
+1.2.40.01,MUEBLES Y ENSERES,ACTIVO,activo_no_corriente,1.2.40,Mobiliario de oficina y operaciones,investing,true,true,false,true,Activo depreciable - Vida útil 10 años
+1.2.40.05,EQUIPOS DE COMPUTO,ACTIVO,activo_no_corriente,1.2.40,Computadoras y tecnología,investing,true,true,false,true,Activo depreciable - Vida útil 3 años
+1.2.40.10,VEHICULOS,ACTIVO,activo_no_corriente,1.2.40,Transporte y logística,investing,true,true,false,true,Activo depreciable - Vida útil 5 años
+1.2.70,INTANGIBLES,ACTIVO,activo_no_corriente,1.2,Activos no físicos,investing,true,false,false,false,Subgrupo de activos intangibles
+1.2.70.01,SOFTWARE,ACTIVO,activo_no_corriente,1.2.70,Licencias y sistemas informáticos,investing,true,true,false,true,Amortización según licencia
+1.2.70.05,MARCAS Y PATENTES,ACTIVO,activo_no_corriente,1.2.70,Propiedad intelectual,investing,true,true,false,true,Amortización según vigencia legal
 
-2000,PASIVOS,PASIVO,PASIVO_CORRIENTE,,Grupo principal de pasivos,true,false,false,false,Cuenta padre para todos los pasivos
-2100,PASIVOS CORRIENTES,PASIVO,PASIVO_CORRIENTE,2000,Obligaciones de corto plazo,true,false,false,false,Subgrupo de pasivos corrientes
-2110,CUENTAS POR PAGAR,PASIVO,PASIVO_CORRIENTE,2100,Deudas comerciales,true,false,false,false,Subgrupo de cuentas por pagar
-2111,PROVEEDORES NACIONALES,PASIVO,PASIVO_CORRIENTE,2110,Proveedores del país,true,true,true,false,Requiere especificar proveedor
-2112,PROVEEDORES EXTRANJEROS,PASIVO,PASIVO_CORRIENTE,2110,Proveedores internacionales,true,true,true,false,Requiere especificar proveedor
-2120,OBLIGACIONES FINANCIERAS,PASIVO,PASIVO_CORRIENTE,2100,Deudas bancarias de corto plazo,true,true,true,false,Requiere entidad financiera
-2200,PASIVOS NO CORRIENTES,PASIVO,PASIVO_NO_CORRIENTE,2000,Obligaciones de largo plazo,true,false,false,false,Subgrupo de pasivos no corrientes
-2210,PRESTAMOS BANCARIOS LP,PASIVO,PASIVO_NO_CORRIENTE,2200,Créditos a largo plazo,true,true,true,false,Requiere entidad financiera
-2220,ARRENDAMIENTOS FINANCIEROS,PASIVO,PASIVO_NO_CORRIENTE,2200,Leasing de bienes,true,true,false,false,Obligaciones por arrendamientos
+2,PASIVOS,PASIVO,pasivo_corriente,,Grupo principal de pasivos,operating,true,false,false,false,Cuenta padre para todos los pasivos
+2.1,PASIVOS CORRIENTES,PASIVO,pasivo_corriente,2,Obligaciones de corto plazo,operating,true,false,false,false,Subgrupo de pasivos corrientes
+2.1.05,CUENTAS POR PAGAR,PASIVO,pasivo_corriente,2.1,Deudas comerciales de corto plazo,operating,true,false,false,false,Subgrupo de cuentas por pagar
+2.1.05.01,PROVEEDORES NACIONALES,PASIVO,pasivo_corriente,2.1.05,Proveedores del mercado nacional,operating,true,true,true,false,Requiere especificar proveedor - Términos 30 días
+2.1.05.05,PROVEEDORES EXTRANJEROS,PASIVO,pasivo_corriente,2.1.05,Proveedores internacionales,operating,true,true,true,false,Requiere especificar proveedor - Moneda extranjera
+2.1.20,OBLIGACIONES FINANCIERAS CP,PASIVO,pasivo_corriente,2.1,Deudas bancarias de corto plazo,financing,true,true,true,false,Requiere entidad financiera
+2.2,PASIVOS NO CORRIENTES,PASIVO,pasivo_no_corriente,2,Obligaciones de largo plazo,financing,true,false,false,false,Subgrupo de pasivos no corrientes
+2.2.05,PRESTAMOS BANCARIOS LP,PASIVO,pasivo_no_corriente,2.2,Créditos a largo plazo,financing,true,true,true,false,Requiere entidad financiera - Tasa variable
+2.2.35,ARRENDAMIENTOS FINANCIEROS,PASIVO,pasivo_no_corriente,2.2,Leasing de bienes,financing,true,true,false,false,Obligaciones por arrendamientos financieros
 
-3000,PATRIMONIO,PATRIMONIO,CAPITAL,,Capital y reservas,true,false,false,false,Cuenta padre para patrimonio
-3100,CAPITAL SOCIAL,PATRIMONIO,CAPITAL,3000,Capital aportado por socios,true,true,true,false,Requiere especificar socio
-3200,RESERVAS,PATRIMONIO,CAPITAL,3000,Utilidades retenidas,true,false,false,false,Subgrupo de reservas
-3210,UTILIDADES ACUMULADAS,PATRIMONIO,CAPITAL,3200,Ganancias no distribuidas,true,false,false,false,Resultado de ejercicios anteriores
+3,PATRIMONIO,PATRIMONIO,capital,,Capital y reservas de la empresa,financing,true,false,false,false,Cuenta padre para patrimonio
+3.1.05,CAPITAL SOCIAL,PATRIMONIO,capital,3,Capital aportado por socios,financing,true,true,true,false,Requiere especificar socio o accionista
+3.1.15,RESERVAS LEGALES,PATRIMONIO,reservas,3,Reservas obligatorias por ley,financing,true,false,false,false,Reservas según normativa legal
+3.1.70,UTILIDADES ACUMULADAS,PATRIMONIO,resultados,3,Ganancias no distribuidas,financing,true,false,false,false,Resultado de ejercicios anteriores
 
-4000,INGRESOS,INGRESO,INGRESOS_OPERACIONALES,,Ingresos de la operación,true,false,false,false,Cuenta padre para ingresos
-4100,INGRESOS OPERACIONALES,INGRESO,INGRESOS_OPERACIONALES,4000,Ingresos por ventas,true,false,false,false,Subgrupo de ingresos operacionales
-4110,VENTAS,INGRESO,INGRESOS_OPERACIONALES,4100,Ventas de productos y servicios,true,true,true,true,Requiere tercero y centro de costo
-4200,OTROS INGRESOS,INGRESO,OTROS_INGRESOS,4000,Ingresos no recurrentes,true,false,false,false,Subgrupo de ingresos varios
-4210,INGRESOS POR INTERESES,INGRESO,OTROS_INGRESOS,4200,Intereses ganados,true,true,false,false,Intereses por depósitos
+4,INGRESOS,INGRESO,ingresos_operacionales,,Ingresos de la operación,operating,true,false,false,false,Cuenta padre para ingresos
+4.1,INGRESOS OPERACIONALES,INGRESO,ingresos_operacionales,4,Ingresos por actividad principal,operating,true,false,false,false,Subgrupo de ingresos operacionales
+4.1.05,VENTAS,INGRESO,ingresos_operacionales,4.1,Ventas de productos y servicios,operating,true,true,true,true,Requiere tercero y centro de costo
+4.2,INGRESOS NO OPERACIONALES,INGRESO,ingresos_no_operacionales,4,Ingresos por actividades secundarias,operating,true,false,false,false,Subgrupo de ingresos varios
+4.2.05,INGRESOS POR INTERESES,INGRESO,ingresos_no_operacionales,4.2,Intereses ganados por inversiones,operating,true,true,false,false,Intereses por depósitos e inversiones
 
-5000,GASTOS,GASTO,GASTOS_OPERACIONALES,,Gastos de operación,true,false,false,false,Cuenta padre para gastos
-5100,GASTOS ADMINISTRATIVOS,GASTO,GASTOS_OPERACIONALES,5000,Gastos de administración,true,false,false,false,Subgrupo de gastos administrativos
-5110,SUELDOS Y SALARIOS,GASTO,GASTOS_OPERACIONALES,5100,Nómina de empleados,true,true,true,true,Requiere empleado y centro de costo
-5120,SERVICIOS PUBLICOS,GASTO,GASTOS_OPERACIONALES,5100,Electricidad agua gas,true,true,true,true,Requiere proveedor y centro de costo
+5,GASTOS,GASTO,gastos_operacionales,,Gastos de operación,operating,true,false,false,false,Cuenta padre para gastos
+5.1,GASTOS ADMINISTRATIVOS,GASTO,gastos_operacionales,5,Gastos de administración,operating,true,false,false,false,Subgrupo de gastos administrativos
+5.1.05,SUELDOS Y SALARIOS,GASTO,gastos_operacionales,5.1,Nómina de empleados,operating,true,true,true,true,Requiere empleado y centro de costo
+5.1.20,SERVICIOS PUBLICOS,GASTO,gastos_operacionales,5.1,Electricidad agua gas telecomunicaciones,operating,true,true,true,true,Requiere proveedor y centro de costo
+5.2,GASTOS DE VENTAS,GASTO,gastos_operacionales,5,Gastos relacionados con ventas,operating,true,false,false,false,Subgrupo de gastos de ventas
+5.2.05,PUBLICIDAD Y MERCADEO,GASTO,gastos_operacionales,5.2,Campañas promocionales y marketing,operating,true,true,true,true,Requiere proveedor y centro de costo
+5.2.35,FLETES Y TRANSPORTES,GASTO,gastos_operacionales,5.2,Distribución y logística de productos,operating,true,true,true,true,Requiere proveedor y centro de costo
+
+6,COSTOS,COSTOS,costo_ventas,,Costos directos de producción,operating,true,false,false,false,Cuenta padre para costos
+6.1,COSTOS DE VENTAS,COSTOS,costo_ventas,6,Costos directos de productos vendidos,operating,true,false,false,false,Subgrupo de costos de ventas
+6.1.05,MATERIA PRIMA DIRECTA,COSTOS,costo_ventas,6.1,Materiales directos en producción,operating,true,true,false,true,Requiere centro de costo para análisis
+6.1.10,MANO DE OBRA DIRECTA,COSTOS,costos_produccion,6.1,Personal directo de producción,operating,true,true,true,true,Requiere empleado y centro de costo
 5200,GASTOS DE VENTAS,GASTO,GASTOS_OPERACIONALES,5000,Publicidad y distribución,true,false,false,false,Subgrupo de gastos de ventas
 5210,PUBLICIDAD,GASTO,GASTOS_OPERACIONALES,5200,Campañas promocionales,true,true,true,true,Requiere proveedor y centro de costo
 5220,FLETES Y TRANSPORTES,GASTO,GASTOS_OPERACIONALES,5200,Distribución de productos,true,true,true,true,Requiere proveedor y centro de costo

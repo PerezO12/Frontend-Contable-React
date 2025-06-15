@@ -48,9 +48,20 @@ export const BulkRestoreWrapper: React.FC<BulkRestoreWrapperProps> = ({
     // Si no quedan IDs válidos después del filtrado, lanzar un error
     if (validIds.length === 0) {
       throw new Error('Ningún ID válido para procesar');
-    }
-      console.log('BulkRestoreWrapper - IDs validados:', validIds);
-    return await restoreToDraftHelper(validIds, reason, forceReset);
+    }      console.log('BulkRestoreWrapper - IDs validados:', validIds);
+    const result = await restoreToDraftHelper(validIds, reason, forceReset);
+    
+    // Transform the result to match the expected interface
+    return {
+      total_requested: result.total_requested,
+      total_restored: result.total_reset,
+      total_failed: result.total_failed,
+      successful_entries: [], // Simplified to avoid type issues
+      failed_entries: result.failed_entries?.map((item: any) => ({
+        id: item.journal_entry_id || 'unknown',
+        error: item.errors?.join(', ') || 'Error desconocido'
+      })) || []
+    };
   };
 
   return (

@@ -51,16 +51,7 @@ export const AccountAdvancedExportModal: React.FC<AccountAdvancedExportModalProp
     onError: (error) => {
       showError(error);
     }
-  });
-
-  const { success, error: showError } = useToast();
-
-  // Cargar esquema de exportación al abrir el modal
-  useEffect(() => {
-    if (isOpen) {
-      loadExportSchema();
-    }
-  }, [isOpen]);
+  });  const { success, error: showError } = useToast();
 
   const loadExportSchema = async () => {
     try {
@@ -88,10 +79,16 @@ export const AccountAdvancedExportModal: React.FC<AccountAdvancedExportModalProp
         { name: 'credit_balance', data_type: 'string', include: false },
         { name: 'notes', data_type: 'string', include: false },
         { name: 'created_at', data_type: 'string', include: false },
-        { name: 'updated_at', data_type: 'string', include: false }
-      ]);
+        { name: 'updated_at', data_type: 'string', include: false }      ]);
     }
   };
+
+  // Cargar esquema de exportación al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      loadExportSchema();
+    }
+  }, [isOpen, loadExportSchema]);
 
   const handleColumnToggle = (columnName: string, checked: boolean) => {
     if (checked) {

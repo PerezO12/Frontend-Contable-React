@@ -22,6 +22,16 @@ export const JournalEntryStatus = {
 
 export type JournalEntryStatus = typeof JournalEntryStatus[keyof typeof JournalEntryStatus];
 
+// Tipos para payment schedule en journal entry lines
+export interface PaymentScheduleItem {
+  sequence: number;
+  days: number;
+  percentage: number;
+  amount: number;
+  payment_date: string;
+  description: string;
+}
+
 // Interfaces base
 export interface JournalEntryLine {
   id: string;
@@ -36,6 +46,15 @@ export interface JournalEntryLine {
   third_party_id?: string;
   cost_center_id?: string;
   line_number: number;
+  // Nuevos campos para payment terms integration
+  payment_terms_id?: string;
+  payment_terms_code?: string;
+  payment_terms_name?: string;
+  invoice_date?: string;
+  due_date?: string;
+  effective_invoice_date?: string;
+  effective_due_date?: string;
+  payment_schedule?: PaymentScheduleItem[];
 }
 
 export interface JournalEntry {
@@ -81,7 +100,17 @@ export const journalEntryLineCreateSchema = z.object({
   description: z.string().optional(),
   reference: z.string().optional(),
   third_party_id: z.string().optional(),
-  cost_center_id: z.string().optional()
+  cost_center_id: z.string().optional(),
+  // Nuevos campos para payment terms
+  payment_terms_id: z.string().uuid().optional(),
+  invoice_date: z.string().refine(
+    (val) => !val || !isNaN(Date.parse(val)),
+    'Fecha de factura inválida'
+  ).optional(),
+  due_date: z.string().refine(
+    (val) => !val || !isNaN(Date.parse(val)),
+    'Fecha de vencimiento inválida'
+  ).optional()
 }).refine(
   (data) => {
     const debit = parseFloat(data.debit_amount);
@@ -91,6 +120,32 @@ export const journalEntryLineCreateSchema = z.object({
   {
     message: 'Una línea debe tener monto en débito O crédito, no ambos ni ninguno',
     path: ['debit_amount']
+  }
+).refine(
+  (data) => {
+    // Validar que si hay payment_terms_id también hay invoice_date
+    if (data.payment_terms_id && !data.invoice_date) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Si especifica condiciones de pago, debe incluir fecha de factura',
+    path: ['invoice_date']
+  }
+).refine(
+  (data) => {
+    // Validar que la fecha de vencimiento no sea anterior a la fecha de factura
+    if (data.invoice_date && data.due_date) {
+      const invoiceDate = new Date(data.invoice_date);
+      const dueDate = new Date(data.due_date);
+      return dueDate >= invoiceDate;
+    }
+    return true;
+  },
+  {
+    message: 'La fecha de vencimiento no puede ser anterior a la fecha de factura',
+    path: ['due_date']
   }
 );
 
@@ -158,6 +213,12 @@ export interface JournalEntryFormData {
   entry_date: string;
   notes?: string;
   external_reference?: string;
+  // Campos de payment terms a nivel de asiento
+  third_party_id?: string;
+  cost_center_id?: string;
+  payment_terms_id?: string;
+  invoice_date?: string;
+  due_date?: string;
   lines: JournalEntryLineFormData[];
 }
 
@@ -171,6 +232,10 @@ export interface JournalEntryLineFormData {
   reference?: string;
   third_party_id?: string;
   cost_center_id?: string;
+  // Nuevos campos para payment terms
+  payment_terms_id?: string;
+  invoice_date?: string;
+  due_date?: string;
 }
 
 // Constantes y etiquetas
@@ -233,7 +298,118 @@ export interface JournalEntryOperationResponse {
   journal_entry?: JournalEntry;
 }
 
-// Bulk deletion types
+// Bulk operations types - Operaciones masivas
+export interface BulkJournalEntryRequest {
+  journal_entry_ids: string[];
+  reason: string;
+  force?: boolean;
+}
+
+export interface BulkJournalEntryApprove extends BulkJournalEntryRequest {
+  approved_by_id?: string;
+  force_approve?: boolean;
+}
+
+export interface BulkJournalEntryPost extends BulkJournalEntryRequest {
+  posted_by_id?: string;
+  force_post?: boolean;
+}
+
+export interface BulkJournalEntryCancel extends BulkJournalEntryRequest {
+  cancelled_by_id?: string;
+  force_cancel?: boolean;
+}
+
+export interface BulkJournalEntryReverse extends BulkJournalEntryRequest {
+  reversal_date: string;
+  reversed_by_id?: string;
+  force_reverse?: boolean;
+}
+
+export interface BulkJournalEntryResetToDraft extends BulkJournalEntryRequest {
+  reset_by_id?: string;
+  force_reset?: boolean;
+}
+
+// Validaciones para operaciones masivas
+export interface JournalEntryOperationValidation {
+  journal_entry_id: string;
+  journal_entry_number: string;
+  journal_entry_description: string;
+  current_status: JournalEntryStatus;
+  can_approve?: boolean;
+  can_post?: boolean;
+  can_cancel?: boolean;
+  can_reverse?: boolean;
+  can_reset?: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface JournalEntryApproveValidation extends JournalEntryOperationValidation {
+  can_approve: boolean;
+}
+
+export interface JournalEntryPostValidation extends JournalEntryOperationValidation {
+  can_post: boolean;
+}
+
+export interface JournalEntryCancelValidation extends JournalEntryOperationValidation {
+  can_cancel: boolean;
+}
+
+export interface JournalEntryReverseValidation extends JournalEntryOperationValidation {
+  can_reverse: boolean;
+  reversal_date: string;
+}
+
+export interface JournalEntryResetToDraftValidation extends JournalEntryOperationValidation {
+  can_reset: boolean;
+}
+
+// Resultados de operaciones masivas
+export interface BulkJournalEntryOperationResult {
+  operation_id: string;
+  total_requested: number;
+  total_processed: number;
+  total_failed: number;
+  execution_time_ms: number;
+  processed_entries: JournalEntryOperationValidation[];
+  failed_entries: JournalEntryOperationValidation[];
+  operation_summary: {
+    reason: string;
+    executed_by: string;
+    executed_at: string;
+  };
+}
+
+export interface BulkJournalEntryApproveResult extends BulkJournalEntryOperationResult {
+  total_approved: number;
+  approved_entries: JournalEntryApproveValidation[];
+}
+
+export interface BulkJournalEntryPostResult extends BulkJournalEntryOperationResult {
+  total_posted: number;
+  posted_entries: JournalEntryPostValidation[];
+}
+
+export interface BulkJournalEntryCancelResult extends BulkJournalEntryOperationResult {
+  total_cancelled: number;
+  cancelled_entries: JournalEntryCancelValidation[];
+}
+
+export interface BulkJournalEntryReverseResult extends BulkJournalEntryOperationResult {
+  total_reversed: number;
+  reversed_entries: JournalEntryReverseValidation[];
+  created_reversal_entries: JournalEntry[];
+}
+
+export interface BulkJournalEntryResetResult extends BulkJournalEntryOperationResult {
+  total_reset: number;
+  reset_entries: JournalEntryResetToDraftValidation[];
+}
+
+// Bulk deletion types - Ya existía pero se mantiene por compatibilidad
 export interface BulkJournalEntryDelete {
   journal_entry_ids: string[];  // Actualizado según la especificación del backend
   force_delete?: boolean;

@@ -138,10 +138,26 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
       console.log(`Cambiando ${entryIds.length} asientos al estado/operación ${newStatus}`, reason ? `con razón: ${reason}` : '', forceOperation ? `(force_operation: ${forceOperation})` : '');
       
       let result;
-      
-      if (newStatus === 'REVERSE') {
+        if (newStatus === 'REVERSE') {
         // Operación especial de reversión
-        result = await JournalEntryService.bulkReverseOperation(entryIds, reason || 'Reversión masiva desde interfaz', undefined, forceOperation);
+        const reverseData = {
+          journal_entry_ids: entryIds,
+          reason: reason || 'Reversión masiva desde interfaz',
+          reversal_date: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+          force_reverse: forceOperation || false
+        };
+        const reverseResult = await JournalEntryService.bulkReverseEntries(reverseData);
+        // Transform result to match expected format
+        result = {
+          total_requested: reverseResult.total_requested,
+          total_updated: reverseResult.total_reversed,
+          total_failed: reverseResult.total_failed,
+          successful_entries: [], // Simplificado para evitar errores de tipo
+          failed_entries: reverseResult.failed_entries?.map((item: any) => ({
+            id: item.journal_entry_id || 'unknown',
+            error: item.errors?.join(', ') || 'Error desconocido'
+          })) || []
+        };
       } else {
         // Cambio de estado normal - pasar forceOperation para todas las operaciones
         result = await JournalEntryService.bulkChangeStatus(entryIds, newStatus, reason, forceOperation);

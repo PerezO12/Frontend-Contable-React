@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Card } from '../../../components/ui/Card';
@@ -7,6 +7,10 @@ import { ValidationMessage } from '../../../components/forms/ValidationMessage';
 import { useForm } from '../../../shared/hooks/useForm';
 import { useJournalEntries, useJournalEntryBalance } from '../hooks';
 import { useAccounts } from '../../accounts/hooks';
+import { useThirdParties } from '../../third-parties/hooks';
+import { useCostCenters } from '../../cost-centers/hooks';
+import { usePaymentTermsList } from '../../payment-terms/hooks/usePaymentTerms';
+import { useJournalEntryPaymentTerms } from '../hooks/useJournalEntryPaymentTerms';
 import { formatCurrency } from '../../../shared/utils';
 import { 
   journalEntryCreateSchema,
@@ -14,7 +18,8 @@ import {
   JOURNAL_ENTRY_TYPE_LABELS,
   type JournalEntryFormData,
   type JournalEntryLineFormData,
-  type JournalEntry 
+  type JournalEntry,
+  type PaymentScheduleItem
 } from '../types';
 
 interface JournalEntryFormProps {
@@ -37,13 +42,28 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
     entryId,
     hasInitialData: !!initialData,
     initialDataKeys: initialData ? Object.keys(initialData) : []
-  });
+  });  // Estabilizar filtros para evitar bucles infinitos
+  const accountFilters = useMemo(() => ({ is_active: true }), []);
+  const thirdPartyFilters = useMemo(() => ({ is_active: true }), []);
+  const costCenterFilters = useMemo(() => ({ is_active: true }), []);
+  const paymentTermsOptions = useMemo(() => ({ autoLoad: true }), []);
 
   const { createEntry, updateEntry, loading } = useJournalEntries();
-  const { accounts } = useAccounts({ is_active: true });
-  const [accountSearchTerms, setAccountSearchTerms] = useState<Record<number, string>>({});
+  const { accounts } = useAccounts(accountFilters);
+  const { thirdParties } = useThirdParties(thirdPartyFilters);
+  const { costCenters } = useCostCenters(costCenterFilters);
+  const { paymentTerms } = usePaymentTermsList(paymentTermsOptions);
+  const {
+    calculatePaymentSchedule,
+    calculating: calculatingSchedule,
+    error: scheduleError,
+    clearError: clearScheduleError
+  } = useJournalEntryPaymentTerms();
+    const [accountSearchTerms, setAccountSearchTerms] = useState<Record<number, string>>({});
   const [focusedInput, setFocusedInput] = useState<number | null>(null);
   const [draftKey] = useState(`journal-entry-draft-${Date.now()}`); // Clave única para esta sesión
+  const [entryPaymentSchedule, setEntryPaymentSchedule] = useState<PaymentScheduleItem[]>([]);
+  const [showPaymentSchedule, setShowPaymentSchedule] = useState(false);
 
   // Función para limpiar borradores del localStorage
   const clearDrafts = useCallback(() => {
@@ -58,7 +78,123 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
   // Función para limpiar el borrador actual específicamente
   const clearCurrentDraft = useCallback(() => {
     localStorage.removeItem(draftKey);
-  }, [draftKey]);
+  }, [draftKey]);  // Memoizar configuraciones para evitar recreaciones
+  const initialFormData = useMemo(() => ({
+    reference: initialData?.reference || '',
+    description: initialData?.description || '',
+    entry_type: initialData?.entry_type || JournalEntryType.MANUAL,
+    entry_date: initialData?.entry_date || new Date().toISOString().split('T')[0],
+    notes: initialData?.notes || '',
+    external_reference: initialData?.external_reference || '',
+    // Nuevos campos de payment terms a nivel de asiento
+    third_party_id: initialData?.third_party_id || '',
+    cost_center_id: initialData?.cost_center_id || '',
+    payment_terms_id: initialData?.payment_terms_id || '',
+    invoice_date: initialData?.invoice_date || '',
+    due_date: initialData?.due_date || '',
+    lines: initialData?.lines || [
+      { account_id: '', debit_amount: '0.00', credit_amount: '0.00', description: '' },
+      { account_id: '', debit_amount: '0.00', credit_amount: '0.00', description: '' }
+    ]
+  }), [initialData]);
+
+  const formValidate = useCallback((data: JournalEntryFormData) => {
+    console.log('🔍 Validando datos en modo:', isEditMode ? 'edición' : 'creación');
+    console.log('🔍 Datos a validar:', data);
+    
+    if (isEditMode) {
+      // Para modo edición, hacer validaciones básicas sin schema estricto
+      const errors: any[] = [];
+      
+      // Validar descripción si está presente
+      if (data.description && data.description.length < 3) {
+        errors.push({
+          field: 'description',
+          message: 'La descripción debe tener al menos 3 caracteres'
+        });
+      }
+      
+      // Validar fecha si está presente
+      if (data.entry_date && isNaN(Date.parse(data.entry_date))) {
+        errors.push({
+          field: 'entry_date',
+          message: 'Fecha inválida'
+        });
+      }
+      
+      // Validar líneas básicamente
+      if (data.lines && data.lines.length < 2) {
+        errors.push({
+          field: 'lines',
+          message: 'Un asiento debe tener al menos 2 líneas'
+        });
+      }
+      
+      console.log('🔍 Errores de validación manual:', errors);
+      return errors;
+    } else {
+      // Para modo creación, usar schema de creación
+      const result = journalEntryCreateSchema.safeParse(data);
+      if (!result.success) {
+        const errors = result.error.errors.map(err => ({
+          field: err.path.join('.'),
+          message: err.message
+        }));
+        console.log('🔍 Errores de validación schema:', errors);
+        return errors;
+      }
+    }
+    return [];
+  }, [isEditMode]);
+  const formOnSubmit = useCallback(async (formData: JournalEntryFormData) => {
+    console.log('🚀 JournalEntry onSubmit ejecutado con:', {
+      isEditMode,
+      entryId,
+      formData
+    });
+    
+    // Preparar las líneas con third_party_id y cost_center_id propagados desde el nivel del asiento
+    const enhancedLines = formData.lines
+      .filter(line => line.account_id && 
+        (parseFloat(line.debit_amount) > 0 || parseFloat(line.credit_amount) > 0))
+      .map(line => ({
+        ...line,
+        // Propagar third_party_id y cost_center_id del asiento a todas las líneas
+        third_party_id: formData.third_party_id || line.third_party_id || undefined,
+        cost_center_id: formData.cost_center_id || line.cost_center_id || undefined
+      }));
+
+    const submitData = {
+      ...formData,
+      lines: enhancedLines
+    };
+
+    console.log('📤 Datos que se enviarán al backend:', submitData);
+
+    if (isEditMode && entryId) {
+      const result = await updateEntry(entryId, { ...submitData, id: entryId });
+      if (result) {
+        console.log('✅ Asiento actualizado exitosamente:', result);
+        // Limpiar borrador actual y todos los borradores antiguos al actualizar exitosamente
+        clearCurrentDraft();
+        clearDrafts();
+        if (onSuccess) {
+          onSuccess(result);
+        }
+      }
+    } else {
+      const result = await createEntry(submitData);
+      if (result) {
+        console.log('✅ Asiento creado exitosamente:', result);
+        // Limpiar borrador actual y todos los borradores antiguos al crear exitosamente
+        clearCurrentDraft();
+        clearDrafts();
+        if (onSuccess) {
+          onSuccess(result);
+        }
+      }
+    }
+  }, [isEditMode, entryId, updateEntry, createEntry, clearCurrentDraft, clearDrafts, onSuccess]);
 
   const {
     data: values,
@@ -67,103 +203,53 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
     getFieldError,
     clearErrors
   } = useForm<JournalEntryFormData>({
-    initialData: {
-      reference: initialData?.reference || '',
-      description: initialData?.description || '',
-      entry_type: initialData?.entry_type || JournalEntryType.MANUAL,
-      entry_date: initialData?.entry_date || new Date().toISOString().split('T')[0],
-      notes: initialData?.notes || '',
-      external_reference: initialData?.external_reference || '',
-      lines: initialData?.lines || [
-        { account_id: '', debit_amount: '0.00', credit_amount: '0.00', description: '' },
-        { account_id: '', debit_amount: '0.00', credit_amount: '0.00', description: '' }
-      ]
-    },    validate: (data) => {
-      console.log('🔍 Validando datos en modo:', isEditMode ? 'edición' : 'creación');
-      console.log('🔍 Datos a validar:', data);
-      
-      if (isEditMode) {
-        // Para modo edición, hacer validaciones básicas sin schema estricto
-        const errors: any[] = [];
-        
-        // Validar descripción si está presente
-        if (data.description && data.description.length < 3) {
-          errors.push({
-            field: 'description',
-            message: 'La descripción debe tener al menos 3 caracteres'
-          });
-        }
-        
-        // Validar fecha si está presente
-        if (data.entry_date && isNaN(Date.parse(data.entry_date))) {
-          errors.push({
-            field: 'entry_date',
-            message: 'Fecha inválida'
-          });
-        }
-        
-        // Validar líneas básicamente
-        if (data.lines && data.lines.length < 2) {
-          errors.push({
-            field: 'lines',
-            message: 'Un asiento debe tener al menos 2 líneas'
-          });
-        }
-        
-        console.log('🔍 Errores de validación manual:', errors);
-        return errors;
-      } else {
-        // Para modo creación, usar schema de creación
-        const result = journalEntryCreateSchema.safeParse(data);
-        if (!result.success) {
-          const errors = result.error.errors.map(err => ({
-            field: err.path.join('.'),
-            message: err.message
-          }));
-          console.log('🔍 Errores de validación schema:', errors);
-          return errors;
-        }
-      }
-      return [];
-    },onSubmit: async (formData) => {
-      console.log('🚀 JournalEntry onSubmit ejecutado con:', {
-        isEditMode,
-        entryId,
-        formData
-      });
-      
-      const submitData = {
-        ...formData,
-        lines: formData.lines.filter(line => line.account_id && 
-          (parseFloat(line.debit_amount) > 0 || parseFloat(line.credit_amount) > 0))
-      };
-
-      if (isEditMode && entryId) {
-        const result = await updateEntry(entryId, { ...submitData, id: entryId });
-        if (result) {
-          // Limpiar borrador actual y todos los borradores antiguos al actualizar exitosamente
-          clearCurrentDraft();
-          clearDrafts();
-          if (onSuccess) {
-            onSuccess(result);
-          }
-        }
-      } else {
-        const result = await createEntry(submitData);
-        if (result) {
-          // Limpiar borrador actual y todos los borradores antiguos al crear exitosamente
-          clearCurrentDraft();
-          clearDrafts();
-          if (onSuccess) {
-            onSuccess(result);
-          }
-        }
-      }
-    }
-  });
-
-  // Balance validation hook
+    initialData: initialFormData,
+    validate: formValidate,
+    onSubmit: formOnSubmit
+  });// Balance validation hook
   const balance = useJournalEntryBalance(values.lines);
+    // Memoize total debit to avoid unnecessary useEffect executions
+  const totalDebit = useMemo(() => balance.total_debit, [balance.total_debit]);
+
+  // Memoize calculation function to avoid re-creating it on every render
+  const calculateEntryPaymentSchedule = useCallback(async () => {
+    if (values.payment_terms_id && values.invoice_date && totalDebit > 0) {
+      try {
+        clearScheduleError();
+        const result = await calculatePaymentSchedule({
+          payment_terms_id: values.payment_terms_id,
+          invoice_date: values.invoice_date,
+          amount: totalDebit
+        });
+
+        // Transform PaymentCalculationItem[] to PaymentScheduleItem[]
+        const scheduleItems: PaymentScheduleItem[] = result.schedule.map(item => ({
+          sequence: item.sequence,
+          days: item.days,
+          percentage: item.percentage,
+          amount: item.amount,
+          payment_date: item.payment_date,
+          description: item.description || ''
+        }));
+
+        setEntryPaymentSchedule(scheduleItems);
+        setShowPaymentSchedule(true);
+      } catch (error) {
+        console.error('Error calculating entry payment schedule:', error);
+        setEntryPaymentSchedule([]);
+        setShowPaymentSchedule(false);
+      }
+    } else {
+      setEntryPaymentSchedule([]);
+      setShowPaymentSchedule(false);
+    }
+  }, [values.payment_terms_id, values.invoice_date, totalDebit, calculatePaymentSchedule, clearScheduleError]);
+
+  // Calculate payment schedule when payment terms, invoice date, or total amount changes
+  useEffect(() => {
+    calculateEntryPaymentSchedule();
+  }, [calculateEntryPaymentSchedule]);
+
   // Filter accounts for autocomplete
   const getFilteredAccounts = useCallback((searchTerm: string) => {
     if (!searchTerm) return accounts.slice(0, 20);
@@ -175,15 +261,25 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
         account.name.toLowerCase().includes(term)
       )
       .slice(0, 20);
-  }, [accounts]);
-
-  const handleInputChange = (field: keyof JournalEntryFormData) => 
+  }, [accounts]);  // Memoize event handlers to avoid recreating them on every render
+  const handleInputChange = useCallback((field: keyof JournalEntryFormData) => 
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-      updateField(field, e.target.value);
+      const value = e.target.value;
+      
+      // Si se selecciona payment terms, limpiar due_date manual
+      if (field === 'payment_terms_id' && value) {
+        updateField('due_date', '');
+      }
+      // Si se selecciona due_date manual, limpiar payment_terms_id
+      else if (field === 'due_date' && value) {
+        updateField('payment_terms_id', '');
+      }
+      
+      updateField(field, value);
       clearErrors();
-    };
+    }, [updateField, clearErrors]);
 
-  const handleLineChange = (index: number, field: keyof JournalEntryLineFormData, value: string) => {
+  const handleLineChange = useCallback((index: number, field: keyof JournalEntryLineFormData, value: string) => {
     const newLines = [...values.lines];
     newLines[index] = { ...newLines[index], [field]: value };
 
@@ -196,7 +292,7 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
 
     updateField('lines', newLines);
     clearErrors();
-  };  const handleAccountSelect = (index: number, account: { id: string; code: string; name: string }) => {
+  }, [values.lines, updateField, clearErrors]);  const handleAccountSelect = useCallback((index: number, account: { id: string; code: string; name: string }) => {
     const newLines = [...values.lines];
     newLines[index] = {
       ...newLines[index],
@@ -209,8 +305,9 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
     // Clear search term and close dropdown
     setAccountSearchTerms(prev => ({ ...prev, [index]: '' }));
     setFocusedInput(null);
-  };
-  const addLine = () => {
+  }, [values.lines, updateField]);
+
+  const addLine = useCallback(() => {
     const newLines = [...values.lines, {
       account_id: '',
       debit_amount: '0.00',
@@ -218,16 +315,16 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
       description: ''
     }];
     updateField('lines', newLines);
-  };
+  }, [values.lines, updateField]);
 
-  const removeLine = (index: number) => {
+  const removeLine = useCallback((index: number) => {
     if (values.lines.length <= 2) return; // Minimum 2 lines required
     
     const newLines = values.lines.filter((_, i) => i !== index);
     updateField('lines', newLines);
-  };
+  }, [values.lines, updateField]);
 
-  const duplicateLine = (index: number) => {
+  const duplicateLine = useCallback((index: number) => {
     const lineToDuplicate = values.lines[index];
     const newLine = {
       ...lineToDuplicate,
@@ -235,15 +332,23 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
       account_code: '',
       account_name: '',
       debit_amount: '0.00',
-      credit_amount: '0.00'
-    };
+      credit_amount: '0.00'    };
     const newLines = [...values.lines];
     newLines.splice(index + 1, 0, newLine);
     updateField('lines', newLines);
-  };
-  // Auto-save draft functionality
+  }, [values.lines, updateField]);
+
+  // Auto-save draft functionality with debounced value check
+  const draftableData = useMemo(() => {
+    // Only include data that should trigger auto-save
+    return {
+      description: values.description,
+      hasLines: values.lines.some(line => line.account_id)
+    };
+  }, [values.description, values.lines]);
+
   useEffect(() => {
-    if (!isEditMode && values.description && values.lines.some(line => line.account_id)) {
+    if (!isEditMode && draftableData.description && draftableData.hasLines) {
       const saveTimer = setTimeout(() => {
         // Usar la clave específica de esta sesión en lugar de generar una nueva cada vez
         localStorage.setItem(draftKey, JSON.stringify(values));
@@ -252,7 +357,7 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
 
       return () => clearTimeout(saveTimer);
     }
-  }, [values, isEditMode, draftKey]);
+  }, [draftableData, values, isEditMode, draftKey]);
 
   // Limpiar borrador al desmontar el componente o cancelar
   useEffect(() => {
@@ -401,9 +506,178 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
               onChange={handleInputChange('description')}
               placeholder="Descripción del asiento contable"
               error={getFieldError('description')}
-            />
-            {getFieldError('description') && (
+            />            {getFieldError('description') && (
               <ValidationMessage type="error" message={getFieldError('description')!} />
+            )}
+          </div>          {/* Payment Terms and Due Date Section */}
+          <div className="border-t pt-4 space-y-4">
+            <h4 className="text-lg font-medium text-gray-900">Información de Facturación y Costos</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="third_party_id" className="form-label">
+                  Tercero (Cliente/Proveedor)
+                </label>
+                <select
+                  id="third_party_id"
+                  value={values.third_party_id || ''}
+                  onChange={handleInputChange('third_party_id')}
+                  className="form-select"
+                >
+                  <option value="">Seleccionar tercero...</option>
+                  {thirdParties.map(thirdParty => (
+                    <option key={thirdParty.id} value={thirdParty.id}>
+                      {thirdParty.code ? `${thirdParty.code} - ${thirdParty.name}` : `${thirdParty.document_number} - ${thirdParty.name}`}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Se aplicará a todas las líneas del asiento
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="cost_center_id" className="form-label">
+                  Centro de Costo
+                </label>
+                <select
+                  id="cost_center_id"
+                  value={values.cost_center_id || ''}
+                  onChange={handleInputChange('cost_center_id')}
+                  className="form-select"
+                >
+                  <option value="">Seleccionar centro de costo...</option>
+                  {costCenters.map(costCenter => (
+                    <option key={costCenter.id} value={costCenter.id}>
+                      {costCenter.code} - {costCenter.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Se aplicará a todas las líneas del asiento
+                </p>
+              </div>
+            </div>            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="payment_terms_id" className="form-label">
+                  Condiciones de Pago
+                </label>
+                <select
+                  id="payment_terms_id"
+                  value={values.payment_terms_id || ''}
+                  onChange={handleInputChange('payment_terms_id')}
+                  className="form-select"
+                >
+                  <option value="">Seleccionar condiciones...</option>
+                  {paymentTerms.map(paymentTerm => (
+                    <option key={paymentTerm.id} value={paymentTerm.id}>
+                      {paymentTerm.code} - {paymentTerm.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                {/* Espacio para futura funcionalidad */}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="invoice_date" className="form-label">
+                  Fecha de Factura
+                  {values.payment_terms_id && <span className="text-red-500 ml-1">*</span>}
+                </label>
+                <Input
+                  id="invoice_date"
+                  type="date"
+                  value={values.invoice_date || ''}
+                  onChange={handleInputChange('invoice_date')}
+                  error={getFieldError('invoice_date')}
+                />
+                {getFieldError('invoice_date') && (
+                  <ValidationMessage type="error" message={getFieldError('invoice_date')!} />
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="due_date" className="form-label">
+                  Fecha de Vencimiento
+                  {!values.payment_terms_id && values.due_date && <span className="text-blue-500 ml-1">(Manual)</span>}
+                </label>
+                <Input
+                  id="due_date"
+                  type="date"
+                  value={values.due_date || ''}
+                  onChange={handleInputChange('due_date')}
+                  disabled={!!values.payment_terms_id}
+                  error={getFieldError('due_date')}
+                />
+                {getFieldError('due_date') && (
+                  <ValidationMessage type="error" message={getFieldError('due_date')!} />
+                )}                {values.payment_terms_id && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    La fecha de vencimiento se calculará automáticamente según las condiciones de pago
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Payment Schedule Display */}
+            {showPaymentSchedule && entryPaymentSchedule.length > 0 && (
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <h5 className="text-sm font-medium text-blue-900">
+                    📅 Cronograma de Pagos Calculado
+                  </h5>
+                  <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                    Total: {formatCurrency(balance.total_debit)}
+                  </span>
+                </div>
+                
+                <div className="space-y-2">
+                  {entryPaymentSchedule.map((payment, index) => (
+                    <div 
+                      key={index}
+                      className="flex items-center justify-between py-2 px-3 bg-white border border-blue-100 rounded text-sm"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <span className="w-6 h-6 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-xs font-medium">
+                          {payment.sequence}
+                        </span>
+                        <div>
+                          <span className="font-medium text-gray-900">
+                            {payment.description || `Pago ${payment.sequence}`}
+                          </span>
+                          <span className="text-gray-500 ml-2">
+                            ({payment.percentage}% - {payment.days} días)
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-gray-900">
+                          {formatCurrency(payment.amount)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          📅 {new Date(payment.payment_date).toLocaleDateString('es-ES')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {calculatingSchedule && (
+                  <div className="text-center py-2">
+                    <span className="text-sm text-blue-600">Calculando cronograma...</span>
+                  </div>
+                )}
+
+                {scheduleError && (
+                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                    Error al calcular cronograma: {scheduleError}
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -412,8 +686,7 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
               Notas
             </label>
             <textarea
-              id="notes"
-              value={values.notes || ''}
+              id="notes"              value={values.notes || ''}
               onChange={handleInputChange('notes')}
               rows={3}
               className="form-textarea"
@@ -482,133 +755,133 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
                   <th className="text-right py-2 px-3 font-medium text-gray-900">Crédito</th>
                   <th className="text-center py-2 px-3 font-medium text-gray-900">Acciones</th>
                 </tr>
-              </thead>
-              <tbody>
+              </thead>              <tbody>
                 {values.lines.map((line, index) => (
-                  <tr key={index} className="border-b border-gray-100">
-                    <td className="py-2 px-3">
-                      <span className="text-sm text-gray-600">{index + 1}</span>
-                    </td>                    <td className="py-2 px-3 relative">
-                      <div className="relative">                        <Input
-                          value={accountSearchTerms[index] || line.account_code || ''}
-                          onChange={(e) => {
-                            const searchTerm = e.target.value;
-                            setAccountSearchTerms(prev => ({ 
-                              ...prev, 
-                              [index]: searchTerm 
-                            }));
-                            
-                            // Si se está borrando el contenido, limpiar la cuenta seleccionada
-                            if (searchTerm === '' && line.account_id) {
-                              const newLines = [...values.lines];
-                              newLines[index] = {
-                                ...newLines[index],
-                                account_id: '',
-                                account_code: '',
-                                account_name: ''
-                              };
-                              updateField('lines', newLines);
-                            }
-                          }}
-                          onFocus={() => setFocusedInput(index)}
-                          onBlur={() => setTimeout(() => setFocusedInput(null), 200)}
-                          placeholder="Escribe para buscar cuenta (código o nombre)..."
-                          className="text-sm w-full"
-                        />{/* Account dropdown */}
-                        {(accountSearchTerms[index] || focusedInput === index) && (
-                          <div 
-                            className="absolute z-50 bg-white border border-gray-200 rounded-lg shadow-xl overflow-auto"
-                            style={{
-                              width: '450px',
-                              maxHeight: '280px',
-                              left: '0',
-                              top: '100%',
-                              marginTop: '4px',
-                              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                              border: '1px solid #e5e7eb'
+                  <React.Fragment key={index}>
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 px-3">
+                        <span className="text-sm text-gray-600">{index + 1}</span>
+                      </td>                    <td className="py-2 px-3 relative">
+                        <div className="relative">                        <Input
+                            value={accountSearchTerms[index] || line.account_code || ''}
+                            onChange={(e) => {
+                              const searchTerm = e.target.value;
+                              setAccountSearchTerms(prev => ({ 
+                                ...prev, 
+                                [index]: searchTerm 
+                              }));
+                              
+                              // Si se está borrando el contenido, limpiar la cuenta seleccionada
+                              if (searchTerm === '' && line.account_id) {
+                                const newLines = [...values.lines];
+                                newLines[index] = {
+                                  ...newLines[index],
+                                  account_id: '',
+                                  account_code: '',
+                                  account_name: ''
+                                };
+                                updateField('lines', newLines);
+                              }
                             }}
-                          >
-                            {getFilteredAccounts(accountSearchTerms[index] || '').map((account) => (
-                              <div
-                                key={account.id}
-                                className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
-                                onClick={() => handleAccountSelect(index, account)}
-                              >
-                                <div className="flex flex-col">
-                                  <div className="flex items-center space-x-2">
-                                    <span className="font-mono text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">{account.code}</span>
-                                    <span className="text-sm font-medium text-gray-900">{account.name}</span>
+                            onFocus={() => setFocusedInput(index)}
+                            onBlur={() => setTimeout(() => setFocusedInput(null), 200)}
+                            placeholder="Escribe para buscar cuenta (código o nombre)..."
+                            className="text-sm w-full"
+                          />{/* Account dropdown */}
+                          {(accountSearchTerms[index] || focusedInput === index) && (
+                            <div 
+                              className="absolute z-50 bg-white border border-gray-200 rounded-lg shadow-xl overflow-auto"
+                              style={{
+                                width: '450px',
+                                maxHeight: '280px',
+                                left: '0',
+                                top: '100%',
+                                marginTop: '4px',
+                                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                                border: '1px solid #e5e7eb'
+                              }}
+                            >
+                              {getFilteredAccounts(accountSearchTerms[index] || '').map((account) => (
+                                <div
+                                  key={account.id}
+                                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                                  onClick={() => handleAccountSelect(index, account)}
+                                >
+                                  <div className="flex flex-col">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-mono text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">{account.code}</span>
+                                      <span className="text-sm font-medium text-gray-900">{account.name}</span>
+                                    </div>
+                                    <span className="text-xs text-gray-500 mt-1">{account.code} - {account.name}</span>
                                   </div>
-                                  <span className="text-xs text-gray-500 mt-1">{account.code} - {account.name}</span>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}                        {/* Selected account display */}
-                        {line.account_id && !accountSearchTerms[index] && focusedInput !== index && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            {line.account_code} - {line.account_name}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-2 px-3">
-                      <Input
-                        value={line.description || ''}
-                        onChange={(e) => handleLineChange(index, 'description', e.target.value)}
-                        placeholder="Descripción de la línea"
-                        className="text-sm"
-                      />
-                    </td>
-                    <td className="py-2 px-3">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={line.debit_amount}
-                        onChange={(e) => handleLineChange(index, 'debit_amount', e.target.value)}
-                        className="text-sm text-right"
-                        placeholder="0.00"
-                      />
-                    </td>
-                    <td className="py-2 px-3">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={line.credit_amount}
-                        onChange={(e) => handleLineChange(index, 'credit_amount', e.target.value)}
-                        className="text-sm text-right"
-                        placeholder="0.00"
-                      />
-                    </td>
-                    <td className="py-2 px-3">
-                      <div className="flex justify-center space-x-1">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => duplicateLine(index)}
-                          className="text-xs"
-                          title="Duplicar línea"
-                        >
-                          📋
-                        </Button>
-                        {values.lines.length > 2 && (
+                              ))}
+                            </div>
+                          )}                        {/* Selected account display */}
+                          {line.account_id && !accountSearchTerms[index] && focusedInput !== index && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {line.account_code} - {line.account_name}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-2 px-3">
+                        <Input
+                          value={line.description || ''}
+                          onChange={(e) => handleLineChange(index, 'description', e.target.value)}
+                          placeholder="Descripción de la línea"
+                          className="text-sm"
+                        />
+                      </td>
+                      <td className="py-2 px-3">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={line.debit_amount}
+                          onChange={(e) => handleLineChange(index, 'debit_amount', e.target.value)}
+                          className="text-sm text-right"
+                          placeholder="0.00"
+                        />
+                      </td>
+                      <td className="py-2 px-3">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={line.credit_amount}
+                          onChange={(e) => handleLineChange(index, 'credit_amount', e.target.value)}
+                          className="text-sm text-right"
+                          placeholder="0.00"
+                        />
+                      </td>
+                      <td className="py-2 px-3">
+                        <div className="flex justify-center space-x-1">
                           <Button
                             type="button"
                             size="sm"
-                            variant="danger"
-                            onClick={() => removeLine(index)}
+                            variant="secondary"
+                            onClick={() => duplicateLine(index)}
                             className="text-xs"
-                            title="Eliminar línea"
+                            title="Duplicar línea"
                           >
-                            🗑️
+                            📋
                           </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                          {values.lines.length > 2 && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="danger"
+                              onClick={() => removeLine(index)}
+                              className="text-xs"
+                              title="Eliminar línea"
+                            >
+                              🗑️
+                            </Button>
+                          )}                        </div>
+                      </td>
+                    </tr>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -635,7 +908,7 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
                 Cancelar
               </Button>
             )}            <Button
-              type="submit"
+              type="button"
               disabled={loading || !balance.is_balanced}
               onClick={() => {
                 console.log('🔘 Click en botón submit JournalEntry - isEditMode:', isEditMode, 'loading:', loading, 'balanced:', balance.is_balanced);
@@ -647,8 +920,7 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
                 <Spinner size="sm" />
               ) : (
                 isEditMode ? 'Actualizar Asiento' : 'Crear Asiento'
-              )}
-            </Button>
+              )}            </Button>
           </div>
         </div>
       </Card>

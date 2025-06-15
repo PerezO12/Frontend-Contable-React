@@ -56,25 +56,40 @@ export const BulkStatusChangeWrapper: React.FC<BulkStatusChangeWrapperProps> = (
     
     // Llamar la función correspondiente según el estado
     switch (newStatus) {
-      case JournalEntryStatus.DRAFT:
-        if (!reason) {
+      case JournalEntryStatus.DRAFT:        if (!reason) {
           throw new Error('Se requiere una razón para restaurar a borrador');
         }
-        return await JournalEntryService.bulkRestoreToDraft(validIds, reason);
-        case JournalEntryStatus.PENDING:
+        const resetData = {
+          journal_entry_ids: validIds,
+          reason,
+          force_reset: false
+        };
+        return await JournalEntryService.bulkResetToDraftEntries(resetData);
+        
+      case JournalEntryStatus.PENDING:
         return await JournalEntryService.bulkChangeStatus(validIds, JournalEntryStatus.PENDING);
       
       case JournalEntryStatus.APPROVED:
         return await JournalEntryService.bulkApproveEntries(validIds);
       
       case JournalEntryStatus.POSTED:
-        return await JournalEntryService.bulkPostEntries(validIds, reason);
+        const postData = {
+          journal_entry_ids: validIds,
+          reason: reason || 'Contabilización masiva',
+          force_post: false
+        };
+        return await JournalEntryService.bulkPostEntries(postData);
       
       case JournalEntryStatus.CANCELLED:
         if (!reason) {
           throw new Error('Se requiere una razón para cancelar asientos');
         }
-        return await JournalEntryService.bulkCancelEntries(validIds, reason);
+        const cancelData = {
+          journal_entry_ids: validIds,
+          reason,
+          force_cancel: false
+        };
+        return await JournalEntryService.bulkCancelEntries(cancelData);
       
       default:
         throw new Error(`Estado no válido: ${newStatus}`);

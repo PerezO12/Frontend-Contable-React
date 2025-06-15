@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ThirdPartyService } from '../services';
 import type {
   ThirdParty,
@@ -17,10 +17,45 @@ export const useThirdParties = (initialFilters?: ThirdPartyFilters) => {
   const [thirdParties, setThirdParties] = useState<ThirdParty[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);  const fetchThirdParties = useCallback(async (filters?: ThirdPartyFilters) => {
+  const [total, setTotal] = useState(0);
+  // Estabilizar initialFilters para evitar bucles infinitos
+  const stableFilters = useMemo(() => initialFilters, [
+    initialFilters?.is_active,
+    initialFilters?.third_party_type,
+    initialFilters?.document_type,
+    initialFilters?.document_number,
+    initialFilters?.name,
+    initialFilters?.commercial_name,
+    initialFilters?.email,
+    initialFilters?.has_balance,
+    initialFilters?.created_after,
+    initialFilters?.created_before,
+    initialFilters?.credit_limit_min,
+    initialFilters?.credit_limit_max,
+    initialFilters?.order_by,
+    initialFilters?.order_desc,
+    initialFilters?.skip,
+    initialFilters?.limit
+  ]);
+
+  // Ref para evitar fetch duplicado
+  const lastFetchFilters = useRef<string>('');
+
+  const fetchThirdParties = useCallback(async (filters?: ThirdPartyFilters) => {
+    const filtersKey = JSON.stringify(filters || {});
+    
+    // Evitar petición duplicada si los filtros son los mismos
+    if (lastFetchFilters.current === filtersKey) {
+      console.log('🔄 [useThirdParties] Evitando fetch duplicado:', filters);
+      return;
+    }
+    
+    lastFetchFilters.current = filtersKey;
+    
     try {
       setLoading(true);
       setError(null);
+      console.log('🔍 [useThirdParties] Fetching with filters:', filters);
       const response = await ThirdPartyService.getThirdParties(filters);
       setThirdParties(response.items || []);
       setTotal(response.total || 0);
@@ -35,16 +70,16 @@ export const useThirdParties = (initialFilters?: ThirdPartyFilters) => {
   }, []);
 
   const refetch = useCallback(() => {
-    fetchThirdParties(initialFilters);
-  }, [fetchThirdParties, initialFilters]);
+    fetchThirdParties(stableFilters);
+  }, [fetchThirdParties, stableFilters]);
 
   const refetchWithFilters = useCallback((filters: ThirdPartyFilters) => {
     fetchThirdParties(filters);
   }, [fetchThirdParties]);
 
   useEffect(() => {
-    fetchThirdParties(initialFilters);
-  }, [fetchThirdParties, initialFilters]);
+    fetchThirdParties(stableFilters);
+  }, [fetchThirdParties, stableFilters]);
 
   return {
     thirdParties,

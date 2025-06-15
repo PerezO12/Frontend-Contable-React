@@ -108,11 +108,10 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
   if (!isOpen) {
     return null;
   }
-
   // Categorizar resultados de validación
   const canDelete = validationResults.filter(result => result.can_delete);
   const cannotDelete = validationResults.filter(result => !result.can_delete);
-  const hasWarnings = validationResults.filter(result => result.warnings.length > 0);
+  const hasWarnings = validationResults.filter(result => result.warnings && result.warnings.length > 0);
 
   if (showResults && deleteResult) {
     return (
@@ -194,10 +193,8 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
                       </div>
                     </div>
                   </Card>
-                )}
-
-                {/* Advertencias globales */}
-                {deleteResult.warnings.length > 0 && (
+                )}                {/* Advertencias globales */}
+                {deleteResult.warnings && deleteResult.warnings.length > 0 && (
                   <Card>
                     <div className="card-body">
                       <h3 className="text-lg font-semibold text-yellow-600 mb-4">⚠️ Advertencias</h3>
@@ -323,8 +320,7 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
                                 Estado: {JOURNAL_ENTRY_STATUS_LABELS[entry.status as JournalEntryStatus]}
                               </div>
                             </div>
-                          </div>
-                          {entry.warnings.length > 0 && (
+                          </div>                          {entry.warnings && entry.warnings.length > 0 && (
                             <div className="mt-2 space-y-1">
                               {entry.warnings.map((warning, index) => (
                                 <div key={index} className="text-xs text-yellow-600">⚠️ {warning}</div>

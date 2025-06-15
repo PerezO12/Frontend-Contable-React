@@ -30,6 +30,9 @@ import {
 import {
   ThirdPartiesPage
 } from '@/features/third-parties/pages';
+import {
+  PaymentTermsPage
+} from '@/features/payment-terms/pages';
 import { DataImportRoutes } from '@/features/data-import';
 import { ReportsRoutes } from '@/features/reports';
 
@@ -209,6 +212,18 @@ const AppContent = () => {
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
               <MainLayout>
                 <ThirdPartiesPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Rutas de Términos de Pago - Solo para ADMIN y CONTADOR */}
+        <Route 
+          path="/payment-terms" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <PaymentTermsPage />
               </MainLayout>
             </ProtectedRoute>
           } 

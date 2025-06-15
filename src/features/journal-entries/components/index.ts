@@ -7,3 +7,6 @@ export { ReasonModal } from './ReasonModal';
 export { JournalEntryListWithModals } from './JournalEntryListWithModals';
 export { BulkDeleteModal } from './BulkDeleteModal';
 export { BulkStatusChanger } from './BulkStatusChanger';
+export { JournalEntryLinePaymentTerms } from './JournalEntryLinePaymentTerms';
+export { BulkOperationsWithPaymentTerms } from './BulkOperationsWithPaymentTerms';
+export { JournalEntryPaymentTermsDisplay } from './JournalEntryPaymentTermsDisplay';

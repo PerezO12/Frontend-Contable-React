@@ -228,7 +228,7 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
     setError(null);
     
     try {
-      const response = await JournalEntryService.searchJournalEntries(query, filters);
+      const response = await JournalEntryService.getJournalEntries({ ...filters, search: query });
       setEntries(response.items);
       setPagination({
         total: response.total,
@@ -245,15 +245,14 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
       setLoading(false);
     }
   }, [showError]);
-
   // Validar eliminación masiva
-  const validateDeletion = useCallback(async (entryIds: string[]): Promise<JournalEntryDeleteValidation[]> => {
-    try {
-      return await JournalEntryService.validateDeletion(entryIds);
+  const validateDeletion = useCallback(async (entryIds: string[]): Promise<JournalEntryDeleteValidation[]> => {    try {
+      const validations = await JournalEntryService.validateBulkDelete({ journal_entry_ids: entryIds });
+      return validations;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al validar la eliminación';
       showError(errorMessage);
-      throw err;
+      return [];
     }
   }, [showError]);
 
@@ -263,15 +262,15 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
     setError(null);
     
     try {
-      const result = await JournalEntryService.bulkDeleteEntries(deleteData);
+      const result = await JournalEntryService.bulkDeleteJournalEntries(deleteData);
       
       // Actualizar la lista removiendo los asientos eliminados exitosamente
       if (result.deleted_entries.length > 0) {
-        const deletedIds = result.deleted_entries.map(entry => entry.journal_entry_id);
+        const deletedIds = result.deleted_entries.map((entry: any) => entry.journal_entry_id);
         setEntries(prev => prev.filter(entry => !deletedIds.includes(entry.id)));
         
         // Emitir eventos de eliminación para cada asiento eliminado
-        deletedIds.forEach(id => emitDeleted(id));
+        deletedIds.forEach((id: string) => emitDeleted(id));
       }
       
       return result;
@@ -289,7 +288,7 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
     setError(null);
     
     try {
-      await JournalEntryService.restoreToDraft(id, reason);
+      await JournalEntryService.resetJournalEntryToDraft(id, reason);
       
       // Actualizar el estado del asiento en la lista local
       setEntries(prev => 
@@ -311,16 +310,20 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
   }, [showError, success]);
 
   // Restaurar múltiples asientos contables a borrador
-  const bulkRestoreToDraft = useCallback(async (entryIds: string[], reason: string) => {
-    setLoading(true);
+  const bulkRestoreToDraft = useCallback(async (entryIds: string[], reason: string) => {    setLoading(true);
     setError(null);
     
     try {
-      const result = await JournalEntryService.bulkRestoreToDraft(entryIds, reason);
+      const resetData = {
+        journal_entry_ids: entryIds,
+        reason,
+        force_reset: false
+      };
+      const result = await JournalEntryService.bulkResetToDraftEntries(resetData);
       
       // Actualizar la lista actualizando el estado de los asientos restaurados exitosamente
-      if (result.successful_entries.length > 0) {
-        const restoredIds = result.successful_entries.map(entry => entry.id);
+      if (result.reset_entries && result.reset_entries.length > 0) {
+        const restoredIds = result.reset_entries.map((entry: any) => entry.journal_entry_id);
         
         setEntries(prev => 
           prev.map(entry => 
@@ -333,7 +336,7 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
         // Podríamos añadir un evento de restauración si fuera necesario
       }
       
-      success(`${result.total_restored} de ${result.total_requested} asientos restaurados a borrador`);
+      success(`${result.total_reset} de ${result.total_requested} asientos restaurados a borrador`);
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error en la restauración masiva a borrador';
@@ -448,13 +451,12 @@ export const useJournalEntryStatistics = (filters?: JournalEntryFilters) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { error: showError } = useToast();
-  const fetchStatistics = useCallback(async (statsFilters?: JournalEntryFilters) => {
+  const fetchStatistics = useCallback(async (_statsFilters?: JournalEntryFilters) => {
     setLoading(true);
     setError(null);
     
-    try {
-      const filtersToUse = statsFilters || filters;
-      const data = await JournalEntryService.getStatistics(filtersToUse);
+    try {      // const filtersToUse = statsFilters || filters; // TODO: Add filters support to statistics endpoint
+      const data = await JournalEntryService.getJournalEntryStatistics();
       setStatistics(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar estadísticas';
@@ -488,8 +490,15 @@ export const useJournalEntryBalance = (lines: JournalEntryFormData['lines']) => 
     is_balanced: false
   });
 
-  useEffect(() => {
-    const newBalance = JournalEntryService.validateBalance(lines);
+  useEffect(() => {    // Simple balance validation - calculate total debits and credits
+    const totalDebits = lines.reduce((sum, line) => sum + parseFloat(line.debit_amount || '0'), 0);
+    const totalCredits = lines.reduce((sum, line) => sum + parseFloat(line.credit_amount || '0'), 0);
+    const newBalance = {
+      total_debit: totalDebits,
+      total_credit: totalCredits,
+      difference: totalDebits - totalCredits,
+      is_balanced: Math.abs(totalDebits - totalCredits) < 0.01
+    };
     setBalance(newBalance);
   }, [lines]);
 

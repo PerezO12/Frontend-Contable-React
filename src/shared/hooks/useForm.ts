@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { FormState, ValidationError } from '@/shared/types';
 
 interface UseFormOptions<T> {
@@ -35,8 +35,17 @@ export const useForm = <T extends Record<string, any>>({
   const clearErrors = useCallback(() => {
     setFormState(prev => ({ ...prev, errors: [] }));
   }, []);
-
   const reset = useCallback(() => {
+    setFormState({
+      data: initialData,
+      errors: [],
+      isSubmitting: false,
+      isDirty: false
+    });
+  }, [initialData]);
+
+  // Reset form when initialData changes
+  useEffect(() => {
     setFormState({
       data: initialData,
       errors: [],

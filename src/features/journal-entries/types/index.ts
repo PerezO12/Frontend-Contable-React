@@ -46,14 +46,34 @@ export interface JournalEntryLine {
   third_party_id?: string;
   cost_center_id?: string;
   line_number: number;
+  created_at: string;
+  updated_at: string;
+  // Campos de terceros
+  third_party_code?: string;
+  third_party_name?: string;
+  third_party_document_type?: string;
+  third_party_document_number?: string;
+  third_party_tax_id?: string;
+  third_party_email?: string;
+  third_party_phone?: string;
+  third_party_address?: string;
+  third_party_city?: string;
+  third_party_type?: 'customer' | 'supplier' | 'employee' | 'other';
+  // Campos de centro de costo
+  cost_center_code?: string;
+  cost_center_name?: string;
   // Nuevos campos para payment terms integration
   payment_terms_id?: string;
   payment_terms_code?: string;
   payment_terms_name?: string;
+  payment_terms_description?: string;
   invoice_date?: string;
   due_date?: string;
   effective_invoice_date?: string;
   effective_due_date?: string;
+  // Campos calculados
+  amount?: string; // Monto de la línea (debit_amount o credit_amount)
+  movement_type?: 'debit' | 'credit'; // Tipo de movimiento
   payment_schedule?: PaymentScheduleItem[];
 }
 
@@ -89,18 +109,24 @@ export interface JournalEntry {
 // Schemas de validación con Zod
 export const journalEntryLineCreateSchema = z.object({
   account_id: z.string().uuid('ID de cuenta inválido'),
-  debit_amount: z.string().refine(
-    (val) => /^\d+(\.\d{1,2})?$/.test(val),
-    'Monto débito debe ser un número válido'
-  ),
-  credit_amount: z.string().refine(
-    (val) => /^\d+(\.\d{1,2})?$/.test(val),
-    'Monto crédito debe ser un número válido'
-  ),
+  debit_amount: z.union([
+    z.string().refine(
+      (val) => /^\d+(\.\d{1,2})?$/.test(val),
+      'Monto débito debe ser un número válido'
+    ),
+    z.number().min(0, 'Monto débito debe ser positivo')
+  ]),
+  credit_amount: z.union([
+    z.string().refine(
+      (val) => /^\d+(\.\d{1,2})?$/.test(val),
+      'Monto crédito debe ser un número válido'
+    ),
+    z.number().min(0, 'Monto crédito debe ser positivo')
+  ]),
   description: z.string().optional(),
   reference: z.string().optional(),
-  third_party_id: z.string().optional(),
-  cost_center_id: z.string().optional(),
+  third_party_id: z.string().uuid().optional(),
+  cost_center_id: z.string().uuid().optional(),
   // Nuevos campos para payment terms
   payment_terms_id: z.string().uuid().optional(),
   invoice_date: z.string().refine(
@@ -113,8 +139,12 @@ export const journalEntryLineCreateSchema = z.object({
   ).optional()
 }).refine(
   (data) => {
-    const debit = parseFloat(data.debit_amount);
-    const credit = parseFloat(data.credit_amount);
+    const debit = typeof data.debit_amount === 'string' 
+      ? parseFloat(data.debit_amount) 
+      : data.debit_amount;
+    const credit = typeof data.credit_amount === 'string' 
+      ? parseFloat(data.credit_amount) 
+      : data.credit_amount;
     return (debit > 0 && credit === 0) || (credit > 0 && debit === 0);
   },
   {
@@ -162,8 +192,18 @@ export const journalEntryCreateSchema = z.object({
   lines: z.array(journalEntryLineCreateSchema).min(2, 'Un asiento debe tener al menos 2 líneas')
 }).refine(
   (data) => {
-    const totalDebit = data.lines.reduce((sum, line) => sum + parseFloat(line.debit_amount), 0);
-    const totalCredit = data.lines.reduce((sum, line) => sum + parseFloat(line.credit_amount), 0);
+    const totalDebit = data.lines.reduce((sum, line) => {
+      const amount = typeof line.debit_amount === 'string' 
+        ? parseFloat(line.debit_amount) 
+        : line.debit_amount;
+      return sum + amount;
+    }, 0);
+    const totalCredit = data.lines.reduce((sum, line) => {
+      const amount = typeof line.credit_amount === 'string' 
+        ? parseFloat(line.credit_amount) 
+        : line.credit_amount;
+      return sum + amount;
+    }, 0);
     return Math.abs(totalDebit - totalCredit) < 0.01; // Tolerancia para redondeo
   },
   {
@@ -409,6 +449,12 @@ export interface BulkJournalEntryResetResult extends BulkJournalEntryOperationRe
   reset_entries: JournalEntryResetToDraftValidation[];
 }
 
+export interface BulkJournalEntryDeleteResult extends BulkJournalEntryOperationResult {
+  total_deleted: number;
+  deleted_entries: JournalEntryDeleteValidation[];
+  warnings?: string[];
+}
+
 // Bulk deletion types - Ya existía pero se mantiene por compatibilidad
 export interface BulkJournalEntryDelete {
   journal_entry_ids: string[];  // Actualizado según la especificación del backend
@@ -426,12 +472,25 @@ export interface JournalEntryDeleteValidation {
   warnings: string[];
 }
 
-export interface BulkJournalEntryDeleteResult {
-  total_requested: number;
-  total_deleted: number;
-  total_failed: number;
-  deleted_entries: JournalEntryDeleteValidation[];
-  failed_entries: JournalEntryDeleteValidation[];
-  errors: string[];
-  warnings: string[];
+// Interfaces específicas para el backend (con números en amounts)
+export interface JournalEntryLineBackend {
+  account_id: string;
+  description?: string;
+  debit_amount: number;
+  credit_amount: number;
+  third_party_id?: string;
+  cost_center_id?: string;
+  reference?: string;
+  payment_terms_id?: string;
+  invoice_date?: string;
+  due_date?: string;
+}
+
+export interface JournalEntryBackend {
+  entry_date: string;
+  reference?: string;
+  description: string;
+  entry_type: JournalEntryType;
+  notes?: string;
+  lines: JournalEntryLineBackend[];
 }

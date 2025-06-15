@@ -4,6 +4,7 @@ import { Card } from '../../../components/ui/Card';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useJournalEntry } from '../hooks';
 import { useJournalEntryStatusListener } from '../hooks/useJournalEntryEvents';
+import { JournalEntryPaymentTermsDisplay } from './JournalEntryPaymentTermsDisplay';
 import { formatCurrency } from '../../../shared/utils';
 import { 
   JournalEntryStatus,
@@ -224,25 +225,28 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
             {formatCurrency(parseFloat(entry.total_credit))}
           </p>
         </div>
-      </div>
-
-      {/* Lines Table */}
+      </div>        {/* Lines Table */}
       <div className="overflow-x-auto">
         <table className="min-w-full table-auto">
           <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 font-medium text-gray-900">#</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-900">Cuenta</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-900">Descripción</th>
-              <th className="text-right py-3 px-4 font-medium text-gray-900">Débito</th>
-              <th className="text-right py-3 px-4 font-medium text-gray-900">Crédito</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-900">Referencia</th>
+            <tr className="border-b border-gray-200 bg-gray-50">
+              <th className="text-left py-3 px-4 font-medium text-gray-900 w-12">#</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-900 min-w-[150px]">Cuenta</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-900 min-w-[120px]">Descripción</th>
+              <th className="text-right py-3 px-4 font-medium text-gray-900 w-24">Débito</th>
+              <th className="text-right py-3 px-4 font-medium text-gray-900 w-24">Crédito</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-900 min-w-[180px]">Tercero</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-900 min-w-[120px]">Centro Costo</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-900 w-28">F. Factura</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-900 w-28">F. Vencimiento</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-900 min-w-[140px]">Condiciones Pago</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-900 w-24">Referencia</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {entry.lines
               .sort((a, b) => a.line_number - b.line_number)
-              .map((line) => (
+              .map((line: any) => (
                 <tr key={line.id}>
                   <td className="py-3 px-4">
                     <span className="text-sm text-gray-600">{line.line_number}</span>
@@ -287,15 +291,187 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
                     </span>
                   </td>
                   <td className="py-3 px-4">
+                    {line.third_party_name ? (
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {line.third_party_code}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {line.third_party_name}
+                        </p>
+                        {line.third_party_document_number && (
+                          <p className="text-xs text-gray-500">
+                            {line.third_party_document_type}: {line.third_party_document_number}
+                          </p>
+                        )}
+                        {line.third_party_type && (
+                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                            line.third_party_type === 'customer' 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : line.third_party_type === 'supplier'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {line.third_party_type === 'customer' ? 'Cliente' : 
+                             line.third_party_type === 'supplier' ? 'Proveedor' : 
+                             line.third_party_type}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4">
+                    {line.cost_center_code ? (
+                      <div>
+                        <p className="text-sm font-mono text-gray-900">
+                          {line.cost_center_code}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {line.cost_center_name}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4">
+                    <div>
+                      {line.invoice_date && (
+                        <p className="text-sm text-gray-900">
+                          {new Date(line.invoice_date).toLocaleDateString('es-ES')}
+                        </p>
+                      )}
+                      {line.effective_invoice_date && line.effective_invoice_date !== line.invoice_date && (
+                        <p className="text-xs text-blue-600">
+                          Efectiva: {new Date(line.effective_invoice_date).toLocaleDateString('es-ES')}
+                        </p>
+                      )}
+                      {!line.invoice_date && !line.effective_invoice_date && (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    <div>
+                      {line.due_date && (
+                        <p className="text-sm text-gray-900">
+                          {new Date(line.due_date).toLocaleDateString('es-ES')}
+                        </p>
+                      )}
+                      {line.effective_due_date && line.effective_due_date !== line.due_date && (
+                        <p className="text-xs text-blue-600">
+                          Efectiva: {new Date(line.effective_due_date).toLocaleDateString('es-ES')}
+                        </p>
+                      )}
+                      {!line.due_date && !line.effective_due_date && (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    {line.payment_terms_code ? (
+                      <div>
+                        <p className="text-sm font-mono text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                          {line.payment_terms_code}
+                        </p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {line.payment_terms_name}
+                        </p>
+                        {line.payment_terms_description && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {line.payment_terms_description}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4">
                     <span className="text-sm text-gray-600">
                       {line.reference || '-'}
                     </span>
                   </td>
                 </tr>
-              ))}
-          </tbody>
+              ))}          </tbody>
         </table>
       </div>
+        {/* Third Parties Summary */}
+      {entry.lines.some((line: any) => line.third_party_name) && (
+        <div className="mt-6">
+          <h4 className="font-medium text-gray-900 mb-4">Terceros Involucrados</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {entry.lines
+              .filter((line: any) => line.third_party_name)
+              .reduce((unique: any[], line: any) => {
+                // Evitar duplicados por third_party_id
+                if (!unique.find(item => item.third_party_id === line.third_party_id)) {
+                  unique.push(line);
+                }
+                return unique;
+              }, [])
+              .map((line: any) => (
+                <div key={line.third_party_id} className="bg-gray-50 p-4 rounded-lg border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-mono text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                      {line.third_party_code}
+                    </span>
+                    <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                      line.third_party_type === 'customer' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : line.third_party_type === 'supplier'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {line.third_party_type === 'customer' ? 'Cliente' : 
+                       line.third_party_type === 'supplier' ? 'Proveedor' : 
+                       line.third_party_type || 'Otro'}
+                    </span>
+                  </div>
+                  <h5 className="font-medium text-gray-900 mb-2">{line.third_party_name}</h5>
+                  <div className="space-y-1 text-sm text-gray-600">
+                    {line.third_party_document_number && (
+                      <p>
+                        <span className="font-medium">{line.third_party_document_type}:</span> {line.third_party_document_number}
+                      </p>
+                    )}
+                    {line.third_party_tax_id && (
+                      <p>
+                        <span className="font-medium">NIT:</span> {line.third_party_tax_id}
+                      </p>
+                    )}
+                    {line.third_party_email && (
+                      <p>
+                        <span className="font-medium">Email:</span> {line.third_party_email}
+                      </p>
+                    )}
+                    {line.third_party_phone && (
+                      <p>
+                        <span className="font-medium">Teléfono:</span> {line.third_party_phone}
+                      </p>
+                    )}
+                    {line.third_party_address && (
+                      <p>
+                        <span className="font-medium">Dirección:</span> {line.third_party_address}
+                      </p>
+                    )}
+                    {line.third_party_city && (
+                      <p>
+                        <span className="font-medium">Ciudad:</span> {line.third_party_city}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      )}
+
+      {/* Payment Terms Summary using existing component */}
+      <JournalEntryPaymentTermsDisplay entry={entry} className="mt-6" />
     </div>
   );
 

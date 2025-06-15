@@ -164,32 +164,12 @@ export const JournalEntriesPage: React.FC = () => {
             onCancel={handleCancel}
           />
         );
-      
-      case 'edit':
+        case 'edit':
         if (!selectedEntry) return null;
         return (
           <JournalEntryForm
             isEditMode={true}
             entryId={selectedEntry.id}
-            initialData={{
-              reference: selectedEntry.reference,
-              description: selectedEntry.description,
-              entry_type: selectedEntry.entry_type,
-              entry_date: selectedEntry.entry_date,
-              notes: selectedEntry.notes,
-              external_reference: selectedEntry.external_reference,
-              lines: selectedEntry.lines.map(line => ({
-                account_id: line.account_id,
-                account_code: line.account_code,
-                account_name: line.account_name,
-                debit_amount: line.debit_amount,
-                credit_amount: line.credit_amount,
-                description: line.description,
-                reference: line.reference,
-                third_party_id: line.third_party_id,
-                cost_center_id: line.cost_center_id
-              }))
-            }}
             onSuccess={handleFormSuccess}
             onCancel={handleCancel}
           />

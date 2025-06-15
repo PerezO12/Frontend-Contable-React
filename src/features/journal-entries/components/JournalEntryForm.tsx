@@ -5,7 +5,7 @@ import { Card } from '../../../components/ui/Card';
 import { Spinner } from '../../../components/ui/Spinner';
 import { ValidationMessage } from '../../../components/forms/ValidationMessage';
 import { useForm } from '../../../shared/hooks/useForm';
-import { useJournalEntries, useJournalEntryBalance } from '../hooks';
+import { useJournalEntries, useJournalEntryBalance, useJournalEntry } from '../hooks';
 import { useAccounts } from '../../accounts/hooks';
 import { useThirdParties } from '../../third-parties/hooks';
 import { useCostCenters } from '../../cost-centers/hooks';
@@ -19,6 +19,7 @@ import {
   type JournalEntryFormData,
   type JournalEntryLineFormData,
   type JournalEntry,
+  type JournalEntryBackend,
   type PaymentScheduleItem
 } from '../types';
 
@@ -96,7 +97,92 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
       { account_id: '', debit_amount: '0.00', credit_amount: '0.00', description: '' },
       { account_id: '', debit_amount: '0.00', credit_amount: '0.00', description: '' }
     ]
-  }), [initialData]);
+  }), [initialData]);  // Cargar datos del entry existente cuando se está editando
+  const { entry: existingEntry, loading: loadingEntry } = entryId 
+    ? useJournalEntry(entryId) 
+    : { entry: null, loading: false };  // Actualizar initialFormData cuando se cargan los datos del entry existente
+  const finalInitialData = useMemo(() => {
+    // Dar prioridad a los datos existentes del backend en modo edición
+    if (isEditMode && existingEntry) {
+      console.log('📥 Cargando datos del entry existente desde backend:', existingEntry);
+      console.log('📋 Payment terms disponibles:', paymentTerms);
+      
+      // Obtener los valores efectivos de la primera línea para los campos de payment terms
+      const firstLine = existingEntry.lines?.[0];
+      const effectiveInvoiceDate = firstLine?.effective_invoice_date || firstLine?.invoice_date || '';
+      const effectiveDueDate = firstLine?.effective_due_date || firstLine?.due_date || '';
+      
+      // Si hay payment_terms_code, intentar encontrar el payment_terms_id correspondiente
+      let paymentTermsId = firstLine?.payment_terms_id || '';
+      if (!paymentTermsId && firstLine?.payment_terms_code && paymentTerms.length > 0) {
+        const foundPaymentTerm = paymentTerms.find(pt => pt.code === firstLine.payment_terms_code);
+        if (foundPaymentTerm) {
+          paymentTermsId = foundPaymentTerm.id;
+          console.log('✅ Payment term encontrado:', foundPaymentTerm);
+        } else {
+          console.log('❌ Payment term no encontrado para código:', firstLine.payment_terms_code);
+        }
+      }
+      
+      console.log('🔍 Campos extraídos:', {
+        effectiveInvoiceDate,
+        effectiveDueDate,
+        paymentTermsId,
+        paymentTermsCode: firstLine?.payment_terms_code,
+        originalInvoiceDate: firstLine?.invoice_date,
+        originalDueDate: firstLine?.due_date
+      });
+      
+      return {
+        reference: existingEntry.reference || '',
+        description: existingEntry.description || '',
+        entry_type: existingEntry.entry_type || JournalEntryType.MANUAL,
+        entry_date: existingEntry.entry_date || new Date().toISOString().split('T')[0],
+        notes: existingEntry.notes || '',
+        external_reference: existingEntry.external_reference || '',
+        // Campos de payment terms a nivel de asiento (usar valores efectivos)
+        third_party_id: firstLine?.third_party_id || '',
+        cost_center_id: firstLine?.cost_center_id || '',
+        payment_terms_id: paymentTermsId,
+        invoice_date: effectiveInvoiceDate,
+        due_date: effectiveDueDate,
+        lines: existingEntry.lines?.map((line: any) => {
+          // Para cada línea, usar también los valores efectivos
+          const lineEffectiveInvoiceDate = line.effective_invoice_date || line.invoice_date || '';
+          const lineEffectiveDueDate = line.effective_due_date || line.due_date || '';
+          
+          // Buscar payment_terms_id por código si no está presente
+          let linePaymentTermsId = line.payment_terms_id || '';
+          if (!linePaymentTermsId && line.payment_terms_code && paymentTerms.length > 0) {
+            const foundPaymentTerm = paymentTerms.find(pt => pt.code === line.payment_terms_code);
+            if (foundPaymentTerm) {
+              linePaymentTermsId = foundPaymentTerm.id;
+            }
+          }
+          
+          return {
+            account_id: line.account_id || '',
+            account_code: line.account_code || '',
+            account_name: line.account_name || '',
+            debit_amount: String(line.debit_amount) || '0.00',
+            credit_amount: String(line.credit_amount) || '0.00',
+            description: line.description || '',
+            reference: line.reference || '',
+            third_party_id: line.third_party_id || '',
+            cost_center_id: line.cost_center_id || '',
+            payment_terms_id: linePaymentTermsId,
+            invoice_date: lineEffectiveInvoiceDate,
+            due_date: lineEffectiveDueDate
+          };
+        }) || [
+          { account_id: '', debit_amount: '0.00', credit_amount: '0.00', description: '' },
+          { account_id: '', debit_amount: '0.00', credit_amount: '0.00', description: '' }
+        ]
+      };
+    }
+    // Fallback a initialData si está disponible, o datos por defecto
+    return initialFormData;
+  }, [isEditMode, existingEntry, initialFormData, paymentTerms]);
 
   const formValidate = useCallback((data: JournalEntryFormData) => {
     console.log('🔍 Validando datos en modo:', isEditMode ? 'edición' : 'creación');
@@ -145,34 +231,77 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
       }
     }
     return [];
-  }, [isEditMode]);
-  const formOnSubmit = useCallback(async (formData: JournalEntryFormData) => {
+  }, [isEditMode]);  const formOnSubmit = useCallback(async (formData: JournalEntryFormData) => {
     console.log('🚀 JournalEntry onSubmit ejecutado con:', {
       isEditMode,
       entryId,
       formData
     });
-    
-    // Preparar las líneas con third_party_id y cost_center_id propagados desde el nivel del asiento
+      // Preparar las líneas con conversión de tipos y propagación de campos
     const enhancedLines = formData.lines
       .filter(line => line.account_id && 
         (parseFloat(line.debit_amount) > 0 || parseFloat(line.credit_amount) > 0))
       .map(line => ({
-        ...line,
-        // Propagar third_party_id y cost_center_id del asiento a todas las líneas
-        third_party_id: formData.third_party_id || line.third_party_id || undefined,
-        cost_center_id: formData.cost_center_id || line.cost_center_id || undefined
-      }));
+        account_id: line.account_id,
+        // Si la línea no tiene descripción, usar la descripción general del asiento
+        description: line.description?.trim() || formData.description,
+        // Convertir amounts a números como espera el backend
+        debit_amount: parseFloat(line.debit_amount) || 0,
+        credit_amount: parseFloat(line.credit_amount) || 0,
+        // Propagar third_party_id y cost_center_id del asiento a todas las líneas si no están especificados
+        third_party_id: line.third_party_id || formData.third_party_id || undefined,
+        cost_center_id: line.cost_center_id || formData.cost_center_id || undefined,
+        reference: line.reference || undefined,        // Campos de payment terms - solo incluir si hay valores válidos
+        payment_terms_id: (line.payment_terms_id || formData.payment_terms_id) && 
+                          (line.payment_terms_id || formData.payment_terms_id) !== '' ? 
+                          (line.payment_terms_id || formData.payment_terms_id) : undefined,
+        invoice_date: (line.invoice_date || formData.invoice_date) && 
+                     (line.invoice_date || formData.invoice_date) !== '' ? 
+                     (line.invoice_date || formData.invoice_date) : undefined,
+        due_date: (line.due_date || formData.due_date) && 
+                 (line.due_date || formData.due_date) !== '' ? 
+                 (line.due_date || formData.due_date) : undefined
+      }))      // Filtrar campos undefined para evitar enviarlos al backend
+      .map(line => {
+        const cleanLine: any = { ...line };
+        Object.keys(cleanLine).forEach(key => {
+          if (cleanLine[key] === undefined || 
+              cleanLine[key] === '' || 
+              cleanLine[key] === null) {
+            delete cleanLine[key];
+          }
+        });
+        console.log('🧼 Línea limpia:', cleanLine);
+        return cleanLine;
+      });
 
-    const submitData = {
-      ...formData,
+    // Estructura que espera el backend
+    const submitData: JournalEntryBackend = {
+      entry_date: formData.entry_date,
+      reference: formData.reference || undefined,
+      description: formData.description,
+      entry_type: formData.entry_type,
+      notes: formData.notes || undefined,
       lines: enhancedLines
     };
 
-    console.log('📤 Datos que se enviarán al backend:', submitData);
+    console.log('📤 Datos que se enviarán al backend (formato correcto):', submitData);
 
     if (isEditMode && entryId) {
-      const result = await updateEntry(entryId, { ...submitData, id: entryId });
+      // Para actualizaciones, necesitamos mantener el formato original del servicio
+      const updateData = {
+        id: entryId,
+        ...formData,
+        lines: formData.lines
+          .filter(line => line.account_id && 
+            (parseFloat(line.debit_amount) > 0 || parseFloat(line.credit_amount) > 0))
+          .map(line => ({
+            ...line,
+            third_party_id: line.third_party_id || formData.third_party_id || undefined,
+            cost_center_id: line.cost_center_id || formData.cost_center_id || undefined
+          }))
+      };
+      const result = await updateEntry(entryId, updateData);
       if (result) {
         console.log('✅ Asiento actualizado exitosamente:', result);
         // Limpiar borrador actual y todos los borradores antiguos al actualizar exitosamente
@@ -183,7 +312,8 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
         }
       }
     } else {
-      const result = await createEntry(submitData);
+      // Para creación, usamos el formato del backend
+      const result = await createEntry(submitData as any);
       if (result) {
         console.log('✅ Asiento creado exitosamente:', result);
         // Limpiar borrador actual y todos los borradores antiguos al crear exitosamente
@@ -195,7 +325,6 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
       }
     }
   }, [isEditMode, entryId, updateEntry, createEntry, clearCurrentDraft, clearDrafts, onSuccess]);
-
   const {
     data: values,
     updateField,
@@ -203,10 +332,22 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
     getFieldError,
     clearErrors
   } = useForm<JournalEntryFormData>({
-    initialData: initialFormData,
+    initialData: finalInitialData,
     validate: formValidate,
     onSubmit: formOnSubmit
-  });// Balance validation hook
+  });
+
+  // Log para depurar datos del formulario
+  useEffect(() => {
+    console.log('🔄 useForm inicializado/actualizado con:', {
+      isEditMode,
+      entryId,
+      hasExistingEntry: !!existingEntry,
+      hasInitialData: !!initialData,
+      finalInitialData,
+      currentValues: values
+    });
+  }, [isEditMode, entryId, existingEntry, initialData, finalInitialData, values]);// Balance validation hook
   const balance = useJournalEntryBalance(values.lines);
     // Memoize total debit to avoid unnecessary useEffect executions
   const totalDebit = useMemo(() => balance.total_debit, [balance.total_debit]);
@@ -265,10 +406,29 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
   const handleInputChange = useCallback((field: keyof JournalEntryFormData) => 
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
       const value = e.target.value;
+        // Lógica de limpieza para evitar conflictos entre payment terms y due_date manual
+      if (field === 'payment_terms_id') {
+        if (value) {
+          // Si se selecciona payment terms, limpiar due_date manual
+          updateField('due_date', '');
+          console.log('🧹 Limpiando due_date porque se seleccionó payment_terms_id');
+        } else {
+          // Si se deselecciona payment terms, limpiar invoice_date también
+          updateField('invoice_date', '');
+          console.log('🧹 Limpiando invoice_date porque se deseleccionó payment_terms_id');
+        }
+      }
       
-      // Si se selecciona payment terms, limpiar due_date manual
-      if (field === 'payment_terms_id' && value) {
-        updateField('due_date', '');
+      // Si se establece due_date manual, limpiar payment_terms_id
+      if (field === 'due_date' && value) {
+        updateField('payment_terms_id', '');
+        updateField('invoice_date', '');
+        console.log('🧹 Limpiando payment_terms_id e invoice_date porque se estableció due_date manual');
+      }
+      
+      // Si se establece invoice_date sin payment_terms_id, es inconsistente
+      if (field === 'invoice_date' && value && !values.payment_terms_id) {
+        console.log('⚠️ Se estableció invoice_date sin payment_terms_id, esto puede causar inconsistencias');
       }
       // Si se selecciona due_date manual, limpiar payment_terms_id
       else if (field === 'due_date' && value) {
@@ -395,7 +555,51 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
         }
       });
     }
-  }, []); // Solo ejecutar una vez al montar
+  }, []); // Solo ejecutar una vez al montar  // Propagar automáticamente third_party_id, cost_center_id, payment_terms_id, invoice_date y due_date 
+  // desde el nivel del asiento a todas las líneas cuando cambien
+  useEffect(() => {
+    const updatedLines = values.lines.map(line => ({
+      ...line,
+      // Lógica de limpieza y propagación
+      third_party_id: values.third_party_id || (line.third_party_id !== values.third_party_id ? undefined : line.third_party_id),
+      cost_center_id: values.cost_center_id || (line.cost_center_id !== values.cost_center_id ? undefined : line.cost_center_id),
+      
+      // Manejo especial para payment terms con limpieza de conflictos
+      payment_terms_id: values.payment_terms_id ? values.payment_terms_id : undefined,
+      invoice_date: values.payment_terms_id ? (values.invoice_date || line.invoice_date) : undefined,
+      due_date: values.payment_terms_id ? undefined : (values.due_date || line.due_date)
+    }));
+    
+    // Solo actualizar si hay cambios reales
+    const hasChanges = updatedLines.some((line, index) => {
+      const originalLine = values.lines[index];
+      return line.third_party_id !== originalLine.third_party_id ||
+             line.cost_center_id !== originalLine.cost_center_id ||
+             line.payment_terms_id !== originalLine.payment_terms_id ||
+             line.invoice_date !== originalLine.invoice_date ||
+             line.due_date !== originalLine.due_date;
+    });
+    
+    if (hasChanges) {
+      console.log('🔄 Propagando cambios a las líneas:', {
+        third_party_id: values.third_party_id,
+        cost_center_id: values.cost_center_id,
+        payment_terms_id: values.payment_terms_id,
+        invoice_date: values.invoice_date,
+        due_date: values.due_date
+      });
+      updateField('lines', updatedLines);
+    }
+  }, [values.third_party_id, values.cost_center_id, values.payment_terms_id, 
+      values.invoice_date, values.due_date, updateField]);  // Si estamos en modo edición y aún estamos cargando los datos, mostrar spinner
+  if (isEditMode && (loadingEntry || (entryId && !existingEntry))) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <Spinner size="lg" />
+        <span className="ml-3 text-gray-600">Cargando datos del asiento...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -575,10 +779,20 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  📋 Se calcularán fechas de vencimiento automáticamente
+                </p>
               </div>
               
               <div>
-                {/* Espacio para futura funcionalidad */}
+                <div className="flex items-center space-x-2 mb-2">
+                  <span className="text-sm font-medium text-gray-700">🔄 Limpieza automática</span>
+                </div>
+                <div className="text-xs text-gray-600 space-y-1">
+                  <p>• Seleccionar condiciones de pago limpia la fecha de vencimiento manual</p>
+                  <p>• Establecer fecha de vencimiento manual limpia las condiciones de pago</p>
+                  <p>• Dejar las descripciones de líneas vacías usa la descripción general</p>
+                </div>
               </div>
             </div>
 
@@ -604,20 +818,26 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({
                 <label htmlFor="due_date" className="form-label">
                   Fecha de Vencimiento
                   {!values.payment_terms_id && values.due_date && <span className="text-blue-500 ml-1">(Manual)</span>}
-                </label>
-                <Input
+                </label>                <Input
                   id="due_date"
                   type="date"
                   value={values.due_date || ''}
                   onChange={handleInputChange('due_date')}
                   disabled={!!values.payment_terms_id}
                   error={getFieldError('due_date')}
+                  className={values.payment_terms_id ? 'bg-gray-100' : ''}
                 />
                 {getFieldError('due_date') && (
                   <ValidationMessage type="error" message={getFieldError('due_date')!} />
-                )}                {values.payment_terms_id && (
+                )}
+                {values.payment_terms_id && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    🔒 Deshabilitado - Se calculará automáticamente según las condiciones de pago
+                  </p>
+                )}
+                {!values.payment_terms_id && (
                   <p className="text-xs text-gray-500 mt-1">
-                    La fecha de vencimiento se calculará automáticamente según las condiciones de pago
+                    ⚠️ Al establecer una fecha manual se limpiarán las condiciones de pago
                   </p>
                 )}
               </div>

@@ -55,7 +55,14 @@ export class JournalEntryService {
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
-          params.append(key, String(value));
+          // Manejar arrays (como transaction_origin)
+          if (Array.isArray(value)) {
+            value.forEach(item => {
+              params.append(key, String(item));
+            });
+          } else {
+            params.append(key, String(value));
+          }
         }
       });
     }
@@ -849,8 +856,7 @@ export class JournalEntryService {
 
   /**
    * Exportar asientos contables a Excel
-   */
-  static async exportToExcel(filters?: JournalEntryFilters): Promise<void> {
+   */  static async exportToExcel(filters?: JournalEntryFilters): Promise<void> {
     console.log('Exportando asientos contables a Excel con filtros:', filters);
     
     try {
@@ -859,7 +865,14 @@ export class JournalEntryService {
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined && value !== null && value !== '') {
-            params.append(key, String(value));
+            // Manejar arrays (como transaction_origin)
+            if (Array.isArray(value)) {
+              value.forEach(item => {
+                params.append(key, String(item));
+              });
+            } else {
+              params.append(key, String(value));
+            }
           }
         });
       }
@@ -878,8 +891,7 @@ export class JournalEntryService {
 
   /**
    * Exportar asientos contables a PDF
-   */
-  static async exportToPDF(filters?: JournalEntryFilters): Promise<void> {
+   */  static async exportToPDF(filters?: JournalEntryFilters): Promise<void> {
     console.log('Exportando asientos contables a PDF con filtros:', filters);
     
     try {
@@ -888,7 +900,14 @@ export class JournalEntryService {
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined && value !== null && value !== '') {
-            params.append(key, String(value));
+            // Manejar arrays (como transaction_origin)
+            if (Array.isArray(value)) {
+              value.forEach(item => {
+                params.append(key, String(item));
+              });
+            } else {
+              params.append(key, String(value));
+            }
           }
         });
       }

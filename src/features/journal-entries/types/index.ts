@@ -346,6 +346,7 @@ export const journalEntryFiltersSchema = z.object({
   limit: z.number().min(1).max(1000).optional(),
   entry_type: z.enum(['manual', 'automatic', 'adjustment', 'opening', 'closing', 'reversal']).optional(),
   status: z.enum(['draft', 'pending', 'approved', 'posted', 'cancelled']).optional(),
+  transaction_origin: z.array(z.enum(['sale', 'purchase', 'adjustment', 'transfer', 'payment', 'collection', 'opening', 'closing', 'other'])).optional(),
   date_from: z.string().optional(),
   date_to: z.string().optional(),
   search: z.string().optional(),

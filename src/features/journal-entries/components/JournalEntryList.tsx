@@ -13,8 +13,11 @@ import { formatCurrency } from '../../../shared/utils';
 import { 
   JournalEntryType,
   JournalEntryStatus, 
+  TransactionOrigin,
   JOURNAL_ENTRY_TYPE_LABELS,
   JOURNAL_ENTRY_STATUS_LABELS,
+  TransactionOriginLabels,
+  getTransactionOriginColor,
   type JournalEntry,
   type JournalEntryFilters 
 } from '../types';
@@ -33,7 +36,14 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
   const [filters, setFilters] = useState<JournalEntryFilters>(initialFilters || {});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
-  const [selectAll, setSelectAll] = useState(false);  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);  // Obtener funcionalidad del hook
+  const [selectAll, setSelectAll] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  // Estado para el filtro de múltiples orígenes de transacción
+  const [selectedTransactionOrigins, setSelectedTransactionOrigins] = useState<Set<TransactionOrigin>>(
+    new Set(filters.transaction_origin || [])
+  );
+
+  // Obtener funcionalidad del hook
   const { 
     entries, 
     pagination, 
@@ -126,6 +136,32 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
 
   const handleFilterChange = (key: keyof JournalEntryFilters, value: string | number | undefined) => {
     const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    refetchWithFilters(newFilters);
+  };
+
+  // Manejar selección de origen de transacción (múltiple selección)
+  const handleTransactionOriginToggle = (origin: TransactionOrigin) => {
+    const newSelected = new Set(selectedTransactionOrigins);
+    if (newSelected.has(origin)) {
+      newSelected.delete(origin);
+    } else {
+      newSelected.add(origin);
+    }
+    setSelectedTransactionOrigins(newSelected);
+    
+    const newFilters = {
+      ...filters,
+      transaction_origin: newSelected.size > 0 ? Array.from(newSelected) : undefined
+    };
+    setFilters(newFilters);
+    refetchWithFilters(newFilters);
+  };
+
+  // Limpiar filtros de origen de transacción
+  const clearTransactionOriginFilter = () => {
+    setSelectedTransactionOrigins(new Set());
+    const newFilters = { ...filters, transaction_origin: undefined };
     setFilters(newFilters);
     refetchWithFilters(newFilters);
   };
@@ -277,11 +313,10 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
           </div>
         </div>
 
-        <div className="card-body">
-          {/* Filtros y búsqueda */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="card-body">          {/* Filtros y búsqueda */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {/* Búsqueda */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Buscar
               </label>
@@ -339,6 +374,43 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Filtro de origen de transacción */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Origen de Transacción
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(TransactionOriginLabels).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => handleTransactionOriginToggle(value as TransactionOrigin)}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                    selectedTransactionOrigins.has(value as TransactionOrigin)
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+              {selectedTransactionOrigins.size > 0 && (
+                <button
+                  type="button"
+                  onClick={clearTransactionOriginFilter}
+                  className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200"
+                >
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
+            {selectedTransactionOrigins.size > 0 && (
+              <p className="text-xs text-gray-600 mt-1">
+                {selectedTransactionOrigins.size} origen{selectedTransactionOrigins.size !== 1 ? 'es' : ''} seleccionado{selectedTransactionOrigins.size !== 1 ? 's' : ''}
+              </p>
+            )}
           </div>
 
           {/* Filtros de fecha */}
@@ -497,6 +569,7 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Fecha</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Descripción</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Tipo</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-900">Origen</th>
                     <th className="text-right py-3 px-4 font-medium text-gray-900">Total</th>
                     <th className="text-center py-3 px-4 font-medium text-gray-900">Estado</th>                    <th className="text-center py-3 px-4 font-medium text-gray-900">Vencimiento</th>
                   </tr>
@@ -544,14 +617,25 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                             <p className="text-sm text-gray-500">Ref: {entry.reference}</p>
                           )}
                         </div>
-                      </td>
-                      <td 
+                      </td>                      <td 
                         className="py-3 px-4"
                         onClick={() => onEntrySelect?.(entry)}
                       >
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getTypeColor(entry.entry_type)}`}>
                           {JOURNAL_ENTRY_TYPE_LABELS[entry.entry_type]}
                         </span>
+                      </td>
+                      <td 
+                        className="py-3 px-4"
+                        onClick={() => onEntrySelect?.(entry)}
+                      >
+                        {entry.transaction_origin ? (
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getTransactionOriginColor(entry.transaction_origin)}`}>
+                            {TransactionOriginLabels[entry.transaction_origin]}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
                       </td>
                       <td 
                         className="py-3 px-4 text-right"

@@ -5,7 +5,8 @@ import { Spinner } from '../../../components/ui/Spinner';
 import { useJournalEntry } from '../hooks';
 import { useJournalEntryStatusListener } from '../hooks/useJournalEntryEvents';
 import { JournalEntryPaymentTermsDisplay } from './JournalEntryPaymentTermsDisplay';
-import { formatCurrency } from '../../../shared/utils';
+import { JournalEntryService } from '../services';
+import { formatCurrency, formatDateSafe } from '../../../shared/utils';
 import { 
   JournalEntryStatus,
   JournalEntryType,
@@ -118,11 +119,10 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
               <dd className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
                 {entry.number}
               </dd>
-            </div>
-            <div>
+            </div>            <div>
               <dt className="text-sm text-gray-600">Fecha:</dt>
               <dd className="text-sm text-gray-900">
-                {new Date(entry.entry_date).toLocaleDateString()}
+                {formatDateSafe(entry.entry_date)}
               </dd>
             </div>
             <div>
@@ -241,12 +241,15 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
               <th className="text-left py-3 px-4 font-medium text-gray-900 w-28">F. Vencimiento</th>
               <th className="text-left py-3 px-4 font-medium text-gray-900 min-w-[140px]">Condiciones Pago</th>
               <th className="text-left py-3 px-4 font-medium text-gray-900 w-24">Referencia</th>
-            </tr>
-          </thead>
+            </tr>          </thead>
           <tbody className="divide-y divide-gray-200">
             {entry.lines
               .sort((a, b) => a.line_number - b.line_number)
-              .map((line: any) => (
+              .map((line: any) => {
+                // Calcular fechas correctas usando cronograma de pagos
+                const { finalDueDate, paymentSchedule, isCalculated } = JournalEntryService.calculateCorrectDueDatesForLine(line);
+                
+                return (
                 <tr key={line.id}>
                   <td className="py-3 px-4">
                     <span className="text-sm text-gray-600">{line.line_number}</span>
@@ -336,36 +339,42 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
                       <span className="text-sm text-gray-400">-</span>
                     )}
                   </td>
-                  <td className="py-3 px-4">
-                    <div>
+                  <td className="py-3 px-4">                    <div>
                       {line.invoice_date && (
                         <p className="text-sm text-gray-900">
-                          {new Date(line.invoice_date).toLocaleDateString('es-ES')}
+                          {formatDateSafe(line.invoice_date)}
                         </p>
                       )}
                       {line.effective_invoice_date && line.effective_invoice_date !== line.invoice_date && (
                         <p className="text-xs text-blue-600">
-                          Efectiva: {new Date(line.effective_invoice_date).toLocaleDateString('es-ES')}
+                          Efectiva: {formatDateSafe(line.effective_invoice_date)}
                         </p>
                       )}
                       {!line.invoice_date && !line.effective_invoice_date && (
                         <span className="text-sm text-gray-400">-</span>
                       )}
                     </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div>
-                      {line.due_date && (
-                        <p className="text-sm text-gray-900">
-                          {new Date(line.due_date).toLocaleDateString('es-ES')}
-                        </p>
-                      )}
-                      {line.effective_due_date && line.effective_due_date !== line.due_date && (
-                        <p className="text-xs text-blue-600">
-                          Efectiva: {new Date(line.effective_due_date).toLocaleDateString('es-ES')}
-                        </p>
-                      )}
-                      {!line.due_date && !line.effective_due_date && (
+                  </td>                  <td className="py-3 px-4">                    <div>
+                      {finalDueDate ? (
+                        <div>
+                          <p className={`text-sm ${isCalculated ? 'text-blue-600 font-medium' : 'text-gray-900'}`}>
+                            {formatDateSafe(finalDueDate)}
+                            {isCalculated && (
+                              <span className="text-xs text-blue-500 ml-1">(Calculada)</span>
+                            )}
+                          </p>
+                          {paymentSchedule.length > 1 && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              {paymentSchedule.length} pagos programados
+                            </p>
+                          )}
+                          {!isCalculated && line.effective_due_date && line.effective_due_date !== line.due_date && (
+                            <p className="text-xs text-blue-600">
+                              Efectiva: {formatDateSafe(line.effective_due_date)}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
                         <span className="text-sm text-gray-400">-</span>
                       )}
                     </div>
@@ -378,10 +387,14 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
                         </p>
                         <p className="text-xs text-gray-600 mt-1">
                           {line.payment_terms_name}
-                        </p>
-                        {line.payment_terms_description && (
+                        </p>                        {line.payment_terms_description && (
                           <p className="text-xs text-gray-500 mt-1">
                             {line.payment_terms_description}
+                          </p>
+                        )}
+                        {isCalculated && (
+                          <p className="text-xs text-green-600 mt-1">
+                            ✓ Cronograma activo
                           </p>
                         )}
                       </div>
@@ -389,13 +402,14 @@ export const JournalEntryDetail: React.FC<JournalEntryDetailProps> = ({
                       <span className="text-sm text-gray-400">-</span>
                     )}
                   </td>
-                  <td className="py-3 px-4">
-                    <span className="text-sm text-gray-600">
+                  <td className="py-3 px-4">                    <span className="text-sm text-gray-600">
                       {line.reference || '-'}
                     </span>
                   </td>
                 </tr>
-              ))}          </tbody>
+                );
+              })}
+          </tbody>
         </table>
       </div>
         {/* Third Parties Summary */}

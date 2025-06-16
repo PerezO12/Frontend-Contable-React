@@ -22,6 +22,21 @@ export const JournalEntryStatus = {
 
 export type JournalEntryStatus = typeof JournalEntryStatus[keyof typeof JournalEntryStatus];
 
+// Nuevo enum para origen de transacción
+export const TransactionOrigin = {
+  SALE: 'sale',
+  PURCHASE: 'purchase',
+  ADJUSTMENT: 'adjustment',
+  TRANSFER: 'transfer',
+  PAYMENT: 'payment',
+  COLLECTION: 'collection',
+  OPENING: 'opening',
+  CLOSING: 'closing',
+  OTHER: 'other'
+} as const;
+
+export type TransactionOrigin = typeof TransactionOrigin[keyof typeof TransactionOrigin];
+
 // Tipos para payment schedule en journal entry lines
 export interface PaymentScheduleItem {
   sequence: number;
@@ -62,7 +77,7 @@ export interface JournalEntryLine {
   // Campos de centro de costo
   cost_center_code?: string;
   cost_center_name?: string;
-  // Nuevos campos para payment terms integration
+  // Campos para payment terms integration
   payment_terms_id?: string;
   payment_terms_code?: string;
   payment_terms_name?: string;
@@ -71,7 +86,25 @@ export interface JournalEntryLine {
   due_date?: string;
   effective_invoice_date?: string;
   effective_due_date?: string;
-  // Campos calculados
+  // Campos para productos
+  product_id?: string;
+  product_code?: string;
+  product_name?: string;
+  product_type?: string;
+  product_measurement_unit?: string;
+  quantity?: string;
+  unit_price?: string;
+  discount_percentage?: string;
+  discount_amount?: string;
+  tax_percentage?: string;
+  tax_amount?: string;
+  // Campos calculados adicionales
+  subtotal_before_discount?: string;
+  effective_unit_price?: string;
+  total_discount?: string;
+  subtotal_after_discount?: string;
+  net_amount?: string;
+  gross_amount?: string;
   amount?: string; // Monto de la línea (debit_amount o credit_amount)
   movement_type?: 'debit' | 'credit'; // Tipo de movimiento
   payment_schedule?: PaymentScheduleItem[];
@@ -83,7 +116,9 @@ export interface JournalEntry {
   reference?: string;
   description: string;
   entry_type: JournalEntryType;
+  transaction_origin?: TransactionOrigin;
   entry_date: string;
+  earliest_due_date?: string;
   posting_date?: string;
   status: JournalEntryStatus;
   total_debit: string;
@@ -100,10 +135,15 @@ export interface JournalEntry {
   notes?: string;
   external_reference?: string;
   lines: JournalEntryLine[];
+  // Nombres de usuarios
   created_by_name?: string;
   approved_by_name?: string;
   posted_by_name?: string;
   cancelled_by_name?: string;
+  // Campos de estado y validación
+  is_balanced?: boolean;
+  can_be_posted?: boolean;
+  can_be_edited?: boolean;
 }
 
 // Schemas de validación con Zod
@@ -122,13 +162,20 @@ export const journalEntryLineCreateSchema = z.object({
       'Monto crédito debe ser un número válido'
     ),
     z.number().min(0, 'Monto crédito debe ser positivo')
-  ]),
-  description: z.string().optional(),
+  ]),  description: z.string().optional(),
   reference: z.string().optional(),
-  third_party_id: z.string().uuid().optional(),
-  cost_center_id: z.string().uuid().optional(),
-  // Nuevos campos para payment terms
-  payment_terms_id: z.string().uuid().optional(),
+  third_party_id: z.string().refine(
+    (val) => !val || val === '' || z.string().uuid().safeParse(val).success,
+    'ID de tercero inválido'
+  ).optional(),
+  cost_center_id: z.string().refine(
+    (val) => !val || val === '' || z.string().uuid().safeParse(val).success,
+    'ID de centro de costo inválido'
+  ).optional(),// Campos para payment terms - OPCIONAL y solo valida UUID si tiene valor
+  payment_terms_id: z.string().refine(
+    (val) => !val || val === '' || z.string().uuid().safeParse(val).success,
+    'ID de términos de pago inválido'
+  ).optional(),
   invoice_date: z.string().refine(
     (val) => !val || !isNaN(Date.parse(val)),
     'Fecha de factura inválida'
@@ -136,6 +183,37 @@ export const journalEntryLineCreateSchema = z.object({
   due_date: z.string().refine(
     (val) => !val || !isNaN(Date.parse(val)),
     'Fecha de vencimiento inválida'
+  ).optional(),  // Nuevos campos para productos
+  product_id: z.string().refine(
+    (val) => !val || val === '' || z.string().uuid().safeParse(val).success,
+    'ID de producto inválido'
+  ).optional(),
+  quantity: z.string().refine(
+    (val) => !val || (/^\d+(\.\d{1,4})?$/.test(val) && parseFloat(val) > 0),
+    'La cantidad debe ser un número positivo'
+  ).optional(),  unit_price: z.string().refine(
+    (val) => {
+      if (!val || val === '' || val === '0' || val === '0.00') return true;
+      const num = parseFloat(val);
+      return !isNaN(num) && num >= 0 && isFinite(num);
+    },
+    'El precio unitario debe ser un número válido'
+  ).optional(),
+  discount_percentage: z.string().refine(
+    (val) => !val || (/^\d+(\.\d{1,2})?$/.test(val) && parseFloat(val) >= 0 && parseFloat(val) <= 100),
+    'El porcentaje de descuento debe estar entre 0 y 100'
+  ).optional(),
+  discount_amount: z.string().refine(
+    (val) => !val || (/^\d+(\.\d{1,2})?$/.test(val) && parseFloat(val) >= 0),
+    'El monto de descuento debe ser un número positivo'
+  ).optional(),
+  tax_percentage: z.string().refine(
+    (val) => !val || (/^\d+(\.\d{1,2})?$/.test(val) && parseFloat(val) >= 0),
+    'El porcentaje de impuesto debe ser un número positivo'
+  ).optional(),
+  tax_amount: z.string().refine(
+    (val) => !val || (/^\d+(\.\d{1,2})?$/.test(val) && parseFloat(val) >= 0),
+    'El monto de impuesto debe ser un número positivo'
   ).optional()
 }).refine(
   (data) => {
@@ -177,12 +255,49 @@ export const journalEntryLineCreateSchema = z.object({
     message: 'La fecha de vencimiento no puede ser anterior a la fecha de factura',
     path: ['due_date']
   }
+).refine(
+  (data) => {
+    // Si hay producto, debe haber cantidad para productos físicos
+    if (data.product_id && !data.quantity) {
+      return false; // Será validado en el backend según el tipo de producto
+    }
+    return true;
+  },
+  {
+    message: 'Si especifica un producto, debe incluir la cantidad',
+    path: ['quantity']
+  }
+).refine(
+  (data) => {
+    // No permitir ambos tipos de descuento al mismo tiempo
+    if (data.discount_percentage && data.discount_amount) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'No se puede especificar porcentaje y monto de descuento al mismo tiempo',
+    path: ['discount_amount']
+  }
+).refine(
+  (data) => {
+    // No permitir ambos tipos de impuesto al mismo tiempo
+    if (data.tax_percentage && data.tax_amount) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'No se puede especificar porcentaje y monto de impuesto al mismo tiempo',
+    path: ['tax_amount']
+  }
 );
 
 export const journalEntryCreateSchema = z.object({
   reference: z.string().optional(),
   description: z.string().min(3, 'La descripción debe tener al menos 3 caracteres'),
   entry_type: z.enum(['manual', 'automatic', 'adjustment', 'opening', 'closing', 'reversal']),
+  transaction_origin: z.enum(['sale', 'purchase', 'adjustment', 'transfer', 'payment', 'collection', 'opening', 'closing', 'other']).optional(),
   entry_date: z.string().refine(
     (val) => !isNaN(Date.parse(val)),
     'Fecha inválida'
@@ -250,6 +365,7 @@ export interface JournalEntryFormData {
   reference?: string;
   description: string;
   entry_type: JournalEntryType;
+  transaction_origin?: TransactionOrigin;
   entry_date: string;
   notes?: string;
   external_reference?: string;
@@ -272,10 +388,18 @@ export interface JournalEntryLineFormData {
   reference?: string;
   third_party_id?: string;
   cost_center_id?: string;
-  // Nuevos campos para payment terms
+  // Campos para payment terms
   payment_terms_id?: string;
   invoice_date?: string;
   due_date?: string;
+  // Nuevos campos para productos
+  product_id?: string;
+  quantity?: string;
+  unit_price?: string;
+  discount_percentage?: string;
+  discount_amount?: string;
+  tax_percentage?: string;
+  tax_amount?: string;
 }
 
 // Constantes y etiquetas
@@ -304,6 +428,84 @@ export const JOURNAL_ENTRY_TYPE_DESCRIPTIONS: Record<JournalEntryType, string> =
   [JournalEntryType.CLOSING]: 'Asiento de cierre de periodo',
   [JournalEntryType.REVERSAL]: 'Asiento de reversión'
 };
+
+// Labels para mostrar en UI
+export const TransactionOriginLabels: Record<TransactionOrigin, string> = {
+  [TransactionOrigin.SALE]: 'Venta',
+  [TransactionOrigin.PURCHASE]: 'Compra',
+  [TransactionOrigin.ADJUSTMENT]: 'Ajuste',
+  [TransactionOrigin.TRANSFER]: 'Transferencia',
+  [TransactionOrigin.PAYMENT]: 'Pago',
+  [TransactionOrigin.COLLECTION]: 'Cobro',
+  [TransactionOrigin.OPENING]: 'Apertura',
+  [TransactionOrigin.CLOSING]: 'Cierre',
+  [TransactionOrigin.OTHER]: 'Otro'
+};
+
+// Helpers para validación de productos en journal entries
+export const getTransactionOriginColor = (origin?: TransactionOrigin): string => {
+  if (!origin) return 'bg-gray-100 text-gray-800';
+  
+  switch (origin) {
+    case TransactionOrigin.SALE:
+    case TransactionOrigin.COLLECTION:
+      return 'bg-green-100 text-green-800';
+    case TransactionOrigin.PURCHASE:
+    case TransactionOrigin.PAYMENT:
+      return 'bg-blue-100 text-blue-800';
+    case TransactionOrigin.ADJUSTMENT:
+      return 'bg-yellow-100 text-yellow-800';
+    case TransactionOrigin.TRANSFER:
+      return 'bg-purple-100 text-purple-800';
+    case TransactionOrigin.OPENING:
+      return 'bg-indigo-100 text-indigo-800';
+    case TransactionOrigin.CLOSING:
+      return 'bg-red-100 text-red-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+// Helper para determinar si una transacción requiere productos
+export const isProductTransaction = (origin?: TransactionOrigin): boolean => {
+  return origin === TransactionOrigin.SALE || origin === TransactionOrigin.PURCHASE;
+};
+
+// Helper para validar coherencia de origen con líneas
+export const validateTransactionOriginCoherence = (
+  origin?: TransactionOrigin,
+  lines?: { debit_amount: string; credit_amount: string }[]
+): { valid: boolean; message?: string } => {
+  if (!origin || !lines || lines.length === 0) {
+    return { valid: true };
+  }
+
+  const salesOrigins: TransactionOrigin[] = [TransactionOrigin.SALE, TransactionOrigin.COLLECTION];
+  const purchaseOrigins: TransactionOrigin[] = [TransactionOrigin.PURCHASE, TransactionOrigin.PAYMENT];
+
+  if (salesOrigins.includes(origin)) {
+    const hasRevenueLines = lines.some(line => parseFloat(line.credit_amount) > 0);
+    if (!hasRevenueLines) {
+      return {
+        valid: false,
+        message: 'Los asientos de ventas/cobros deben incluir al menos una línea de crédito (ingreso)'
+      };
+    }
+  }
+
+  if (purchaseOrigins.includes(origin)) {
+    const hasExpenseLines = lines.some(line => parseFloat(line.debit_amount) > 0);
+    if (!hasExpenseLines) {
+      return {
+        valid: false,
+        message: 'Los asientos de compras/pagos deben incluir al menos una línea de débito (gasto o activo)'
+      };
+    }
+  }
+
+  return { valid: true };
+};
+
 
 // Utility types
 export interface JournalEntryStatistics {
@@ -481,6 +683,15 @@ export interface JournalEntryLineBackend {
   third_party_id?: string;
   cost_center_id?: string;
   reference?: string;
+  // Campos de productos
+  product_id?: string;
+  quantity?: number;
+  unit_price?: number;
+  discount_percentage?: number;
+  discount_amount?: number;
+  tax_percentage?: number;
+  tax_amount?: number;
+  // Campos de payment terms
   payment_terms_id?: string;
   invoice_date?: string;
   due_date?: string;
@@ -491,6 +702,7 @@ export interface JournalEntryBackend {
   reference?: string;
   description: string;
   entry_type: JournalEntryType;
+  transaction_origin?: TransactionOrigin;
   notes?: string;
   lines: JournalEntryLineBackend[];
 }

@@ -22,25 +22,13 @@ import {
 interface JournalEntryListProps {
   onEntrySelect?: (entry: JournalEntry) => void;
   onCreateEntry?: () => void;
-  onEditEntry?: (entry: JournalEntry) => void;
   initialFilters?: JournalEntryFilters;
-  showActions?: boolean;
-  onApproveEntry?: (entry: JournalEntry) => void;
-  onPostEntry?: (entry: JournalEntry) => void;
-  onCancelEntry?: (entry: JournalEntry) => void;
-  onReverseEntry?: (entry: JournalEntry) => void;
 }
 
 export const JournalEntryList: React.FC<JournalEntryListProps> = ({
   onEntrySelect,
   onCreateEntry,
-  onEditEntry,
-  initialFilters,
-  showActions = false,
-  onApproveEntry,
-  onPostEntry,
-  onCancelEntry,
-  onReverseEntry
+  initialFilters
 }) => {
   const [filters, setFilters] = useState<JournalEntryFilters>(initialFilters || {});
   const [searchTerm, setSearchTerm] = useState('');
@@ -66,6 +54,62 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
       refetch(); // Sin pasar filtros para usar el estado interno del hook
     }
   });
+
+  // Función para calcular el estado de vencimiento
+  const calculateDueStatus = (entry: JournalEntry) => {
+    // Si está contabilizado (posted), consideramos que está pagado
+    if (entry.status === JournalEntryStatus.POSTED) {
+      return { type: 'paid', message: 'Pagado', className: 'text-green-600' };
+    }    // Buscar fechas de vencimiento disponibles
+    const dueDates: Date[] = [];
+      // Agregar fecha de vencimiento del entry principal si existe
+    if (entry.earliest_due_date) {
+      dueDates.push(new Date(entry.earliest_due_date));
+    }
+
+    // Si hay líneas disponibles, agregar sus fechas de vencimiento
+    if (entry.lines && entry.lines.length > 0) {
+      const lineDueDates = entry.lines
+        .map(line => line.due_date || line.effective_due_date)
+        .filter(Boolean)
+        .map(date => new Date(date!));
+      dueDates.push(...lineDueDates);
+    }
+
+    if (dueDates.length === 0) {
+      return { type: 'no-date', message: '-', className: 'text-gray-400' };
+    }
+
+    const earliestDueDate = new Date(Math.min(...dueDates.map(d => d.getTime())));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    earliestDueDate.setHours(0, 0, 0, 0);
+
+    const diffTime = earliestDueDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      // Atrasado
+      const daysOverdue = Math.abs(diffDays);
+      return {
+        type: 'overdue',
+        message: `${daysOverdue} día${daysOverdue !== 1 ? 's' : ''} atrasado${daysOverdue !== 1 ? 's' : ''}`,
+        className: 'text-red-600 font-medium'
+      };
+    } else if (diffDays === 0) {
+      return {
+        type: 'due-today',
+        message: 'Vence hoy',
+        className: 'text-orange-600 font-medium'
+      };
+    } else {
+      return {
+        type: 'pending',
+        message: `${diffDays} día${diffDays !== 1 ? 's' : ''} restante${diffDays !== 1 ? 's' : ''}`,
+        className: 'text-blue-600'
+      };
+    }
+  };
 
   // Filtrar entradas basadas en el término de búsqueda
   const filteredEntries = useMemo(() => {
@@ -454,10 +498,7 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Descripción</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Tipo</th>
                     <th className="text-right py-3 px-4 font-medium text-gray-900">Total</th>
-                    <th className="text-center py-3 px-4 font-medium text-gray-900">Estado</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Creado por</th>                    {(onEditEntry || showActions) && (
-                      <th className="text-center py-3 px-4 font-medium text-gray-900">Acciones</th>
-                    )}
+                    <th className="text-center py-3 px-4 font-medium text-gray-900">Estado</th>                    <th className="text-center py-3 px-4 font-medium text-gray-900">Vencimiento</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -526,83 +567,19 @@ export const JournalEntryList: React.FC<JournalEntryListProps> = ({
                       >
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(entry.status)}`}>
                           {JOURNAL_ENTRY_STATUS_LABELS[entry.status]}
-                        </span>
-                      </td>                      <td 
-                        className="py-3 px-4"
+                        </span>                      </td>
+                      <td 
+                        className="py-3 px-4 text-center"
                         onClick={() => onEntrySelect?.(entry)}
-                      >                        <span className="text-sm text-gray-600">
-                          {entry.created_by_name || 'Usuario'}
-                        </span>
-                      </td>                      {(onEditEntry || showActions) && (
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex items-center justify-center space-x-1">
-                            {onEditEntry && (
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onEditEntry(entry);
-                                }}
-                                className="text-xs"
-                              >
-                                ✏️ Editar
-                              </Button>
-                            )}                            {showActions && onApproveEntry && entry.status === JournalEntryStatus.DRAFT && (
-                              <Button
-                                size="sm"
-                                variant="primary"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onApproveEntry(entry);
-                                }}
-                                className="text-xs"
-                              >
-                                ✓ Aprobar
-                              </Button>
-                            )}
-                            {showActions && onPostEntry && entry.status === JournalEntryStatus.APPROVED && (
-                              <Button
-                                size="sm"
-                                variant="primary"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onPostEntry(entry);
-                                }}
-                                className="text-xs"
-                              >
-                                📝 Contabilizar
-                              </Button>
-                            )}
-                            {showActions && onCancelEntry && (entry.status === JournalEntryStatus.DRAFT || entry.status === JournalEntryStatus.APPROVED) && (
-                              <Button
-                                size="sm"
-                                variant="danger"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onCancelEntry(entry);
-                                }}
-                                className="text-xs"
-                              >
-                                ❌ Cancelar
-                              </Button>
-                            )}
-                            {showActions && onReverseEntry && entry.status === JournalEntryStatus.POSTED && (
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onReverseEntry(entry);
-                                }}
-                                className="text-xs"
-                              >
-                                ↩️ Reversar
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      )}
+                      >
+                        {(() => {
+                          const dueStatus = calculateDueStatus(entry);
+                          return (
+                            <span className={`text-xs ${dueStatus.className}`}>
+                              {dueStatus.message}
+                            </span>
+                          );                        })()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

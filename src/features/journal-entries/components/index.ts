@@ -10,3 +10,5 @@ export { BulkStatusChanger } from './BulkStatusChanger';
 export { JournalEntryLinePaymentTerms } from './JournalEntryLinePaymentTerms';
 export { BulkOperationsWithPaymentTerms } from './BulkOperationsWithPaymentTerms';
 export { JournalEntryPaymentTermsDisplay } from './JournalEntryPaymentTermsDisplay';
+export { JournalEntryProductLine } from './JournalEntryProductLine';
+export { JournalEntryProductIntegration } from './JournalEntryProductIntegration';

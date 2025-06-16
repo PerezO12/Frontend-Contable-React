@@ -232,6 +232,72 @@ export function usePaymentTerm(options: UsePaymentTermOptions = {}): UsePaymentT
 }
 
 // ==========================================
+// HOOK PARA OBTENER PAYMENT TERM POR ID
+// ==========================================
+
+export interface UsePaymentTermByIdResult {
+  paymentTerm: PaymentTerms | null;
+  loading: boolean;
+  error: string | null;
+  getPaymentTermById: (id: string) => Promise<PaymentTerms>;
+  clearError: () => void;
+  clearPaymentTerm: () => void;
+}
+
+export function usePaymentTermById(): UsePaymentTermByIdResult {
+  const [paymentTerm, setPaymentTerm] = useState<PaymentTerms | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const getPaymentTermById = useCallback(async (id: string): Promise<PaymentTerms> => {
+    if (!id) {
+      throw new Error('ID de payment term requerido');
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('🔍 [usePaymentTermById] Obteniendo payment term por ID:', id);
+      
+      const response = await PaymentTermsService.getPaymentTermsById(id);
+      
+      console.log('✅ [usePaymentTermById] Payment term obtenido:', response);
+      console.log('📋 [usePaymentTermById] Payment schedules:', response.payment_schedules);
+      
+      setPaymentTerm(response);
+      return response;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al obtener condiciones de pago';
+      console.error('❌ [usePaymentTermById] Error:', err);
+      setError(errorMessage);
+      setPaymentTerm(null);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  const clearPaymentTerm = useCallback(() => {
+    setPaymentTerm(null);
+    setError(null);
+  }, []);
+
+  return {
+    paymentTerm,
+    loading,
+    error,
+    getPaymentTermById,
+    clearError,
+    clearPaymentTerm
+  };
+}
+
+// ==========================================
 // HOOK PARA MUTACIONES (CREATE/UPDATE/DELETE)
 // ==========================================
 

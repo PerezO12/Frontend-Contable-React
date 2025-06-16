@@ -45,11 +45,12 @@ export class JournalEntryService {
 
   /**
    * Obtener lista de asientos contables con filtros
-   */
-  static async getJournalEntries(filters?: JournalEntryFilters): Promise<JournalEntryListResponse> {
+   */  static async getJournalEntries(filters?: JournalEntryFilters): Promise<JournalEntryListResponse> {
     console.log('Obteniendo asientos contables con filtros:', filters);
     
     const params = new URLSearchParams();
+      // Siempre incluir campos adicionales necesarios
+    params.append('include_earliest_due_date', 'true');
     
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
@@ -59,7 +60,7 @@ export class JournalEntryService {
       });
     }
 
-    const url = params.toString() ? `${this.BASE_URL}?${params}` : this.BASE_URL;
+    const url = `${this.BASE_URL}?${params}`;
     
     try {
       const response = await apiClient.get<JournalEntryListResponse>(url);
@@ -73,14 +74,41 @@ export class JournalEntryService {
 
   /**
    * Obtener un asiento contable por ID
+   * Incluye información expandida de cuentas, terceros, productos y términos de pago
    */
   static async getJournalEntryById(id: string): Promise<JournalEntry> {
     console.log('Obteniendo asiento contable por ID:', id);
     
     try {
       const response = await apiClient.get<JournalEntry>(`${this.BASE_URL}/${id}`);
-      console.log('Asiento contable obtenido:', response.data);
-      return response.data;
+      const journalEntry = response.data;
+      
+      console.log('Asiento contable obtenido:', {
+        id: journalEntry.id,
+        number: journalEntry.number,
+        status: journalEntry.status,
+        is_balanced: journalEntry.is_balanced,
+        can_be_posted: journalEntry.can_be_posted,
+        can_be_edited: journalEntry.can_be_edited,
+        lines_count: journalEntry.lines?.length || 0
+      });
+      
+      // Procesar las líneas para agregar información calculada
+      if (journalEntry.lines) {
+        journalEntry.lines = journalEntry.lines.map(line => ({
+          ...line,
+          // Asegurar que movement_type esté definido
+          movement_type: line.movement_type || (
+            parseFloat(line.debit_amount) > 0 ? 'debit' : 'credit'
+          ),
+          // Asegurar que amount esté definido
+          amount: line.amount || (
+            parseFloat(line.debit_amount) > 0 ? line.debit_amount : line.credit_amount
+          )
+        }));
+      }
+      
+      return journalEntry;
     } catch (error) {
       console.error('Error al obtener asiento contable:', error);
       throw error;
@@ -102,6 +130,57 @@ export class JournalEntryService {
       throw error;
     }
   }
+  /**
+   * Transforma los datos del formulario a la estructura que espera el backend
+   */
+  private static transformFormDataToBackend(data: JournalEntryCreate): any {
+    console.log('Transformando datos del formulario al formato del backend:', data);
+    
+    // Transformar líneas para incluir todos los campos opcionales
+    const transformedLines = data.lines.map(line => {      const transformedLine: any = {
+        account_id: line.account_id,
+        debit_amount: typeof line.debit_amount === 'string' ? parseFloat(line.debit_amount) || 0 : line.debit_amount,
+        credit_amount: typeof line.credit_amount === 'string' ? parseFloat(line.credit_amount) || 0 : line.credit_amount
+      };      // Campos opcionales - solo incluir si tienen valor
+      if (line.third_party_id) transformedLine.third_party_id = line.third_party_id;
+      if (line.cost_center_id) transformedLine.cost_center_id = line.cost_center_id;
+      if (line.reference) transformedLine.reference = line.reference;
+      if (line.product_id) transformedLine.product_id = line.product_id;
+      if (line.quantity) transformedLine.quantity = typeof line.quantity === 'string' ? parseFloat(line.quantity) : line.quantity;
+      if (line.unit_price) transformedLine.unit_price = typeof line.unit_price === 'string' ? parseFloat(line.unit_price) : line.unit_price;
+      if (line.discount_percentage) transformedLine.discount_percentage = typeof line.discount_percentage === 'string' ? parseFloat(line.discount_percentage) : line.discount_percentage;
+      if (line.discount_amount) transformedLine.discount_amount = typeof line.discount_amount === 'string' ? parseFloat(line.discount_amount) : line.discount_amount;
+      if (line.tax_percentage) transformedLine.tax_percentage = typeof line.tax_percentage === 'string' ? parseFloat(line.tax_percentage) : line.tax_percentage;
+      if (line.tax_amount) transformedLine.tax_amount = typeof line.tax_amount === 'string' ? parseFloat(line.tax_amount) : line.tax_amount;
+      if (line.invoice_date) transformedLine.invoice_date = line.invoice_date;
+      
+      // IMPORTANTE: Solo incluir payment_terms_id O due_date, nunca ambos
+      if (line.payment_terms_id) {
+        transformedLine.payment_terms_id = line.payment_terms_id;
+        // Si hay payment_terms_id, NO incluir due_date (se calcula automáticamente)
+      } else if (line.due_date) {
+        transformedLine.due_date = line.due_date;
+        // Solo incluir due_date si NO hay payment_terms_id
+      }
+
+      return transformedLine;
+    });
+
+    // Estructura principal del asiento
+    const transformedData: any = {
+      entry_date: data.entry_date,
+      reference: data.reference,
+      description: data.description,
+      entry_type: data.entry_type || 'manual',
+      lines: transformedLines
+    };
+
+    // Campos opcionales del asiento principal
+    if (data.transaction_origin) transformedData.transaction_origin = data.transaction_origin;
+    if (data.notes) transformedData.notes = data.notes;
+    if (data.external_reference) transformedData.external_reference = data.external_reference;    console.log('Datos transformados para el backend:', JSON.stringify(transformedData, null, 2));
+    return transformedData;
+  }
 
   /**
    * Crear un nuevo asiento contable
@@ -110,7 +189,10 @@ export class JournalEntryService {
     console.log('Creando asiento contable:', data);
     
     try {
-      const response = await apiClient.post<JournalEntry>(this.BASE_URL, data);
+      // Transformar los datos al formato que espera el backend
+      const transformedData = this.transformFormDataToBackend(data);
+      
+      const response = await apiClient.post<JournalEntry>(this.BASE_URL, transformedData);
       console.log('Asiento contable creado:', response.data);
       return response.data;
     } catch (error) {
@@ -118,7 +200,6 @@ export class JournalEntryService {
       throw error;
     }
   }
-
   /**
    * Actualizar un asiento contable existente
    */
@@ -126,7 +207,10 @@ export class JournalEntryService {
     console.log('Actualizando asiento contable:', id, data);
     
     try {
-      const response = await apiClient.put<JournalEntry>(`${this.BASE_URL}/${id}`, data);
+      // Transformar los datos al formato que espera el backend (si es necesario)
+      const transformedData = this.transformFormDataToBackend(data as any);
+      
+      const response = await apiClient.put<JournalEntry>(`${this.BASE_URL}/${id}`, transformedData);
       console.log('Asiento contable actualizado:', response.data);
       return response.data;
     } catch (error) {
@@ -811,7 +895,9 @@ export class JournalEntryService {
 
       const url = params.toString() 
         ? `${this.BASE_URL}/export/pdf?${params}` 
-        : `${this.BASE_URL}/export/pdf`;      const response = await apiClient.get(url, { responseType: 'blob' });
+        : `${this.BASE_URL}/export/pdf`;
+      
+      const response = await apiClient.get(url, { responseType: 'blob' });
       const fileName = ExportService.generateFileName('asientos-contables', 'pdf');
       ExportService.downloadBlob(response.data, fileName);
       console.log('Exportación a PDF completada');
@@ -819,5 +905,318 @@ export class JournalEntryService {
       console.error('Error al exportar a PDF:', error);
       throw error;
     }
+  }
+
+  // ===== MÉTODOS DE UTILIDAD PARA DATOS ENRIQUECIDOS =====
+
+  /**
+   * Obtiene los detalles completos de términos de pago para un asiento contable
+   * Incluye cronogramas de pago calculados
+   */
+  static async getEnrichedPaymentTermsForEntry(journalEntry: JournalEntry): Promise<Map<string, any>> {
+    const paymentTermsMap = new Map();
+    const PaymentTermsService = await import('../../payment-terms/services/paymentTermsService');
+    
+    // Obtener todos los payment_terms_id únicos de las líneas
+    const paymentTermsIds = new Set<string>();
+    journalEntry.lines?.forEach(line => {
+      if (line.payment_terms_id) {
+        paymentTermsIds.add(line.payment_terms_id);
+      }
+    });
+
+    // Obtener detalles completos para cada término de pago
+    for (const paymentTermsId of paymentTermsIds) {
+      try {
+        // Obtener el payment terms completo
+        const paymentTerms = await PaymentTermsService.PaymentTermsService.getPaymentTermsById(paymentTermsId);
+        
+        // Buscar una línea que use este payment terms para obtener datos de factura
+        const sampleLine = journalEntry.lines?.find(line => line.payment_terms_id === paymentTermsId);
+        
+        if (sampleLine && sampleLine.invoice_date) {
+          // Calcular cronograma de pagos
+          const calculationRequest = {
+            payment_terms_id: paymentTermsId,
+            invoice_date: sampleLine.effective_invoice_date || sampleLine.invoice_date,
+            amount: parseFloat(sampleLine.debit_amount || sampleLine.credit_amount || '0')
+          };
+
+          const paymentCalculation = await PaymentTermsService.PaymentTermsService.calculatePaymentSchedule(calculationRequest);
+
+          paymentTermsMap.set(paymentTermsId, {
+            ...paymentTerms,
+            calculation: paymentCalculation,
+            invoice_date: calculationRequest.invoice_date,
+            calculated_final_due_date: paymentCalculation.final_due_date,
+            payment_schedule: paymentCalculation.schedule
+          });
+        } else {
+          // Solo agregar el payment terms sin cálculo si no hay fecha de factura
+          paymentTermsMap.set(paymentTermsId, {
+            ...paymentTerms,
+            calculation: null,
+            invoice_date: null,
+            calculated_final_due_date: null,
+            payment_schedule: []
+          });
+        }
+      } catch (error) {
+        console.error(`Error al obtener payment terms ${paymentTermsId}:`, error);
+        // Agregar información básica aunque falle la obtención detallada
+        const basicInfo = this.extractPaymentTermsInfo(journalEntry)
+          .find(pt => pt.id === paymentTermsId);
+        
+        if (basicInfo) {
+          paymentTermsMap.set(paymentTermsId, {
+            ...basicInfo,
+            calculation: null,
+            error: 'No se pudieron obtener los detalles completos'
+          });
+        }
+      }
+    }
+
+    return paymentTermsMap;
+  }
+
+  /**
+   * Extrae información de productos de las líneas de un asiento contable
+   */
+  static extractProductInfo(journalEntry: JournalEntry) {
+    const products = new Map();
+    
+    journalEntry.lines?.forEach(line => {
+      if (line.product_id && line.product_code) {
+        products.set(line.product_id, {
+          id: line.product_id,
+          code: line.product_code,
+          name: line.product_name,
+          type: line.product_type,
+          measurement_unit: line.product_measurement_unit,
+          quantity: line.quantity,
+          unit_price: line.unit_price,
+          effective_unit_price: line.effective_unit_price,
+          total_amount: line.gross_amount || line.net_amount
+        });
+      }
+    });
+    
+    return Array.from(products.values());
+  }
+
+  /**
+   * Extrae información de terceros de las líneas de un asiento contable
+   */
+  static extractThirdPartyInfo(journalEntry: JournalEntry) {
+    const thirdParties = new Map();
+    
+    journalEntry.lines?.forEach(line => {
+      if (line.third_party_id && line.third_party_code) {
+        thirdParties.set(line.third_party_id, {
+          id: line.third_party_id,
+          code: line.third_party_code,
+          name: line.third_party_name,
+          document_type: line.third_party_document_type,
+          document_number: line.third_party_document_number,
+          tax_id: line.third_party_tax_id,
+          email: line.third_party_email,
+          phone: line.third_party_phone,
+          address: line.third_party_address,
+          city: line.third_party_city,
+          type: line.third_party_type
+        });
+      }
+    });
+    
+    return Array.from(thirdParties.values());
+  }
+  /**
+   * Extrae información de términos de pago de las líneas de un asiento contable
+   * Versión básica - para información completa usar getEnrichedPaymentTermsForEntry
+   */
+  static extractPaymentTermsInfo(journalEntry: JournalEntry) {
+    const paymentTerms = new Map();
+    
+    journalEntry.lines?.forEach(line => {
+      if (line.payment_terms_id && line.payment_terms_code) {
+        paymentTerms.set(line.payment_terms_id, {
+          id: line.payment_terms_id,
+          code: line.payment_terms_code,
+          name: line.payment_terms_name,
+          description: line.payment_terms_description,
+          invoice_date: line.effective_invoice_date || line.invoice_date,
+          due_date: line.effective_due_date || line.due_date,
+          // Indicar que estos son datos básicos
+          is_basic_info: true,
+          needs_detailed_calculation: true
+        });
+      }
+    });
+    
+    return Array.from(paymentTerms.values());
+  }
+
+  /**
+   * Obtiene un resumen de cálculos de las líneas de un asiento contable
+   */
+  static getCalculationSummary(journalEntry: JournalEntry) {
+    let totalDiscount = 0;
+    let totalTaxes = 0;
+    let totalNet = 0;
+    let totalGross = 0;
+    let linesWithProducts = 0;
+    
+    journalEntry.lines?.forEach(line => {
+      if (line.product_id) {
+        linesWithProducts++;
+        
+        if (line.total_discount) {
+          totalDiscount += parseFloat(line.total_discount);
+        }
+        
+        if (line.tax_amount) {
+          totalTaxes += parseFloat(line.tax_amount);
+        }
+        
+        if (line.net_amount) {
+          totalNet += parseFloat(line.net_amount);
+        }
+        
+        if (line.gross_amount) {
+          totalGross += parseFloat(line.gross_amount);
+        }
+      }
+    });
+    
+    return {
+      total_discount: totalDiscount.toFixed(2),
+      total_taxes: totalTaxes.toFixed(2),
+      total_net: totalNet.toFixed(2),
+      total_gross: totalGross.toFixed(2),
+      lines_with_products: linesWithProducts,
+      total_lines: journalEntry.lines?.length || 0
+    };
+  }
+
+  /**
+   * Valida si un asiento contable está completo y listo para ser contabilizado
+   */
+  static validateJournalEntryCompleteness(journalEntry: JournalEntry) {
+    const issues = [];
+    
+    // Validar balance
+    if (!journalEntry.is_balanced) {
+      issues.push('El asiento no está balanceado');
+    }
+    
+    // Validar que tenga líneas
+    if (!journalEntry.lines || journalEntry.lines.length === 0) {
+      issues.push('El asiento no tiene líneas');
+    }
+    
+    // Validar que todas las líneas tengan cuenta
+    const linesWithoutAccount = journalEntry.lines?.filter(line => !line.account_id) || [];
+    if (linesWithoutAccount.length > 0) {
+      issues.push(`${linesWithoutAccount.length} líneas sin cuenta asignada`);
+    }
+    
+    // Validar montos
+    const invalidAmounts = journalEntry.lines?.filter(line => 
+      parseFloat(line.debit_amount) === 0 && parseFloat(line.credit_amount) === 0
+    ) || [];
+    if (invalidAmounts.length > 0) {
+      issues.push(`${invalidAmounts.length} líneas con montos en cero`);
+    }
+    
+    return {
+      is_valid: issues.length === 0,
+      issues,
+      can_be_posted: journalEntry.can_be_posted,
+      can_be_edited: journalEntry.can_be_edited
+    };
+  }
+  /**
+   * Calcula las fechas de vencimiento correctas para una línea de asiento
+   * considerando los cronogramas de términos de pago que ya vienen en la respuesta del API
+   */  static calculateCorrectDueDatesForLine(line: any): {
+    finalDueDate: string | null;
+    paymentSchedule: any[];
+    isCalculated: boolean;
+  } {
+    console.log('🔍 calculateCorrectDueDatesForLine:', {
+      line_id: line.id,
+      account_code: line.account_code,
+      has_payment_schedule: !!line.payment_schedule,
+      payment_schedule_length: line.payment_schedule?.length,
+      payment_schedule: line.payment_schedule,
+      due_date: line.due_date,
+      effective_due_date: line.effective_due_date,
+      payment_terms_id: line.payment_terms_id
+    });
+
+    // Solo considerar como "calculado" si hay payment_terms_id Y payment_schedule
+    // Si NO hay payment_terms_id, significa que es una fecha manual aunque tenga schedule
+    const hasPaymentTerms = line.payment_terms_id && line.payment_terms_id !== null;
+    const hasPaymentSchedule = line.payment_schedule && line.payment_schedule.length > 0;
+
+    if (hasPaymentTerms && hasPaymentSchedule) {
+      // Fecha calculada usando términos de pago
+      const lastPayment = line.payment_schedule[line.payment_schedule.length - 1];
+      console.log('✅ Usando cronograma calculado - última fecha:', lastPayment.payment_date);
+      return {
+        finalDueDate: lastPayment.payment_date,
+        paymentSchedule: line.payment_schedule,
+        isCalculated: true
+      };
+    }
+
+    console.log('⚠️ Fecha manual - usando fecha básica');
+    // Si no tiene términos de pago, es fecha manual
+    return {
+      finalDueDate: line.effective_due_date || line.due_date,
+      paymentSchedule: hasPaymentSchedule ? line.payment_schedule : [],
+      isCalculated: false
+    };
+  }
+
+  /**
+   * Obtiene un resumen de las fechas de vencimiento para todas las líneas de un asiento
+   */
+  static getDueDatesSummaryForEntry(entry: JournalEntry): {
+    hasScheduledPayments: boolean;
+    earliestDueDate: string | null;
+    latestDueDate: string | null;
+    totalScheduledPayments: number;
+  } {
+    let hasScheduledPayments = false;
+    let earliestDueDate: string | null = null;
+    let latestDueDate: string | null = null;
+    let totalScheduledPayments = 0;
+
+    entry.lines.forEach(line => {
+      const dueDateInfo = this.calculateCorrectDueDatesForLine(line);
+      
+      if (dueDateInfo.isCalculated) {
+        hasScheduledPayments = true;
+        totalScheduledPayments += dueDateInfo.paymentSchedule.length;
+      }
+
+      if (dueDateInfo.finalDueDate) {
+        if (!earliestDueDate || dueDateInfo.finalDueDate < earliestDueDate) {
+          earliestDueDate = dueDateInfo.finalDueDate;
+        }
+        if (!latestDueDate || dueDateInfo.finalDueDate > latestDueDate) {
+          latestDueDate = dueDateInfo.finalDueDate;
+        }
+      }
+    });
+
+    return {
+      hasScheduledPayments,
+      earliestDueDate,
+      latestDueDate,
+      totalScheduledPayments
+    };
   }
 }

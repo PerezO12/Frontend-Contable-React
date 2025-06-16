@@ -1,10 +1,10 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { JournalEntryForm } from '../components';
+import { JournalEntryEditForm } from '../components/JournalEntryEditFormSimple';
 import { useJournalEntry } from '../hooks';
 import { Spinner } from '../../../components/ui/Spinner';
 import { Card } from '../../../components/ui/Card';
-import type { JournalEntry, JournalEntryLine } from '../types';
+import type { JournalEntry } from '../types';
 
 export const JournalEntryEditPage: React.FC = () => {
   const navigate = useNavigate();
@@ -98,33 +98,11 @@ export const JournalEntryEditPage: React.FC = () => {
         <p className="text-gray-600 mt-2">
           Modificar el asiento contable: {entry.number} - {entry.description}
         </p>
-      </div>
-
-      <JournalEntryForm
-        initialData={{
-          reference: entry.reference,
-          description: entry.description,
-          entry_type: entry.entry_type,
-          entry_date: entry.entry_date,
-          notes: entry.notes,
-          external_reference: entry.external_reference,
-          lines: entry.lines.map((line: JournalEntryLine) => ({
-            account_id: line.account_id,
-            account_code: line.account_code,
-            account_name: line.account_name,
-            debit_amount: line.debit_amount,
-            credit_amount: line.credit_amount,
-            description: line.description,
-            reference: line.reference,
-            third_party_id: line.third_party_id,
-            cost_center_id: line.cost_center_id
-          }))
-        }}
+      </div>      <JournalEntryEditForm
+        entryId={entry.id}
         onSuccess={handleSuccess}        
         onCancel={handleCancel}
-        isEditMode={true}
-        entryId={entry.id}
-      />    
+      />
     </>
   );
 };

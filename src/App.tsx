@@ -33,6 +33,10 @@ import {
 import {
   PaymentTermsPage
 } from '@/features/payment-terms/pages';
+import {
+  ProductsPage,
+  ProductCreatePage
+} from '@/features/products/pages';
 import { DataImportRoutes } from '@/features/data-import';
 import { ReportsRoutes } from '@/features/reports';
 
@@ -224,6 +228,29 @@ const AppContent = () => {
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
               <MainLayout>
                 <PaymentTermsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Rutas de Productos - Solo para ADMIN y CONTADOR */}
+        <Route 
+          path="/products" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <ProductsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/products/new" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <ProductCreatePage />
               </MainLayout>
             </ProtectedRoute>
           } 

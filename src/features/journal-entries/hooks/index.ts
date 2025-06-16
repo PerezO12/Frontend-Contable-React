@@ -14,3 +14,12 @@ export {
 } from './useJournalEntryEvents';
 
 export { useJournalEntryOperationsWithModal } from './useJournalEntryOperationsWithModal';
+
+export { 
+  useJournalEntryDetails, 
+  useJournalEntryBasic 
+} from './useJournalEntryDetails';
+
+export { useBulkJournalEntryOperations } from './useBulkJournalEntryOperations';
+
+export { useJournalEntryPaymentTerms } from './useJournalEntryPaymentTerms';

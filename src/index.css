@@ -8,6 +8,11 @@
   font-feature-settings: "rlig" 1, "calt" 1;
 }
 
+/* Aplicar zoom del 85% a toda la aplicación */
+html {
+  zoom: 0.85;
+}
+
 body {
   margin: 0;
   background-color: #f9fafb;

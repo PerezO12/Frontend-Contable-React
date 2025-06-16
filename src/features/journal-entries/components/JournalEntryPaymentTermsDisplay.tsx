@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card } from '../../../components/ui/Card';
-import { formatCurrency } from '../../../shared/utils';
+import { formatCurrency, formatDateSafe } from '../../../shared/utils';
+import { JournalEntryService } from '../services';
 import type { JournalEntry, JournalEntryLine } from '../types';
 
 interface JournalEntryPaymentTermsDisplayProps {
@@ -79,9 +80,11 @@ export const JournalEntryPaymentTermsDisplay: React.FC<JournalEntryPaymentTermsD
                         <th className="text-left py-1 px-2 font-medium text-gray-700">F. Vencimiento</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {group.lines.map((line, index) => {
-                        const lineAmount = Math.max(parseFloat(line.debit_amount), parseFloat(line.credit_amount));
+                    <tbody>                      {group.lines.map((line, index) => {
+                        const lineAmount = Math.max(parseFloat(line.debit_amount), parseFloat(line.credit_amount));                        // Calcular fechas correctas usando cronograma de pagos
+                        const { finalDueDate, isCalculated } = JournalEntryService.calculateCorrectDueDatesForLine(line);
+                        console.log('📊 PaymentTermsDisplay - line:', line.account_code, 'finalDueDate:', finalDueDate, 'isCalculated:', isCalculated);
+                        
                         return (
                           <tr key={index} className="border-b border-gray-100 last:border-b-0">
                             <td className="py-1 px-2">
@@ -93,20 +96,24 @@ export const JournalEntryPaymentTermsDisplay: React.FC<JournalEntryPaymentTermsD
                             </td>
                             <td className="py-1 px-2 text-right font-medium">
                               {formatCurrency(lineAmount)}
-                            </td>
-                            <td className="py-1 px-2 text-gray-600">
+                            </td>                            <td className="py-1 px-2 text-gray-600">
                               {line.invoice_date 
-                                ? new Date(line.invoice_date).toLocaleDateString('es-ES')
+                                ? formatDateSafe(line.invoice_date)
                                 : '-'
                               }
-                            </td>
-                            <td className="py-1 px-2 text-gray-600">
-                              {line.due_date 
-                                ? new Date(line.due_date).toLocaleDateString('es-ES')
-                                : line.effective_due_date
-                                ? new Date(line.effective_due_date).toLocaleDateString('es-ES')
-                                : '-'
-                              }
+                            </td>                            <td className="py-1 px-2 text-gray-600">
+                              <div className="flex items-center gap-1">
+                                {finalDueDate 
+                                  ? formatDateSafe(finalDueDate)
+                                  : '-'
+                                }
+                                {isCalculated && (
+                                  <span 
+                                    title="Fecha calculada según cronograma de pagos" 
+                                    className="inline-block w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"
+                                  ></span>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -143,11 +150,15 @@ export const JournalEntryPaymentTermsDisplay: React.FC<JournalEntryPaymentTermsD
                               {line.payment_schedule.map((item, itemIndex) => (
                                 <tr key={itemIndex}>
                                   <td className="py-1 px-2">{item.sequence}</td>
-                                  <td className="py-1 px-2">{item.days}</td>
-                                  <td className="py-1 px-2">
-                                    {new Date(item.payment_date).toLocaleDateString('es-ES')}
+                                  <td className="py-1 px-2">{item.days}</td>                                  <td className="py-1 px-2">
+                                    {formatDateSafe(item.payment_date)}
                                   </td>
-                                  <td className="py-1 px-2 text-right">{item.percentage.toFixed(2)}%</td>
+                                  <td className="py-1 px-2 text-right">
+                                    {typeof item.percentage === 'number' 
+                                      ? item.percentage.toFixed(2) 
+                                      : parseFloat(item.percentage).toFixed(2)
+                                    }%
+                                  </td>
                                   <td className="py-1 px-2 text-right font-medium">
                                     {formatCurrency(item.amount)}
                                   </td>

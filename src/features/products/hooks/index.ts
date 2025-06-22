@@ -11,3 +11,12 @@ export {
   useLowStockProducts,
   useToggleProductStatus
 } from './useProducts';
+
+export {
+  useBulkProductOperations,
+  useProductStatusOperations,
+  useStockOperations,
+  useReorderProducts,
+  useProductMovements,
+  useProductDetailedStats
+} from './useProductOperations';

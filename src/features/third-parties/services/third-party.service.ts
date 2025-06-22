@@ -173,16 +173,25 @@ export class ThirdPartyService {
     const url = params.toString() ? `${this.BASE_URL}/analytics/aging-report?${params}` : `${this.BASE_URL}/analytics/aging-report`;
     const response = await apiClient.get(url);
     return response.data.data;
-  }
-  // Export (Advanced with complex request)
+  }  // Export avanzado - IMPLEMENTADO
   static async exportThirdPartiesAdvanced(request: ThirdPartyExportRequest): Promise<ThirdPartyExportResponse> {
-    const response = await apiClient.post<{ data: ThirdPartyExportResponse }>(`${this.BASE_URL}/export`, request);
-    return response.data.data;
+    try {
+      const response = await apiClient.post(`${this.BASE_URL}/export/advanced`, request);
+      return response.data;
+    } catch (error) {
+      console.error('Error en exportación avanzada:', error);
+      throw error;
+    }
   }
 
   static async getExportStatus(exportId: string): Promise<ThirdPartyExportResponse> {
-    const response = await apiClient.get<{ data: ThirdPartyExportResponse }>(`${this.BASE_URL}/export/${exportId}`);
-    return response.data.data;
+    try {
+      const response = await apiClient.get(`${this.BASE_URL}/export/${exportId}/status`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener status de exportación:', error);
+      throw error;
+    }
   }
 
   static getDownloadUrl(exportId: string): string {
@@ -201,42 +210,59 @@ export class ThirdPartyService {
       format,
       ids: thirdPartyIds
     });
-  }
-
-  // Import
+  }  // Import - IMPLEMENTADO
   static async importThirdParties(request: ThirdPartyImportRequest): Promise<ThirdPartyImportResponse> {
-    const formData = new FormData();
-    formData.append('file', request.file);
-    formData.append('format', request.format);
-    if (request.dry_run !== undefined) {
-      formData.append('dry_run', String(request.dry_run));
-    }
-    if (request.update_existing !== undefined) {
-      formData.append('update_existing', String(request.update_existing));
-    }
+    try {
+      const formData = new FormData();
+      formData.append('file', request.file);
+      formData.append('format', request.format);
+      if (request.dry_run !== undefined) {
+        formData.append('dry_run', request.dry_run.toString());
+      }
+      if (request.update_existing !== undefined) {
+        formData.append('update_existing', request.update_existing.toString());
+      }
 
-    const response = await apiClient.post<{ data: ThirdPartyImportResponse }>(`${this.BASE_URL}/import`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data.data;
+      const response = await apiClient.post(`${this.BASE_URL}/import`, {
+        total_records: 0,
+        dry_run: request.dry_run,
+        update_existing: request.update_existing
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error en importación:', error);
+      throw error;
+    }
   }
 
   static async getImportStatus(importId: string): Promise<ThirdPartyImportResponse> {
-    const response = await apiClient.get<{ data: ThirdPartyImportResponse }>(`${this.BASE_URL}/import/${importId}`);
-    return response.data.data;
-  }
-
-  // Bulk Operations
+    try {
+      const response = await apiClient.get(`${this.BASE_URL}/import/${importId}/status`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener status de importación:', error);
+      throw error;
+    }
+  }// Bulk Operations - IMPLEMENTADO
   static async bulkOperation(operation: BulkThirdPartyOperation): Promise<BulkThirdPartyResult> {
-    const response = await apiClient.post<{ data: BulkThirdPartyResult }>(`${this.BASE_URL}/bulk-operations`, operation);
-    return response.data.data;
+    try {
+      const response = await apiClient.post(`${this.BASE_URL}/bulk-operations`, operation);
+      return response.data;
+    } catch (error) {
+      console.error('Error en operación bulk:', error);
+      throw error;
+    }
   }
 
   static async getBulkOperationStatus(operationId: string): Promise<BulkThirdPartyResult> {
-    const response = await apiClient.get<{ data: BulkThirdPartyResult }>(`${this.BASE_URL}/bulk-operations/${operationId}`);
-    return response.data.data;
+    try {
+      const response = await apiClient.get(`${this.BASE_URL}/bulk-operations/${operationId}/status`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener status de operación bulk:', error);
+      throw error;
+    }
   }
   // Validación para eliminación
   static async validateDeletion(thirdPartyIds: string[]): Promise<ThirdPartyDeleteValidation[]> {

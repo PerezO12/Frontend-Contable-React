@@ -188,13 +188,11 @@ export const JournalEntriesPage: React.FC = () => {
             onReverse={handleReverseEntry}
           />
         );
-      
-      default:
+        default:
         return (
           <JournalEntryList
             onEntrySelect={handleViewEntry}
             onCreateEntry={handleCreateEntry}
-            onEditEntry={handleEditEntry}
           />
         );
     }

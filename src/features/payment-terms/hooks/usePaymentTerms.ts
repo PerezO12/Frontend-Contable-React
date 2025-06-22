@@ -30,6 +30,9 @@ export interface UsePaymentTermsListResult {
   refreshPaymentTerms: () => Promise<void>;
   setFilters: (filters: PaymentTermsFilters) => void;
   clearError: () => void;
+  removePaymentTermsLocal: (id: string) => void;
+  updatePaymentTermsLocal: (updatedPaymentTerms: PaymentTerms) => void;
+  addPaymentTermsLocal: (newPaymentTerms: PaymentTerms) => void;
 }
 
 export function usePaymentTermsList(options: UsePaymentTermsListOptions = {}): UsePaymentTermsListResult {
@@ -94,9 +97,21 @@ export function usePaymentTermsList(options: UsePaymentTermsListOptions = {}): U
   const refreshPaymentTerms = useCallback(() => {
     return loadPaymentTerms();
   }, [loadPaymentTerms]);
-
   const clearError = useCallback(() => {
     setError(null);
+  }, []);
+
+  const removePaymentTermsLocal = useCallback((id: string) => {
+    setPaymentTerms(prev => prev.filter(pt => pt.id !== id));
+  }, []);
+  const updatePaymentTermsLocal = useCallback((updatedPaymentTerms: PaymentTerms) => {
+    setPaymentTerms(prev => 
+      prev.map(pt => pt.id === updatedPaymentTerms.id ? updatedPaymentTerms : pt)
+    );
+  }, []);
+
+  const addPaymentTermsLocal = useCallback((newPaymentTerms: PaymentTerms) => {
+    setPaymentTerms(prev => [newPaymentTerms, ...prev]);
   }, []);
 
   useEffect(() => {
@@ -110,11 +125,12 @@ export function usePaymentTermsList(options: UsePaymentTermsListOptions = {}): U
     loading,
     error,
     total,
-    filters,
-    loadPaymentTerms,
-    refreshPaymentTerms,
-    setFilters,
-    clearError
+    filters,    loadPaymentTerms,
+    refreshPaymentTerms,    setFilters,
+    clearError,
+    removePaymentTermsLocal,
+    updatePaymentTermsLocal,
+    addPaymentTermsLocal
   };
 }
 

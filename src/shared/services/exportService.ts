@@ -5,45 +5,7 @@ export interface ExportRequest {
   table: string;
   format: 'csv' | 'json' | 'xlsx';
   ids: string[];
-}
-
-export interface ExportResponse {
-  file_name: string;
-  file_content: string;
-  content_type: string;
-  metadata: {
-    export_date: string;
-    user_id: string;
-    table_name: string;
-    total_records: number;
-    exported_records: number;
-    filters_applied: {
-      ids: string[];
-    };
-    format: string;
-    file_size_bytes: number;
-    columns_exported: string[];
-  };
-  success: boolean;
-  message: string;
-}
-
-export interface ExportAdvancedRequest {
-  table_name: string;
-  export_format: 'csv' | 'json' | 'xlsx';
-  filters?: {
-    ids?: string[];
-    date_from?: string;
-    date_to?: string;
-    active_only?: boolean;
-    custom_filters?: Record<string, any>;
-    offset?: number;
-    limit?: number;
-  };
-  columns?: Array<{
-    name: string;
-    include: boolean;
-  }>;
+  file_name?: string;
 }
 
 /**
@@ -56,20 +18,7 @@ export class ExportService {
    */
   static async exportByIds(request: ExportRequest): Promise<Blob> {
     const response = await apiClient.post(
-      `${this.BASE_URL}/export`,
-      request,
-      {
-        responseType: 'blob'
-      }
-    );
-    return response.data;
-  }
-  /**
-   * Exportación avanzada con filtros
-   */
-  static async exportAdvanced(request: ExportAdvancedRequest): Promise<Blob> {
-    const response = await apiClient.post(
-      `${this.BASE_URL}/export/advanced`,
+      `${this.BASE_URL}/export`,      
       request,
       {
         responseType: 'blob'
@@ -98,7 +47,6 @@ export class ExportService {
     const response = await apiClient.get(`${this.BASE_URL}/tables`);
     return response.data;
   }
-
   /**
    * Obtener esquema de una tabla específica
    */
@@ -106,15 +54,15 @@ export class ExportService {
     table_name: string;
     display_name: string;
     description: string;
-    available_columns: Array<{
+    columns: Array<{
       name: string;
       data_type: string;
-      include: boolean;
+      nullable: boolean;
+      description?: string;
     }>;
     total_records: number;
-    sample_data: any[];
   }> {
-    const response = await apiClient.get(`${this.BASE_URL}/tables/${tableName}/schema`);
+    const response = await apiClient.get(`${this.BASE_URL}/tables/${tableName}`);
     return response.data;
   }
 

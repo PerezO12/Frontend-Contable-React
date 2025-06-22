@@ -24,13 +24,15 @@ interface ProductFormProps {
   onCancel?: () => void;
   initialData?: Partial<ProductCreate>;
   isEditMode?: boolean;
+  customSubmitHandler?: (data: ProductCreate) => Promise<Product>; // Handler personalizado
 }
 
 export const ProductForm: React.FC<ProductFormProps> = ({
   onSuccess,
   onCancel,
   initialData,
-  isEditMode = false
+  isEditMode = false,
+  customSubmitHandler
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInventoryFields, setShowInventoryFields] = useState(initialData?.manage_inventory || false);
@@ -51,9 +53,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     purchase_price: 0,
     sale_price: 0,
     min_sale_price: 0,
-    suggested_price: 0,
-    tax_category: TaxCategory.STANDARD_RATE,
-    tax_rate: 19,
+    suggested_price: 0,    tax_category: TaxCategory.EXEMPT,
+    tax_rate: 0,
     manage_inventory: false,
     current_stock: 0,
     min_stock: 0,
@@ -131,29 +132,101 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     e.preventDefault();
     
     setIsSubmitting(true);
-    setSuccessMessage(null);
-    
-    try {
-      console.log('Datos del producto a enviar:', formData);
+    setSuccessMessage(null);    try {
+      // Limpiar datos antes de enviar - omitir campos vacíos que pueden causar problemas de unicidad
+      const dataToSend = { ...formData };
       
-      // Crear el producto usando el servicio real
-      const createdProduct = await ProductService.createProduct(formData);
-      console.log('Producto creado exitosamente:', createdProduct);
+      // Omitir código si está vacío
+      if (!dataToSend.code || dataToSend.code.trim() === '') {
+        delete dataToSend.code;
+      }
+      
+      // Omitir barcode si está vacío para evitar problemas de unicidad
+      if (!dataToSend.barcode || dataToSend.barcode.trim() === '') {
+        delete dataToSend.barcode;
+      }
+      
+      // Omitir SKU si está vacío para evitar problemas de unicidad
+      if (!dataToSend.sku || dataToSend.sku.trim() === '') {
+        delete dataToSend.sku;
+      }
+      
+      // Omitir otros campos opcionales que estén vacíos
+      if (!dataToSend.description || dataToSend.description.trim() === '') {
+        delete dataToSend.description;
+      }
+      if (!dataToSend.category || dataToSend.category.trim() === '') {
+        delete dataToSend.category;
+      }
+      if (!dataToSend.subcategory || dataToSend.subcategory.trim() === '') {
+        delete dataToSend.subcategory;
+      }
+      if (!dataToSend.brand || dataToSend.brand.trim() === '') {
+        delete dataToSend.brand;
+      }
+      if (!dataToSend.dimensions || dataToSend.dimensions.trim() === '') {
+        delete dataToSend.dimensions;
+      }
+      if (!dataToSend.internal_reference || dataToSend.internal_reference.trim() === '') {
+        delete dataToSend.internal_reference;
+      }
+      if (!dataToSend.supplier_reference || dataToSend.supplier_reference.trim() === '') {
+        delete dataToSend.supplier_reference;
+      }
+      if (!dataToSend.external_reference || dataToSend.external_reference.trim() === '') {
+        delete dataToSend.external_reference;
+      }
+      if (!dataToSend.notes || dataToSend.notes.trim() === '') {
+        delete dataToSend.notes;
+      }
+        console.log('=== INICIO OPERACIÓN DE PRODUCTO ===');
+      console.log('Datos del producto a enviar:', JSON.stringify(dataToSend, null, 2));
+      
+      let resultProduct: Product;
+      
+      if (customSubmitHandler) {
+        // Usar handler personalizado (para edición)
+        resultProduct = await customSubmitHandler(dataToSend);
+      } else {
+        // Crear el producto usando el servicio real (para creación)
+        resultProduct = await ProductService.createProduct(dataToSend);
+      }
+      
+      console.log('=== OPERACIÓN EXITOSA ===');
+      console.log('Respuesta del servidor:', JSON.stringify(resultProduct, null, 2));
       
       // Mostrar mensaje de éxito
-      setSuccessMessage(`Producto "${createdProduct.name}" creado exitosamente`);
+      const actionText = isEditMode ? 'actualizado' : 'creado';
+      setSuccessMessage(`Producto "${resultProduct.name}" ${actionText} exitosamente`);
       
       // Esperar un momento para que el usuario vea el mensaje y luego navegar
       setTimeout(() => {
         setIsSubmitting(false);
-        onSuccess?.(createdProduct);
+        onSuccess?.(resultProduct);
       }, 1500);
+        } catch (error) {
+      const operationText = isEditMode ? 'ACTUALIZAR' : 'CREAR';
+      console.log(`=== ERROR AL ${operationText} PRODUCTO ===`);
+      console.error('Error completo:', error);
       
-    } catch (error) {
-      console.error('Error al guardar producto:', error);
+      // Log más detallado del error
+      if (error instanceof Error) {
+        console.error('Mensaje de error:', error.message);
+        console.error('Stack trace:', error.stack);
+      }
+      
+      // Si es un error de axios, mostrar más detalles
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as any;
+        console.error('Respuesta del servidor (error):', {
+          status: axiosError.response?.status,
+          statusText: axiosError.response?.statusText,
+          data: axiosError.response?.data,
+          headers: axiosError.response?.headers
+        });
+      }
+      
       setIsSubmitting(false);
-      setSuccessMessage(null);
-      // TODO: Mostrar mensaje de error al usuario
     }
   };
 
@@ -200,17 +273,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         )}
 
         {/* Información Básica */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Código <span className="text-red-500">*</span>
+              Código
             </label>
             <Input
               name="code"
               value={formData.code}
               onChange={handleInputChange}
               placeholder="Ej: PROD001"
-              required
             />
           </div>
 

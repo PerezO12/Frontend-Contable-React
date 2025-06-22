@@ -297,13 +297,13 @@ export class AccountService {
       ids: accountIds
     });
   }
-
   /**
-   * Exportar cuentas con filtros avanzados
+   * Exportar cuentas con filtros avanzados - MÉTODO OBSOLETO
+   * Use getAccounts() para obtener IDs y luego exportAccounts()
    */
   static async exportAccountsAdvanced(
-    format: 'csv' | 'json' | 'xlsx',
-    filters?: {
+    _format: 'csv' | 'json' | 'xlsx',
+    _filters?: {
       account_type?: string;
       category?: string;
       is_active?: boolean;
@@ -312,33 +312,21 @@ export class AccountService {
       date_from?: string;
       date_to?: string;
     },
-    selectedColumns?: string[]
+    _selectedColumns?: string[]
   ): Promise<Blob> {
-    const columnsConfig = selectedColumns?.map(name => ({
-      name,
-      include: true
-    }));
-
-    return ExportService.exportAdvanced({
-      table_name: 'accounts',
-      export_format: format,
-      filters: {
-        ...filters,      active_only: filters?.is_active
-      },
-      columns: columnsConfig
-    });
+    throw new Error('Método obsoleto. Use getAccounts() para obtener IDs filtrados y luego exportAccounts().');
   }
-
   /**
    * Obtener información de esquema para exportación
    */
   static async getExportSchema(): Promise<{
     table_name: string;
     display_name: string;
-    available_columns: Array<{
+    columns: Array<{
       name: string;
       data_type: string;
-      include: boolean;
+      nullable: boolean;
+      description?: string;
     }>;
     total_records: number;
   }> {

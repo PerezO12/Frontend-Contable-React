@@ -46,15 +46,14 @@ export const testAccountExport = async () => {
 // Función para probar el esquema de exportación
 export const testExportSchema = async () => {
   try {
-    console.log('🧪 Probando esquema de exportación...');
-    
+    console.log('🧪 Probando esquema de exportación...');    
     const schema = await ExportService.getTableSchema('accounts');
     
     console.log('✅ Esquema obtenido exitosamente!');
     console.log('📋 Tabla:', schema.table_name);
     console.log('📊 Total de registros:', schema.total_records);
-    console.log('🏷️ Columnas disponibles:', schema.available_columns.length);
-    console.log('📝 Columnas:', schema.available_columns.map(col => col.name).join(', '));
+    console.log('🏷️ Columnas disponibles:', schema.columns.length);
+    console.log('📝 Columnas:', schema.columns.map((col: any) => col.name).join(', '));
     
     return schema;
   } catch (error) {

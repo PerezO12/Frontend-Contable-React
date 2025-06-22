@@ -6,7 +6,12 @@ import type {
   ProductUpdate,
   ProductFilters,
   ProductStatistics,
-  ProductSummary
+  ProductSummary,
+  LowStockProduct,
+  ProductDeletionValidation,
+  BulkProductDeleteResult,
+  BulkProductOperationResult,
+  StockAdjustmentResult
 } from '../types';
 
 /**
@@ -49,9 +54,13 @@ export function useProducts(initialFilters?: ProductFilters) {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
-
   const updateFilters = useCallback((newFilters: Partial<ProductFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
+  }, []);
+
+  const refetchWithFilters = useCallback((newFilters: ProductFilters) => {
+    setFilters(newFilters);
+    // El fetchProducts se ejecutará automáticamente por el useEffect cuando cambien los filters
   }, []);
 
   const resetFilters = useCallback(() => {
@@ -61,16 +70,170 @@ export function useProducts(initialFilters?: ProductFilters) {
   const refreshProducts = useCallback(() => {
     fetchProducts();
   }, [fetchProducts]);
+  // Función para validar eliminación
+  const validateDeletion = useCallback(async (productIds: string[]): Promise<ProductDeletionValidation[]> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      return await ProductService.validateDeletion(productIds);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al validar eliminación';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  return {
+  // Función para eliminar múltiples productos
+  const bulkDeleteProducts = useCallback(async (productIds: string[]): Promise<BulkProductDeleteResult> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await ProductService.bulkDeleteProducts(productIds);
+      
+      // Refrescar la lista después de la eliminación
+      await fetchProducts();
+      
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al eliminar productos';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchProducts]);
+
+  // Función para desactivar múltiples productos
+  const bulkDeactivateProducts = useCallback(async (productIds: string[]): Promise<BulkProductOperationResult> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await ProductService.bulkDeactivateProducts(productIds);
+      
+      // Refrescar la lista después de la desactivación
+      await fetchProducts();
+      
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al desactivar productos';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchProducts]);
+
+  // Función para activar producto
+  const activateProduct = useCallback(async (id: string): Promise<Product> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await ProductService.activateProduct(id);
+      
+      // Refrescar la lista después de la activación
+      await fetchProducts();
+      
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al activar producto';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchProducts]);
+
+  // Función para desactivar producto
+  const deactivateProduct = useCallback(async (id: string): Promise<Product> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await ProductService.deactivateProduct(id);
+      
+      // Refrescar la lista después de la desactivación
+      await fetchProducts();
+      
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al desactivar producto';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchProducts]);
+
+  // Función para descontinuar producto
+  const discontinueProduct = useCallback(async (id: string): Promise<Product> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await ProductService.discontinueProduct(id);
+      
+      // Refrescar la lista después de descontinuar
+      await fetchProducts();
+      
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al descontinuar producto';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchProducts]);
+
+  // Función para ajustar stock
+  const adjustStock = useCallback(async (id: string, adjustment: {
+    adjustment_type: 'increase' | 'decrease' | 'set';
+    quantity: number;
+    reason: string;
+    unit_cost?: number;
+    reference_document?: string;
+  }): Promise<StockAdjustmentResult> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await ProductService.adjustStock(id, adjustment);
+      
+      // Refrescar la lista después del ajuste
+      await fetchProducts();
+      
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al ajustar stock';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchProducts]);  return {
     products,
     loading,
     error,
     pagination,
     filters,
     updateFilters,
+    refetchWithFilters,
     resetFilters,
-    refreshProducts
+    refreshProducts,
+    // Nuevas funciones agregadas
+    validateDeletion,
+    bulkDeleteProducts,
+    bulkDeactivateProducts,
+    activateProduct,
+    deactivateProduct,
+    discontinueProduct,
+    adjustStock
   };
 }
 
@@ -371,7 +534,7 @@ export function useStockValidation() {
  * Hook para obtener productos con stock bajo
  */
 export function useLowStockProducts() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<LowStockProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

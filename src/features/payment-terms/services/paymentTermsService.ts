@@ -163,7 +163,6 @@ export class PaymentTermsService {
       throw error;
     }
   }
-
   /**
    * Eliminar condiciones de pago
    */
@@ -175,6 +174,32 @@ export class PaymentTermsService {
       console.log('Condiciones de pago eliminadas');
     } catch (error) {
       console.error('Error al eliminar condiciones de pago:', error);
+      throw error;
+    }
+  }
+  /**
+   * Verificar si las condiciones de pago se pueden eliminar
+   */
+  static async checkCanDeletePaymentTerms(id: string): Promise<{
+    can_delete: boolean;
+    can_deactivate: boolean;
+    usage_count: number;
+    is_active: boolean;
+    message: string;
+  }> {
+    console.log('Verificando si se puede eliminar condiciones de pago:', id);
+    
+    try {
+      const response = await apiClient.get<{
+        can_delete: boolean;
+        can_deactivate: boolean;
+        usage_count: number;
+        is_active: boolean;
+        message: string;
+      }>(`${this.BASE_URL}/${id}/can-delete`);      console.log('Verificación completada:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error al verificar eliminación:', error);
       throw error;
     }
   }

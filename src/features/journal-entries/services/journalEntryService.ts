@@ -812,42 +812,34 @@ export class JournalEntryService {
 
       default:
         throw new Error(`Estado no soportado para operación masiva: ${newStatus}`);
-    }
-  }
+    }  }
+
   // ===============================
   // MÉTODOS DE EXPORTACIÓN
   // ===============================
+  
   /**
-   * Exportar asientos contables específicos por IDs
+   * Exportar asientos contables específicos por IDs usando sistema genérico
    */
-  static async exportJournalEntries(entryIds: string[], format: 'xlsx' | 'pdf' | 'csv' | 'json'): Promise<Blob> {
-    console.log('Exportando asientos contables específicos:', entryIds, 'en formato:', format);
+  static async exportJournalEntries(
+    entryIds: string[], 
+    format: 'xlsx' | 'csv' | 'json' = 'xlsx'
+  ): Promise<Blob> {
+    console.log('Exportando asientos contables con sistema genérico:', entryIds, 'en formato:', format);
     
     try {
-      const params = new URLSearchParams();
-      entryIds.forEach(id => params.append('journal_entry_ids', id));
-
-      let endpoint: string;
-      switch (format) {
-        case 'xlsx':
-          endpoint = 'excel';
-          break;
-        case 'pdf':
-          endpoint = 'pdf';
-          break;
-        case 'csv':
-        case 'json':
-          endpoint = format;
-          break;
-        default:
-          throw new Error(`Formato de exportación no soportado: ${format}`);
-      }
-
-      const url = `${this.BASE_URL}/export/${endpoint}?${params}`;
-
-      const response = await apiClient.get(url, { responseType: 'blob' });
-      console.log(`Exportación a ${format.toUpperCase()} completada`);
-      return response.data;
+      // Convertir xlsx a formato válido del sistema genérico
+      const exportFormat = format === 'xlsx' ? 'xlsx' : format;
+      
+      const blob = await ExportService.exportByIds({
+        table: 'journal_entries',
+        format: exportFormat as 'csv' | 'json' | 'xlsx',
+        ids: entryIds,
+        file_name: ExportService.generateFileName('journal_entries', exportFormat)
+      });
+      
+      console.log(`Exportación a ${format.toUpperCase()} completada con sistema genérico`);
+      return blob;
     } catch (error) {
       console.error(`Error al exportar a ${format.toUpperCase()}:`, error);
       throw error;

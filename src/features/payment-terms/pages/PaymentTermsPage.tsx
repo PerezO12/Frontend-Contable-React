@@ -3,6 +3,7 @@ import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { Input } from '../../../components/ui/Input';
 import { Spinner } from '../../../components/ui/Spinner';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { ValidationMessage } from '../../../components/forms/ValidationMessage';
 import { usePaymentTermsList } from '../hooks/usePaymentTerms';
 import { PaymentTermsService } from '../services/paymentTermsService';
@@ -17,11 +18,14 @@ export const PaymentTermsPage: React.FC = () => {  const {
     error, 
     refreshPaymentTerms,
     filters,
-    setFilters
+    setFilters,
+    removePaymentTermsLocal,
+    updatePaymentTermsLocal,
+    addPaymentTermsLocal
   } = usePaymentTermsList({
     initialFilters: { is_active: true },
     autoLoad: true
-  });  const [selectedPaymentTerms, setSelectedPaymentTerms] = useState<PaymentTerms | null>(null);
+  });const [selectedPaymentTerms, setSelectedPaymentTerms] = useState<PaymentTerms | null>(null);
   const [testAmount, setTestAmount] = useState<string>('1000.00');
   const [testInvoiceDate, setTestInvoiceDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [calculatedSchedule, setCalculatedSchedule] = useState<PaymentCalculationItem[]>([]);
@@ -30,6 +34,25 @@ export const PaymentTermsPage: React.FC = () => {  const {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
+
+  // Estados para modales de confirmación
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+    confirmText: string;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {},
+    confirmText: 'Confirmar',
+    isLoading: false
+  });
 
   // Función utilitaria para formatear montos
   const formatCurrency = (amount: number): string => {
@@ -179,24 +202,123 @@ export const PaymentTermsPage: React.FC = () => {  const {
     }
   };const toggleActiveFilter = () => {
     setFilters({ ...filters, is_active: !filters.is_active });
-  };
-  const handleCreateSuccess = (newPaymentTerms: PaymentTerms) => {
+  };  const handleCreateSuccess = (newPaymentTerms: PaymentTerms) => {
     console.log('Condiciones de pago creadas exitosamente:', newPaymentTerms);
-    // Actualizar la lista
-    refreshPaymentTerms();
+    
+    // Verificar si el nuevo término cumple con los filtros actuales
+    const shouldShowInCurrentView = 
+      (filters.is_active === undefined || filters.is_active === newPaymentTerms.is_active);
+    
+    if (shouldShowInCurrentView) {
+      // Agregar inmediatamente a la vista local
+      addPaymentTermsLocal(newPaymentTerms);
+    } else {
+      // Si no cumple con los filtros, mostrar mensaje informativo
+      console.log('El nuevo término de pago no cumple con los filtros actuales, no se mostrará hasta cambiar filtros');
+    }
+    
     // Seleccionar las nuevas condiciones de pago creadas
     setSelectedPaymentTerms(newPaymentTerms);
     setShowCreateModal(false);
-  };
-
-  const handleEditSuccess = (updatedPaymentTerms: PaymentTerms) => {
+  };const handleEditSuccess = (updatedPaymentTerms: PaymentTerms) => {
     console.log('Condiciones de pago editadas exitosamente:', updatedPaymentTerms);
-    // Actualizar la lista
-    refreshPaymentTerms();
+    
+    // Actualizar inmediatamente en la vista local
+    updatePaymentTermsLocal(updatedPaymentTerms);
+    
     // Actualizar las condiciones seleccionadas
     setSelectedPaymentTerms(updatedPaymentTerms);
     setShowEditModal(false);
   };
+  const handleDeletePaymentTerms = async (paymentTerms: PaymentTerms, event: React.MouseEvent) => {
+    event.stopPropagation(); // Evitar que se seleccione el item
+    
+    try {
+      // Verificar si se puede eliminar
+      const checkResult = await PaymentTermsService.checkCanDeletePaymentTerms(paymentTerms.id);
+      
+      if (checkResult.can_delete) {
+        // Si se puede eliminar, mostrar confirmación
+        setConfirmationModal({
+          isOpen: true,
+          title: 'Eliminar Condiciones de Pago',
+          message: `¿Está seguro que desea eliminar las condiciones de pago "${paymentTerms.code} - ${paymentTerms.name}"?\n\nEsta acción no se puede deshacer.`,
+          type: 'danger',
+          confirmText: 'Eliminar',
+          isLoading: false,
+          onConfirm: async () => {            setConfirmationModal(prev => ({ ...prev, isLoading: true }));            try {
+              await PaymentTermsService.deletePaymentTerms(paymentTerms.id);
+              
+              // Remover inmediatamente de la vista local
+              removePaymentTermsLocal(paymentTerms.id);
+              
+              // Si las condiciones eliminadas estaban seleccionadas, limpiar selección
+              if (selectedPaymentTerms?.id === paymentTerms.id) {
+                setSelectedPaymentTerms(null);
+                setCalculatedSchedule([]);
+              }
+              
+              setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+            } catch (error) {
+              console.error('Error al eliminar:', error);
+              alert('Error al eliminar las condiciones de pago. Por favor, intente de nuevo.');
+              setConfirmationModal(prev => ({ ...prev, isLoading: false }));
+            }
+          }
+        });
+      } else {
+        // Si no se puede eliminar, mostrar opción de desactivar
+        setConfirmationModal({
+          isOpen: true,
+          title: 'No se puede eliminar',
+          message: `${checkResult.message}\n\n¿Desea desactivar las condiciones de pago en su lugar?`,
+          type: 'warning',
+          confirmText: 'Desactivar',
+          isLoading: false,
+          onConfirm: async () => {
+            setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+            handleToggleActiveStatus(paymentTerms, event);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error al verificar eliminación:', error);
+      alert('Error al verificar las condiciones de pago. Por favor, intente de nuevo.');
+    }
+  };
+  const handleToggleActiveStatus = async (paymentTerms: PaymentTerms, event: React.MouseEvent) => {
+    event.stopPropagation(); // Evitar que se seleccione el item
+    
+    const action = paymentTerms.is_active ? 'desactivar' : 'activar';
+    
+    setConfirmationModal({
+      isOpen: true,
+      title: `${action.charAt(0).toUpperCase() + action.slice(1)} Condiciones de Pago`,
+      message: `¿Está seguro que desea ${action} las condiciones de pago "${paymentTerms.code} - ${paymentTerms.name}"?`,
+      type: paymentTerms.is_active ? 'warning' : 'info',
+      confirmText: action.charAt(0).toUpperCase() + action.slice(1),
+      isLoading: false,
+      onConfirm: async () => {        setConfirmationModal(prev => ({ ...prev, isLoading: true }));
+        try {
+          const updatedPaymentTerms = await PaymentTermsService.toggleActiveStatus(paymentTerms.id);
+          
+          // Actualizar inmediatamente en la vista local
+          updatePaymentTermsLocal(updatedPaymentTerms);
+          
+          // Si las condiciones modificadas estaban seleccionadas, mantener selección con datos actualizados
+          if (selectedPaymentTerms?.id === paymentTerms.id) {
+            setSelectedPaymentTerms(updatedPaymentTerms);
+          }
+            setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          console.error('Error al cambiar estado:', error);
+          alert('Error al cambiar el estado. Por favor, intente de nuevo.');
+          setConfirmationModal(prev => ({ ...prev, isLoading: false }));
+        }
+      }    });
+  };
+
+  // ...existing code...
 
   const handleEdit = () => {
     if (selectedPaymentTerms) {
@@ -280,37 +402,75 @@ export const PaymentTermsPage: React.FC = () => {  const {
                 No se encontraron condiciones de pago
               </div>
             ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {filteredPaymentTerms.map((pt) => (
+              <div className="space-y-2 max-h-96 overflow-y-auto">                {filteredPaymentTerms.map((pt) => (
                   <div
                     key={pt.id}
-                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                    className={`p-3 border rounded-lg transition-colors ${
                       selectedPaymentTerms?.id === pt.id
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
-                    onClick={() => handlePaymentTermsSelect(pt)}
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="font-mono text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                          {pt.code}
-                        </span>
-                        <span className="ml-2 font-medium">{pt.name}</span>
-                      </div>                      <div className="text-xs text-gray-500">
-                        {(pt.payment_schedules?.length || 0)} cuota{(pt.payment_schedules?.length || 0) !== 1 ? 's' : ''}
+                    <div 
+                      className="cursor-pointer"
+                      onClick={() => handlePaymentTermsSelect(pt)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-mono text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                            {pt.code}
+                          </span>
+                          <span className="ml-2 font-medium">{pt.name}</span>
+                        </div>                        <div className="flex items-center space-x-2">
+                          <div className="text-xs text-gray-500">
+                            {(pt.payment_schedules?.length || 0)} cuota{(pt.payment_schedules?.length || 0) !== 1 ? 's' : ''}
+                          </div>
+                          
+                          {/* Botones de acción */}
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={(e) => handleToggleActiveStatus(pt, e)}
+                              className={`p-1.5 rounded transition-colors ${
+                                pt.is_active 
+                                  ? 'text-gray-500 hover:text-orange-600 hover:bg-orange-50' 
+                                  : 'text-gray-500 hover:text-green-600 hover:bg-green-50'
+                              }`}
+                              title={pt.is_active ? 'Desactivar' : 'Activar'}
+                            >
+                              {pt.is_active ? (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L5.636 5.636" />
+                                </svg>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </button>
+                            
+                            <button
+                              onClick={(e) => handleDeletePaymentTerms(pt, e)}
+                              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Eliminar"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    {pt.description && (
-                      <div className="text-sm text-gray-600 mt-1">{pt.description}</div>
-                    )}
-                    <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                      <span>{pt.max_days} días máximo</span>
-                      <span className={`px-2 py-1 rounded ${
-                        pt.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {pt.is_active ? 'Activa' : 'Inactiva'}
-                      </span>
+                      {pt.description && (
+                        <div className="text-sm text-gray-600 mt-1">{pt.description}</div>
+                      )}
+                      <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                        <span>{pt.max_days} días máximo</span>
+                        <span className={`px-2 py-1 rounded ${
+                          pt.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {pt.is_active ? 'Activa' : 'Inactiva'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -547,15 +707,25 @@ export const PaymentTermsPage: React.FC = () => {  const {
         onClose={() => setShowCreateModal(false)}
         onSuccess={handleCreateSuccess}
         title="Crear Nuevas Condiciones de Pago"
-      />
-
-      {/* Modal para editar condiciones de pago */}
+      />      {/* Modal para editar condiciones de pago */}
       <PaymentTermsModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         onSuccess={handleEditSuccess}
         editingPaymentTerms={selectedPaymentTerms}
         title="Editar Condiciones de Pago"
+      />
+
+      {/* Modal de confirmación */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        type={confirmationModal.type}
+        confirmText={confirmationModal.confirmText}
+        isLoading={confirmationModal.isLoading}
       />
     </div>
   );

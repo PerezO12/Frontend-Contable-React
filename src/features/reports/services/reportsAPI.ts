@@ -112,17 +112,21 @@ class ReportsAPIService {
     
     return response.data;
   }
-
   // ==========================================
   // Gestión de Tipos de Reportes
   // ==========================================
-
+  
   /**
-   * Obtiene todos los tipos de reportes disponibles
+   * Obtiene todos los tipos de reportes disponibles - IMPLEMENTADO
    */
   async getReportTypes(): Promise<ReportTypeInfo[]> {
-    const response = await apiClient.get<ReportTypeInfo[]>(`${REPORTS_BASE}/tipos`);
-    return response.data;
+    try {
+      const response = await apiClient.get(`${REPORTS_BASE}/types`);
+      return response.data.report_types;
+    } catch (error) {
+      console.error('Error al obtener tipos de reportes:', error);
+      throw error;
+    }
   }
 
   // ==========================================
@@ -227,59 +231,62 @@ class ReportsAPIService {
     return baseFilters;
   }
 
+  // ==========================================  // ==========================================
+  // Exportación de reportes - NO DISPONIBLE EN BACKEND
   // ==========================================
-  // Exportación de reportes
-  // ==========================================
-
   /**
-   * Exporta reporte a PDF
+   * Exporta reporte a PDF - IMPLEMENTADO
    */
   async exportToPDF(reportData: ReportResponse | BalanceSheet, options: {
     includeNarrative?: boolean;
     includeCharts?: boolean;
   } = {}): Promise<Blob> {
-    const response = await apiClient.post<Blob>(
-      `${REPORTS_BASE}/export/pdf`,
-      {
-        reportData,
+    try {
+      const response = await apiClient.post(`${REPORTS_BASE}/export/pdf`, {
+        report_data: reportData,
         options
-      },
-      {
+      }, {
         responseType: 'blob'
-      }
-    );
-
-    return response.data;
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error al exportar a PDF:', error);
+      throw error;
+    }
   }
 
   /**
-   * Exporta reporte a Excel
+   * Exporta reporte a Excel - IMPLEMENTADO
    */
   async exportToExcel(reportData: ReportResponse | BalanceSheet): Promise<Blob> {
-    const response = await apiClient.post<Blob>(
-      `${REPORTS_BASE}/export/excel`,
-      { reportData },
-      {
+    try {
+      const response = await apiClient.post(`${REPORTS_BASE}/export/excel`, {
+        report_data: reportData
+      }, {
         responseType: 'blob'
-      }
-    );
-
-    return response.data;
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error al exportar a Excel:', error);
+      throw error;
+    }
   }
 
   /**
-   * Exporta reporte a CSV
+   * Exporta reporte a CSV - IMPLEMENTADO
    */
   async exportToCSV(reportData: ReportResponse | BalanceSheet): Promise<Blob> {
-    const response = await apiClient.post<Blob>(
-      `${REPORTS_BASE}/export/csv`,
-      { reportData },
-      {
+    try {
+      const response = await apiClient.post(`${REPORTS_BASE}/export/csv`, {
+        report_data: reportData
+      }, {
         responseType: 'blob'
-      }
-    );
-
-    return response.data;
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error al exportar a CSV:', error);
+      throw error;
+    }
   }
 }
 

@@ -91,24 +91,24 @@ export class AuthService {
     try {
       await apiClient.put(this.USERS_URL.CHANGE_PASSWORD, passwordData);
     } catch (error: any) {
-      throw new Error(handleApiError(error));
-    }
+      throw new Error(handleApiError(error));    }
   }
-
   static async getUserSessions(): Promise<any[]> {
     try {
-      const response = await apiClient.get(this.USERS_URL.SESSIONS);
-      return response.data;
-    } catch (error: any) {
-      throw new Error(handleApiError(error));
+      const response = await apiClient.get('/api/v1/auth/sessions');
+      return response.data.sessions;
+    } catch (error) {
+      console.error('Error al obtener sesiones:', error);
+      throw error;
     }
   }
 
   static async terminateSession(sessionId: string): Promise<void> {
     try {
-      await apiClient.delete(`${this.USERS_URL.SESSIONS}/${sessionId}`);
-    } catch (error: any) {
-      throw new Error(handleApiError(error));
+      await apiClient.delete(`/api/v1/auth/sessions/${sessionId}`);
+    } catch (error) {
+      console.error('Error al terminar sesión:', error);
+      throw error;
     }
   }
 }

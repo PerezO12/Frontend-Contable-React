@@ -52,12 +52,17 @@ export const AccountAdvancedExportModal: React.FC<AccountAdvancedExportModalProp
       showError(error);
     }
   });  const { success, error: showError } = useToast();
-
   const loadExportSchema = async () => {
     try {
       const schema = await getExportSchema();
       if (schema) {
-        setAvailableColumns(schema.available_columns);
+        // Convertir el formato del backend al formato esperado por el componente
+        const columnsWithInclude = schema.columns.map(col => ({
+          name: col.name,
+          data_type: col.data_type,
+          include: true
+        }));
+        setAvailableColumns(columnsWithInclude);
       }
     } catch (error) {
       console.error('Error al cargar esquema:', error);

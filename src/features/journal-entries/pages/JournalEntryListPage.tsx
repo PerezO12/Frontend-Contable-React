@@ -11,24 +11,18 @@ export const JournalEntryListPage: React.FC = () => {
   };
 
   const handleCreateEntry = () => {
-    navigate('/journal-entries/new');
-  };
+    navigate('/journal-entries/new');  };
 
-  const handleEditEntry = (entry: JournalEntry) => {
-    navigate(`/journal-entries/${entry.id}/edit`);
-  };  return (
+  return (
     <>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Asientos Contables</h1>
         <p className="text-gray-600 mt-2">
           Gestión completa de asientos contables y partida doble
         </p>
-      </div>
-
-      <JournalEntryList
+      </div>      <JournalEntryList
         onEntrySelect={handleEntrySelect}
         onCreateEntry={handleCreateEntry}
-        onEditEntry={handleEditEntry}
       />
     </>
   );

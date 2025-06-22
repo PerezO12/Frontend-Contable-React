@@ -65,10 +65,16 @@ export interface Product {
   status: ProductStatus;
   measurement_unit: MeasurementUnit;
   
+  // Información física
+  weight?: number;
+  dimensions?: string;
+  
   // Precios y costos
-  cost_price?: string;
+  purchase_price?: string;
   sale_price?: string;
   min_sale_price?: string;
+  suggested_price?: string;
+  cost_price?: string;
   profit_margin?: string;
   
   // Inventario
@@ -84,6 +90,12 @@ export interface Product {
   tax_category?: TaxCategory;
   
   // Cuentas contables asociadas
+  sales_account_id?: string;
+  purchase_account_id?: string;
+  inventory_account_id?: string;
+  cogs_account_id?: string;
+  
+  // Relaciones de cuentas contables
   revenue_account_id?: string;
   revenue_account?: {
     id: string;
@@ -96,7 +108,6 @@ export interface Product {
     code: string;
     name: string;
   };
-  inventory_account_id?: string;
   inventory_account?: {
     id: string;
     code: string;
@@ -105,8 +116,21 @@ export interface Product {
   
   // Categorización
   category?: string;
+  subcategory?: string;
   brand?: string;
   model?: string;
+  
+  // Códigos y referencias
+  barcode?: string;
+  sku?: string;
+  internal_reference?: string;
+  supplier_reference?: string;
+  external_reference?: string;
+  
+  // Notas y fechas
+  notes?: string;
+  launch_date?: string;
+  discontinuation_date?: string;
   
   // Control
   is_active: boolean;
@@ -120,7 +144,7 @@ export interface Product {
 
 // Schema de validación para crear producto (según backend)
 export const ProductCreateSchema = z.object({
-  code: z.string().min(1).max(50),
+  code: z.string().min(1).max(50).optional(),
   name: z.string().min(1).max(200),
   description: z.string().optional(),
   product_type: z.enum([ProductType.PRODUCT, ProductType.SERVICE, ProductType.BOTH]).default(ProductType.PRODUCT),
@@ -143,10 +167,9 @@ export const ProductCreateSchema = z.object({
   sale_price: z.number().min(0).optional(),
   min_sale_price: z.number().min(0).optional(),
   suggested_price: z.number().min(0).optional(),
-  
-  // Información fiscal
-  tax_category: z.enum([TaxCategory.STANDARD_RATE, TaxCategory.REDUCED_RATE, TaxCategory.ZERO_RATE, TaxCategory.EXEMPT]).default(TaxCategory.STANDARD_RATE),
-  tax_rate: z.number().min(0).max(100).default(19),
+    // Información fiscal
+  tax_category: z.enum([TaxCategory.STANDARD_RATE, TaxCategory.REDUCED_RATE, TaxCategory.ZERO_RATE, TaxCategory.EXEMPT]).default(TaxCategory.EXEMPT),
+  tax_rate: z.number().min(0).max(100).default(0),
   
   // Cuentas contables
   sales_account_id: z.string().uuid().optional(),
@@ -184,8 +207,10 @@ export type ProductUpdate = z.infer<typeof ProductUpdateSchema>;
 export interface ProductFilters {
   skip?: number;
   limit?: number;
-  product_type?: ProductType;
-  status?: ProductStatus;
+  page?: number;
+  q?: string; // para búsqueda por texto
+  product_type?: ProductType | ProductType[];
+  status?: ProductStatus | ProductStatus[];
   is_active?: boolean;
   low_stock?: boolean;
   category?: string;
@@ -250,6 +275,196 @@ export interface ProductLineInfo {
   tax_percentage?: string;
   tax_amount?: string;
   line_total?: string;
+}
+
+// Información de stock extendida
+export interface ProductStockInfo {
+  product_id: string;
+  product_code: string;
+  product_name: string;
+  current_stock: string;
+  min_stock: string;
+  max_stock: string;
+  reorder_point: string;
+  measurement_unit: string;
+  is_low_stock: boolean;
+  needs_reorder: boolean;
+  stock_value?: string;
+}
+
+// Configuración contable del producto
+export interface ProductAccountingSetup {
+  sales_account?: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  purchase_account?: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  inventory_account?: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  cogs_account?: {
+    id: string;
+    code: string;
+    name: string;
+  };
+}
+
+// Respuesta extendida del producto por ID
+export interface ProductDetailResponse {
+  product: Product;
+  movements: ProductMovement[];
+  stock_info: ProductStockInfo;
+  accounting_setup: ProductAccountingSetup;
+}
+
+// Movimiento de producto
+export interface ProductMovement {
+  id: string;
+  product_id: string;
+  movement_type: 'sale' | 'purchase' | 'adjustment' | 'transfer';
+  quantity: string;
+  unit_price?: string;
+  total_amount?: string;
+  reference_type?: string;
+  reference_id?: string;
+  previous_stock: string;
+  new_stock: string;
+  notes?: string;
+  created_at: string;
+  created_by?: string;
+}
+
+// Estadísticas detalladas de producto
+export interface ProductDetailedStats {
+  product_id: string;
+  period: {
+    start_date: string;
+    end_date: string;
+  };
+  sales: {
+    total_quantity: string;
+    total_amount: string;
+    average_price: string;
+    transactions_count: number;
+  };
+  purchases: {
+    total_quantity: string;
+    total_amount: string;
+    average_price: string;
+    transactions_count: number;
+  };
+  inventory: {
+    current_stock: string;
+    stock_value: string;
+    turnover_ratio: string;
+    days_of_inventory: string;
+  };
+  profitability: {
+    gross_profit: string;
+    profit_margin: string;
+    roi: string;
+  };
+}
+
+// Productos con stock bajo
+export interface LowStockProduct {
+  id: string;
+  code: string;
+  name: string;
+  current_stock: string;
+  min_stock: string;
+  stock_difference: string;
+  urgency_level: 'low' | 'medium' | 'high' | 'critical';
+}
+
+// Productos que necesitan reorden
+export interface ReorderProduct {
+  id: string;
+  code: string;
+  name: string;
+  current_stock: string;
+  min_stock: string;
+  reorder_point: string;
+  suggested_order_quantity: string;
+  days_until_stockout: number;
+}
+
+// Ajuste de stock
+export interface StockAdjustment {
+  adjustment_type: 'increase' | 'decrease' | 'set';
+  quantity: number;
+  reason: string;
+  unit_cost?: number;
+  reference_document?: string;
+}
+
+// Resultado de ajuste de stock
+export interface StockAdjustmentResult {
+  message: string;
+  product_id: string;
+  previous_stock: string;
+  new_stock: string;
+  adjustment_quantity: string;
+  movement_id: string;
+}
+
+// Operación masiva
+export interface BulkProductOperation {
+  operation: 'update_prices' | 'update_stock' | 'change_status' | 'update_taxes';
+  products: Array<{
+    product_id: string;
+    data: Record<string, any>;
+  }>;
+}
+
+// Resultado de operación masiva
+export interface BulkProductOperationResult {
+  operation: string;
+  total_products: number;
+  successful: number;
+  failed: number;
+  results: Array<{
+    product_id: string;
+    status: 'success' | 'error';
+    message: string;
+  }>;
+}
+
+// Resultado de eliminación masiva
+export interface BulkProductDeleteResult {
+  total_requested: number;
+  total_processed: number;
+  total_errors: number;
+  successful_ids: string[];
+  errors: Array<{
+    id: string;
+    error: string;
+  }>;
+}
+
+// Validación de eliminación
+export interface ProductDeletionValidation {
+  product_id: string;
+  product_code: string;
+  product_name: string;
+  product_status: ProductStatus;
+  current_stock: string;
+  can_delete: boolean;
+  can_deactivate: boolean;
+  blocking_reasons: string[];
+  warnings: string[];
+  recommendations: string[];
+  estimated_stock_value: string;
+  last_movement_date?: string;
+  creation_date: string;
+  risk_level: 'low' | 'medium' | 'high' | 'critical';
 }
 
 // Labels para mostrar en UI

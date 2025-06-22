@@ -4,13 +4,13 @@ export const API_ENDPOINTS = {
     LOGIN_FORM: '/api/v1/auth/login/form',
     LOGOUT: '/api/v1/auth/logout',
     REFRESH: '/api/v1/auth/refresh',
-    CHANGE_PASSWORD: '/api/v1/auth/change-password',
+    CHANGE_PASSWORD: '/api/v1/users/change-password', // Corregido: está en users, no en auth
   },
   USERS: {
     ME: '/api/v1/users/me',
     UPDATE_PROFILE: '/api/v1/users/me',
-    CHANGE_PASSWORD: '/api/v1/users/me/password',
-    SESSIONS: '/api/v1/users/me/sessions',
+    CHANGE_PASSWORD: '/api/v1/users/change-password', // Corregido
+    SESSIONS: '/api/v1/users/me/sessions', // NO EXISTE EN BACKEND
   },
 } as const;
 

@@ -92,16 +92,15 @@ ${tables.tables.map(t => `- ${t.table_name}: ${t.display_name} (${t.total_record
 
   const testGetSchema = async () => {
     setIsLoading(true);
-    
-    try {
+      try {
       const schema = await ExportService.getTableSchema('accounts');
       
       const info = `Esquema de tabla 'accounts':
 Nombre: ${schema.display_name}
-Descripción: ${schema.description}
+Descripción: ${schema.description || 'No disponible'}
 Total de registros: ${schema.total_records}
-Columnas disponibles (${schema.available_columns.length}):
-${schema.available_columns.map(col => `- ${col.name} (${col.data_type})`).join('\n')}`;
+Columnas disponibles (${schema.columns.length}):
+${schema.columns.map((col: any) => `- ${col.name} (${col.data_type})`).join('\n')}`;
       
       setTestResults(info);
       success('Esquema cargado exitosamente');

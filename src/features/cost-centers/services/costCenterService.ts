@@ -242,39 +242,30 @@ export class CostCenterService {
       format,
       ids: costCenterIds
     });
-  }
-  /**
-   * Exportar centros de costo con filtros avanzados
+  }  /**
+   * Exportar centros de costo con filtros avanzados - MÉTODO OBSOLETO
+   * Use getCostCenters() para obtener IDs filtrados y luego exportCostCenters()
    */
   static async exportCostCentersAdvanced(
-    format: 'csv' | 'json' | 'xlsx',
-    filters?: CostCenterFilters,
-    selectedColumns?: string[]
+    _format: 'csv' | 'json' | 'xlsx',
+    _filters?: CostCenterFilters,
+    _selectedColumns?: string[]
   ): Promise<Blob> {
-    const columnsConfig = selectedColumns?.map(name => ({
-      name,
-      include: true
-    }));    return ExportService.exportAdvanced({
-      table_name: 'cost_centers',
-      export_format: format,
-      filters,
-      columns: columnsConfig
-    });
-  }
-  /**
+    throw new Error('Método obsoleto. Use getCostCenters() para obtener IDs filtrados y luego exportCostCenters().');
+  }  /**
    * Obtener esquema de exportación para centros de costo
    */
   static async getExportSchema(): Promise<{
     table_name: string;
     display_name: string;
     description: string;
-    available_columns: Array<{
+    columns: Array<{
       name: string;
       data_type: string;
-      include: boolean;
+      nullable: boolean;
+      description?: string;
     }>;
     total_records: number;
-    sample_data: any[];
   }> {
     return ExportService.getTableSchema('cost_centers');
   }

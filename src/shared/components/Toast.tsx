@@ -23,9 +23,8 @@ export const Toast: React.FC<ToastProps> = ({
 
     return () => clearTimeout(timer);
   }, [duration, onClose]);
-
   const getToastStyles = () => {
-    const baseStyles = "fixed top-4 right-4 z-50 max-w-md p-4 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out";
+    const baseStyles = "fixed top-4 right-4 z-[1200] max-w-md p-4 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out";
     
     if (!isVisible) {
       return `${baseStyles} translate-x-full opacity-0`;

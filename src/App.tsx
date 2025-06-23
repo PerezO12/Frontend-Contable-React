@@ -39,7 +39,7 @@ import {
   ProductEditPage
 } from '@/features/products/pages';
 import {
-  InvoiceListPage,
+  InvoiceListEnhancedPage,
   InvoiceCreatePageEnhanced,
   InvoiceCreateOdooPage,
   InvoiceEditPage,
@@ -281,7 +281,7 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
               <MainLayout>
-                <InvoiceListPage />
+                <InvoiceListEnhancedPage />
               </MainLayout>
             </ProtectedRoute>
           } 

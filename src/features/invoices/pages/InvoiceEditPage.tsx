@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useInvoiceStore } from '../stores/invoiceStore';
 import { useThirdPartiesForInvoices } from '../hooks/useThirdPartiesForInvoices';
-import { InvoiceType, InvoiceStatus, type InvoiceUpdateData, type InvoiceLineCreateLegacy as InvoiceLine } from '../types';
+import { InvoiceTypeConst, InvoiceStatusConst, type InvoiceUpdateData, type InvoiceLineCreateLegacy as InvoiceLine } from '../types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -49,7 +49,7 @@ export function InvoiceEditPage() {
   useEffect(() => {
     if (currentInvoice) {
       // Solo permitir edición de facturas en borrador
-      if (currentInvoice.status !== InvoiceStatus.DRAFT) {
+      if (currentInvoice.status !== InvoiceStatusConst.DRAFT) {
         showToast('Solo se pueden editar facturas en estado borrador', 'error');
         navigate(`/invoices/${id}`);
         return;
@@ -219,11 +219,10 @@ export function InvoiceEditPage() {
               placeholder="Tipo de factura"
               value={formData.invoice_type || ''}
               onChange={(value) => handleInputChange('invoice_type', value)}
-              options={[
-                { value: InvoiceType.CUSTOMER_INVOICE, label: 'Factura de Venta' },
-                { value: InvoiceType.SUPPLIER_INVOICE, label: 'Factura de Compra' },
-                { value: InvoiceType.CREDIT_NOTE, label: 'Nota de Crédito' },
-                { value: InvoiceType.DEBIT_NOTE, label: 'Nota de Débito' }
+              options={[                { value: InvoiceTypeConst.CUSTOMER_INVOICE, label: 'Factura de Venta' },
+                { value: InvoiceTypeConst.SUPPLIER_INVOICE, label: 'Factura de Compra' },
+                { value: InvoiceTypeConst.CREDIT_NOTE, label: 'Nota de Crédito' },
+                { value: InvoiceTypeConst.DEBIT_NOTE, label: 'Nota de Débito' }
               ]}
             />            <Select
               placeholder="Seleccionar cliente/proveedor"

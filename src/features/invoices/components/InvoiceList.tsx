@@ -1,23 +1,24 @@
 /**
  * Componente principal de listado de facturas
  * Implementa el flujo completo de Odoo con UI elegante y moderna
+ * Incluye operaciones bulk (contabilizar, cancelar, eliminar en lote)
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInvoiceStore } from '../stores/invoiceStore';
-import { InvoiceStatus } from '../types/legacy';
+import { useBulkInvoiceOperations } from '../hooks/useBulkInvoiceOperations';
+import { InvoiceStatusConst } from '../types';
 import type { Invoice } from '../types/legacy';
 import { formatCurrency, formatDate } from '@/shared/utils/formatters';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { SearchInput } from '@/components/ui/SearchInput';
-import { Select } from '@/components/ui/Select';
-import { Table } from '@/components/ui/Table';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/shared/contexts/ToastContext';
+import { BulkActionsBar } from './BulkActionsBar';
+import { AdvancedFilters } from './AdvancedFilters';
 import { 
   PlusIcon, 
   FunnelIcon, 
@@ -101,7 +102,6 @@ export function InvoiceList() {
   const [showFilters, setShowFilters] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
-
   const {
     invoices,
     loading,
@@ -116,16 +116,22 @@ export function InvoiceList() {
     duplicateInvoice
   } = useInvoiceStore();
 
+  // Hook para operaciones bulk
+  const bulkOperations = useBulkInvoiceOperations({
+    invoices: invoices || [],
+    onOperationComplete: () => {
+      fetchInvoices(); // Refrescar la lista después de operaciones bulk
+    }
+  });
+
   // Cargar facturas al montar el componente
   useEffect(() => {
     fetchInvoices();
   }, [fetchInvoices]);
-
-  // Manejar cambios en filtros
-  const handleFilterChange = (key: string, value: string) => {
+  // Manejar cambios en filtros avanzados
+  const handleFiltersChange = (newFilters: any) => {
     setFilters({
-      ...filters,
-      [key]: value || undefined,
+      ...newFilters,
       page: 1 // Reset pagination
     });
   };
@@ -180,10 +186,9 @@ export function InvoiceList() {
         onClick={() => navigate(`/invoices/${invoice.id}`)}
         className="text-gray-600 hover:text-blue-600"
       >
-        <EyeIcon className="h-4 w-4" />
-      </Button>
+        <EyeIcon className="h-4 w-4" />      </Button>
       
-      {invoice.status === InvoiceStatus.DRAFT && (
+      {invoice.status === InvoiceStatusConst.DRAFT && (
         <Button
           variant="outline"
           size="sm"
@@ -203,7 +208,7 @@ export function InvoiceList() {
         <DocumentDuplicateIcon className="h-4 w-4" />
       </Button>
 
-      {invoice.status === InvoiceStatus.DRAFT && (
+      {invoice.status === InvoiceStatusConst.DRAFT && (
         <Button
           variant="outline"
           size="sm"
@@ -211,13 +216,26 @@ export function InvoiceList() {
           className="text-gray-600 hover:text-red-600"
         >
           <TrashIcon className="h-4 w-4" />
-        </Button>
-      )}
+        </Button>      )}
     </div>
   );
 
   // Configurar columnas de la tabla
   const columns = [
+    {
+      key: 'select',
+      label: 'Sel.',
+      render: (invoice: Invoice) => (
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            checked={bulkOperations.selectedIds.has(invoice.id!)}
+            onChange={() => bulkOperations.toggleSelection(invoice.id!)}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+        </div>
+      )
+    },
     {
       key: 'number',
       label: 'Número',
@@ -234,7 +252,8 @@ export function InvoiceList() {
     },
     {
       key: 'type',
-      label: 'Tipo',      render: (invoice: Invoice) => {
+      label: 'Tipo',
+      render: (invoice: Invoice) => {
         const config = typeConfig[invoice.invoice_type] || {
           label: invoice.invoice_type,
           color: 'gray' as BadgeColor
@@ -265,7 +284,8 @@ export function InvoiceList() {
     {
       key: 'dates',
       label: 'Fechas',
-      render: (invoice: Invoice) => (        <div className="text-sm">
+      render: (invoice: Invoice) => (
+        <div className="text-sm">
           <div>Emisión: {formatDate(invoice.invoice_date)}</div>
           <div className="text-gray-500">
             Venc: {invoice.due_date ? formatDate(invoice.due_date) : 'N/A'}
@@ -291,7 +311,8 @@ export function InvoiceList() {
     },
     {
       key: 'status',
-      label: 'Estado',      render: (invoice: Invoice) => {
+      label: 'Estado',
+      render: (invoice: Invoice) => {
         const config = statusConfig[invoice.status] || {
           label: invoice.status,
           color: 'gray' as BadgeColor,
@@ -348,65 +369,28 @@ export function InvoiceList() {
             <PlusIcon className="h-4 w-4" />
             Nueva Factura
           </Button>
-        </div>
-      </div>
+        </div>      </div>
 
-      {/* Filtros */}
+      {/* Barra de acciones bulk */}
+      <BulkActionsBar
+        selectedCount={bulkOperations.selectedCount}
+        isProcessing={bulkOperations.isProcessing}
+        validationData={bulkOperations.validationData}
+        onValidateOperation={bulkOperations.validateOperation}
+        onBulkPost={bulkOperations.bulkPostInvoices}
+        onBulkCancel={bulkOperations.bulkCancelInvoices}
+        onBulkResetToDraft={bulkOperations.bulkResetToDraftInvoices}
+        onBulkDelete={bulkOperations.bulkDeleteInvoices}
+        onClearSelection={bulkOperations.clearSelection}
+      />      {/* Filtros Avanzados */}
       {showFilters && (
-        <Card className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <SearchInput
-              placeholder="Buscar facturas..."
-              value={filters.search || ''}
-              onChange={(value: string) => handleFilterChange('search', value)}
-            />
-            
-            <Select
-              placeholder="Estado"
-              value={filters.status || ''}
-              onChange={(value: string) => handleFilterChange('status', value)}
-              options={Object.entries(statusConfig).map(([key, config]) => ({
-                value: key,
-                label: config.label
-              }))}
-            />
-            
-            <Select
-              placeholder="Tipo"
-              value={filters.invoice_type || ''}
-              onChange={(value: string) => handleFilterChange('invoice_type', value)}
-              options={Object.entries(typeConfig).map(([key, config]) => ({
-                value: key,
-                label: config.label
-              }))}
-            />
-            
-            <input
-              type="date"
-              placeholder="Desde"
-              value={filters.from_date || ''}
-              onChange={(e) => handleFilterChange('from_date', e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            
-            <input
-              type="date"
-              placeholder="Hasta"
-              value={filters.to_date || ''}
-              onChange={(e) => handleFilterChange('to_date', e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          
-          <div className="flex items-center gap-3 mt-4">
-            <Button onClick={applyFilters} size="sm">
-              Aplicar Filtros
-            </Button>
-            <Button variant="outline" onClick={handleClearFilters} size="sm">
-              Limpiar
-            </Button>
-          </div>
-        </Card>
+        <AdvancedFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          onApplyFilters={applyFilters}
+          onClearFilters={handleClearFilters}
+          loading={loading}
+        />
       )}
 
       {/* Tabla de facturas */}
@@ -425,13 +409,63 @@ export function InvoiceList() {
             </Button>
           }
         />
-      ) : (
-        <Card>
-          <Table
-            columns={columns}
-            data={invoices || []}
-            loading={loading}
-          />
+      ) : (        <Card>
+          {/* Tabla personalizada con bulk selection */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {/* Header de selección múltiple */}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={bulkOperations.selectionState.isAllSelected}
+                        ref={(input) => {
+                          if (input) {
+                            input.indeterminate = bulkOperations.selectionState.isIndeterminate;
+                          }
+                        }}
+                        onChange={bulkOperations.toggleSelectAll}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </div>
+                  </th>
+                  {/* Headers de otras columnas */}
+                  {columns.slice(1).map((column) => (
+                    <th
+                      key={column.key}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      {column.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td colSpan={columns.length} className="px-6 py-4 text-center">
+                      <div className="flex items-center justify-center">
+                        <LoadingSpinner size="sm" className="mr-2" />
+                        <span className="text-gray-500">Cargando facturas...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  (invoices || []).map((invoice, index) => (
+                    <tr key={invoice.id || index} className="hover:bg-gray-50">
+                      {columns.map((column) => (
+                        <td key={column.key} className="px-6 py-4 whitespace-nowrap">
+                          {column.render ? column.render(invoice) : (invoice as any)[column.key]}
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
           
           {/* Paginación */}
           {pagination.total_pages > 1 && (

@@ -5,7 +5,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useInvoiceStore } from '../stores/invoiceStore';
-import { InvoiceStatus, InvoiceType } from '../types/legacy';
+import { InvoiceAPI } from '../api/invoiceAPI';
+import { InvoiceStatusConst, InvoiceTypeConst, type InvoiceStatus, type InvoiceType } from '../types';
 import { formatCurrency, formatDate } from '@/shared/utils/formatters';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -19,7 +20,9 @@ import {
   BanknotesIcon,
   XCircleIcon,
   DocumentDuplicateIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  ArrowPathIcon,
+  TrashIcon
 } from '@/shared/components/icons';
 
 type TabType = 'info' | 'lines' | 'accounting' | 'audit';
@@ -33,29 +36,31 @@ interface WorkflowAction {
   icon: (props: IconProps) => React.ReactElement;
 }
 
-// Configuración de workflow
+// Configuración de workflow según requerimientos
 const workflowActions: Record<string, WorkflowAction[]> = {
-  'draft': [
-    { action: 'confirm', label: 'Confirmar', color: 'blue', icon: CheckCircleIcon },
-    { action: 'post', label: 'Emitir (Contabilizar)', color: 'green', icon: CheckCircleIcon }
+  [InvoiceStatusConst.DRAFT]: [
+    { action: 'delete', label: 'Eliminar', color: 'red', icon: TrashIcon },
+    { action: 'post', label: 'Aprobar/Contabilizar', color: 'green', icon: CheckCircleIcon }
   ],
-  'pending': [
-    { action: 'post', label: 'Emitir (Contabilizar)', color: 'green', icon: CheckCircleIcon }
+  [InvoiceStatusConst.POSTED]: [
+    { action: 'mark_paid', label: 'Marcar como Pagada', color: 'emerald', icon: BanknotesIcon },
+    { action: 'cancel', label: 'Cancelar', color: 'red', icon: XCircleIcon },
+    { action: 'reset_to_draft', label: 'Restablecer a Borrador', color: 'gray', icon: ArrowPathIcon }
   ],
-  'approved': [
-    { action: 'post', label: 'Emitir (Contabilizar)', color: 'green', icon: CheckCircleIcon }
+  [InvoiceStatusConst.CANCELLED]: [
+    { action: 'reset_to_draft', label: 'Restablecer a Borrador', color: 'gray', icon: ArrowPathIcon }
   ],
-  'posted': [
-    { action: 'mark_paid', label: 'Marcar como Pagada', color: 'emerald', icon: BanknotesIcon }
+  'paid': [
+    { action: 'reset_to_draft', label: 'Restablecer a Borrador', color: 'gray', icon: ArrowPathIcon }
   ],
-  'paid': [],
   'partially_paid': [
-    { action: 'mark_paid', label: 'Marcar como Pagada', color: 'emerald', icon: BanknotesIcon }
+    { action: 'mark_paid', label: 'Marcar como Pagada', color: 'emerald', icon: BanknotesIcon },
+    { action: 'reset_to_draft', label: 'Restablecer a Borrador', color: 'gray', icon: ArrowPathIcon }
   ],
   'overdue': [
-    { action: 'mark_paid', label: 'Marcar como Pagada', color: 'emerald', icon: BanknotesIcon }
-  ],
-  'cancelled': []
+    { action: 'mark_paid', label: 'Marcar como Pagada', color: 'emerald', icon: BanknotesIcon },
+    { action: 'reset_to_draft', label: 'Restablecer a Borrador', color: 'gray', icon: ArrowPathIcon }
+  ]
 };
 
 export function InvoiceDetailPage() {
@@ -64,7 +69,6 @@ export function InvoiceDetailPage() {
   const { showToast } = useToast();
   const [actionNotes, setActionNotes] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('info');
-
   const {
     currentInvoice,
     loading,
@@ -75,7 +79,8 @@ export function InvoiceDetailPage() {
     postInvoice,
     markAsPaid,
     cancelInvoice,
-    duplicateInvoice
+    duplicateInvoice,
+    deleteInvoice
   } = useInvoiceStore();
 
   useEffect(() => {
@@ -106,11 +111,8 @@ export function InvoiceDetailPage() {
         </Button>
       </div>
     );
-  }
-
-  const invoice = currentInvoice;
+  }  const invoice = currentInvoice;
   const availableActions = workflowActions[invoice.status] || [];
-
   const handleWorkflowAction = async (action: string) => {
     try {
       switch (action) {
@@ -120,7 +122,7 @@ export function InvoiceDetailPage() {
           break;
         case 'post':
           await postInvoice(invoice.id!, actionNotes);
-          showToast('Factura emitida y contabilizada exitosamente', 'success');
+          showToast('Factura aprobada y contabilizada exitosamente', 'success');
           break;
         case 'mark_paid':
           await markAsPaid(invoice.id!, actionNotes);
@@ -129,6 +131,18 @@ export function InvoiceDetailPage() {
         case 'cancel':
           await cancelInvoice(invoice.id!, actionNotes);
           showToast('Factura cancelada', 'success');
+          break;
+        case 'reset_to_draft':
+          await InvoiceAPI.resetToDraft(invoice.id!, { reason: actionNotes });
+          await fetchInvoice(invoice.id!); // Recargar datos
+          showToast('Factura restablecida a borrador', 'success');
+          break;
+        case 'delete':
+          if (window.confirm('¿Estás seguro de que quieres eliminar esta factura? Esta acción no se puede deshacer.')) {
+            await deleteInvoice(invoice.id!);
+            showToast('Factura eliminada exitosamente', 'success');
+            navigate('/invoices');
+          }
           break;
       }
       setActionNotes('');
@@ -145,28 +159,21 @@ export function InvoiceDetailPage() {
     } catch (error) {
       showToast('Error al duplicar la factura', 'error');
     }
-  };
-
-  const getStatusConfig = (status: InvoiceStatus) => {
+  };  const getStatusConfig = (status: InvoiceStatus) => {
     const configs = {
-      [InvoiceStatus.DRAFT]: { label: 'Borrador', color: 'gray' as const },
-      [InvoiceStatus.PENDING]: { label: 'Pendiente', color: 'yellow' as const },
-      [InvoiceStatus.APPROVED]: { label: 'Aprobada', color: 'blue' as const },
-      [InvoiceStatus.POSTED]: { label: 'Emitida', color: 'green' as const },
-      [InvoiceStatus.PAID]: { label: 'Pagada', color: 'emerald' as const },
-      [InvoiceStatus.PARTIALLY_PAID]: { label: 'Pago Parcial', color: 'orange' as const },
-      [InvoiceStatus.OVERDUE]: { label: 'Vencida', color: 'red' as const },
-      [InvoiceStatus.CANCELLED]: { label: 'Cancelada', color: 'red' as const }
+      [InvoiceStatusConst.DRAFT]: { label: 'Borrador', color: 'gray' as const },
+      [InvoiceStatusConst.POSTED]: { label: 'Contabilizada', color: 'green' as const },
+      [InvoiceStatusConst.CANCELLED]: { label: 'Cancelada', color: 'red' as const }
     };
     return configs[status] || { label: status, color: 'gray' as const };
   };
 
   const getTypeConfig = (type: InvoiceType) => {
     const configs = {
-      [InvoiceType.CUSTOMER_INVOICE]: { label: 'Factura de Venta', color: 'green' as const },
-      [InvoiceType.SUPPLIER_INVOICE]: { label: 'Factura de Compra', color: 'blue' as const },
-      [InvoiceType.CREDIT_NOTE]: { label: 'Nota de Crédito', color: 'orange' as const },
-      [InvoiceType.DEBIT_NOTE]: { label: 'Nota de Débito', color: 'purple' as const }
+      [InvoiceTypeConst.CUSTOMER_INVOICE]: { label: 'Factura de Venta', color: 'green' as const },
+      [InvoiceTypeConst.SUPPLIER_INVOICE]: { label: 'Factura de Compra', color: 'blue' as const },
+      [InvoiceTypeConst.CREDIT_NOTE]: { label: 'Nota de Crédito', color: 'orange' as const },
+      [InvoiceTypeConst.DEBIT_NOTE]: { label: 'Nota de Débito', color: 'purple' as const }
     };
     return configs[type] || { label: type, color: 'gray' as const };
   };
@@ -418,18 +425,16 @@ export function InvoiceDetailPage() {
               <p className="text-xs text-gray-500">Cliente dado de alta en el sistema</p>
             </div>
             <CheckCircleIcon className="h-4 w-4 text-green-500" />
-          </div>
-
-          {/* Paso 2: Factura creada */}          <div className="flex items-center gap-3">
+          </div>          {/* Paso 2: Factura creada */}          <div className="flex items-center gap-3">
             <div className={`h-3 w-3 rounded-full ${
-              invoice.status !== 'draft' ? 'bg-green-500' : 'bg-blue-500'
+              invoice.status !== 'DRAFT' ? 'bg-green-500' : 'bg-blue-500'
             }`}></div>
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900">Factura creada (borrador)</p>
               <p className="text-xs text-gray-500">
                 Estado actual: {statusConfig.label}
               </p>
-            </div>{invoice.status === 'draft' ? (
+            </div>{invoice.status === 'DRAFT' ? (
               <div className="h-4 w-4 border-2 border-blue-500 rounded-full animate-pulse"></div>
             ) : (
               <CheckCircleIcon className="h-4 w-4 text-green-500" />
@@ -505,9 +510,8 @@ export function InvoiceDetailPage() {
             </div>
           </div>
         </div>
-        
-        <div className="flex items-center gap-3">
-          {invoice.status === 'draft' && (
+          <div className="flex items-center gap-3">
+          {invoice.status === InvoiceStatusConst.DRAFT && (
             <Button
               variant="outline"
               onClick={() => navigate(`/invoices/${invoice.id}/edit`)}
@@ -538,8 +542,7 @@ export function InvoiceDetailPage() {
               {saving ? 'Procesando...' : label}
             </Button>
           ))}
-          
-          {invoice.status !== 'cancelled' && (
+            {invoice.status !== InvoiceStatusConst.CANCELLED && (
             <Button
               variant="outline"
               onClick={() => handleWorkflowAction('cancel')}

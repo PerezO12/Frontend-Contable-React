@@ -17,7 +17,7 @@ export type {
 } from './index';
 
 // Imports específicos de los enums/constantes
-export { 
+export type { 
   InvoiceType,
   InvoiceStatus,
   InvoiceTypeEnum,

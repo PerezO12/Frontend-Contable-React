@@ -150,11 +150,10 @@ export const PaymentTermsPage: React.FC = () => {  const {
       const amount = parseFloat(testAmount);
       const invoiceDate = new Date(testInvoiceDate);
       const schedules = selectedPaymentTerms!.payment_schedules || [];
-      
-      // Verificar que los porcentajes sumen 100%
+        // Verificar que los porcentajes sumen exactamente 100% (hasta 6 decimales)
       const totalPercentage = schedules.reduce((sum, ps) => sum + ps.percentage, 0);
-      if (Math.abs(totalPercentage - 100) > 0.01) {
-        console.warn(`Los porcentajes no suman 100% (suma actual: ${totalPercentage}%)`);
+      if (Math.abs(totalPercentage - 100) >= 0.000001) {
+        console.warn(`Los porcentajes no suman exactamente 100.000000% (suma actual: ${totalPercentage.toFixed(6)}%)`);
       }
         // Calcular cronograma
       const schedule: PaymentCalculationItem[] = schedules.map((ps) => {

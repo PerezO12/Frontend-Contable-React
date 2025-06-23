@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { InvoiceType as InvoiceTypeEnum, type InvoiceType } from '../types';
+import { InvoiceTypeConst, type InvoiceType } from '../types';
 import { InvoiceAPI } from '../api/invoiceAPI';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -66,7 +66,7 @@ export function InvoiceCreatePageEnhanced() {
 
   // Estado del formulario principal
   const [formData, setFormData] = useState({
-    invoice_type: InvoiceTypeEnum.CUSTOMER_INVOICE,
+    invoice_type: InvoiceTypeConst.CUSTOMER_INVOICE,
     customer_id: '',
     invoice_date: new Date().toISOString().split('T')[0],
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // +30 días
@@ -563,9 +563,8 @@ export function InvoiceCreatePageEnhanced() {
               </label>
               <Select
                 value={formData.invoice_type}
-                onChange={(value: string) => handleInputChange('invoice_type', value)}
-                options={[                  { value: InvoiceTypeEnum.CUSTOMER_INVOICE, label: 'Factura de Cliente' },
-                  { value: InvoiceTypeEnum.SUPPLIER_INVOICE, label: 'Factura de Proveedor' }
+                onChange={(value: string) => handleInputChange('invoice_type', value)}                options={[                  { value: InvoiceTypeConst.CUSTOMER_INVOICE, label: 'Factura de Cliente' },
+                  { value: InvoiceTypeConst.SUPPLIER_INVOICE, label: 'Factura de Proveedor' }
                 ]}
               />
             </div>

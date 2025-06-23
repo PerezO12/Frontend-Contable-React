@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInvoiceStore } from '../stores/invoiceStore';
 import { useThirdPartiesForInvoices } from '../hooks/useThirdPartiesForInvoices';
-import { InvoiceType, type InvoiceCreateData, type InvoiceLineCreateLegacy as InvoiceLine } from '../types';
+import { InvoiceTypeConst, type InvoiceCreateData, type InvoiceLineCreateLegacy as InvoiceLine } from '../types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -22,7 +22,7 @@ export function InvoiceCreatePage() {
   const { options: thirdPartyOptions, loading: loadingThirdParties } = useThirdPartiesForInvoices();
 
   const [formData, setFormData] = useState<InvoiceCreateData>({
-    invoice_type: InvoiceType.CUSTOMER_INVOICE,
+    invoice_type: InvoiceTypeConst.CUSTOMER_INVOICE,
     third_party_id: '',
     invoice_date: new Date().toISOString().split('T')[0],
     description: '',
@@ -163,11 +163,10 @@ export function InvoiceCreatePage() {
               placeholder="Tipo de factura"
               value={formData.invoice_type}
               onChange={(value) => handleInputChange('invoice_type', value)}
-              options={[
-                { value: InvoiceType.CUSTOMER_INVOICE, label: 'Factura de Venta' },
-                { value: InvoiceType.SUPPLIER_INVOICE, label: 'Factura de Compra' },
-                { value: InvoiceType.CREDIT_NOTE, label: 'Nota de Crédito' },
-                { value: InvoiceType.DEBIT_NOTE, label: 'Nota de Débito' }
+              options={[                { value: InvoiceTypeConst.CUSTOMER_INVOICE, label: 'Factura de Venta' },
+                { value: InvoiceTypeConst.SUPPLIER_INVOICE, label: 'Factura de Compra' },
+                { value: InvoiceTypeConst.CREDIT_NOTE, label: 'Nota de Crédito' },
+                { value: InvoiceTypeConst.DEBIT_NOTE, label: 'Nota de Débito' }
               ]}
             />            <Select
               placeholder="Seleccionar cliente/proveedor"

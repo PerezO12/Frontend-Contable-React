@@ -17,36 +17,27 @@ export const InvoiceTypeEnum = {
 } as const;
 
 // Legacy types para compatibilidad con archivos existentes
-export const InvoiceType = {
+export const InvoiceTypeConst = {
   CUSTOMER_INVOICE: "CUSTOMER_INVOICE" as const,
   SUPPLIER_INVOICE: "SUPPLIER_INVOICE" as const, 
   CREDIT_NOTE: "CREDIT_NOTE" as const,
   DEBIT_NOTE: "DEBIT_NOTE" as const
 } as const;
 
-export type InvoiceStatus = "DRAFT" | "PENDING" | "APPROVED" | "POSTED" | "PAID" | "PARTIALLY_PAID" | "OVERDUE" | "CANCELLED";
+// Estados de factura siguiendo el flujo Odoo implementado en backend
+export type InvoiceStatus = "DRAFT" | "POSTED" | "CANCELLED";
 
 export const InvoiceStatusEnum = {
   DRAFT: "DRAFT" as const,
-  PENDING: "PENDING" as const,
-  APPROVED: "APPROVED" as const,
   POSTED: "POSTED" as const,
-  PAID: "PAID" as const,
-  PARTIALLY_PAID: "PARTIALLY_PAID" as const,
-  OVERDUE: "OVERDUE" as const,
   CANCELLED: "CANCELLED" as const
 } as const;
 
 // Legacy types para compatibilidad con archivos existentes
-export const InvoiceStatus = {
-  DRAFT: "draft" as const,
-  PENDING: "pending" as const,
-  APPROVED: "approved" as const,
-  POSTED: "posted" as const,
-  PAID: "paid" as const,
-  PARTIALLY_PAID: "partially_paid" as const,
-  OVERDUE: "overdue" as const,
-  CANCELLED: "cancelled" as const
+export const InvoiceStatusConst = {
+  DRAFT: "DRAFT" as const,
+  POSTED: "POSTED" as const,
+  CANCELLED: "CANCELLED" as const
 } as const;
 
 // ================================
@@ -137,15 +128,16 @@ export interface InvoiceResponse extends InvoiceBase {
   discount_amount: number;
   total_amount: number;
   
-  // Control de pagos
+  // Control de pagos (actualizado para flujo Odoo)
   paid_amount: number;
   outstanding_amount: number;
   
   // Centro de costo
   cost_center_id?: string;
   
-  // Asiento contable relacionado
+  // Asiento contable relacionado (NUEVO - flujo Odoo)
   journal_entry_id?: string;
+  journal_entry?: JournalEntryReference;
   
   // Auditoría siguiendo patrón Odoo
   created_by_id: string;
@@ -197,14 +189,37 @@ export interface InvoiceLineFormData extends InvoiceLineCreate {
 // ================================
 
 export interface InvoiceFilters {
+  // Filtros básicos existentes
   status?: InvoiceStatus;
   invoice_type?: InvoiceType;
   third_party_id?: string;
-  date_from?: string;
-  date_to?: string;
-  search?: string;
+  currency_code?: string;
+  created_by_id?: string;
+  
+  // Filtros de fecha flexibles (nuevos)
+  date_from?: string;  // Fecha desde (inclusive)
+  date_to?: string;    // Fecha hasta (inclusive)
+  
+  // Búsquedas de texto parciales (nuevos)
+  invoice_number?: string;      // Búsqueda por número de factura
+  third_party_name?: string;    // Búsqueda por nombre del tercero
+  description?: string;         // Búsqueda por descripción
+  reference?: string;           // Búsqueda por referencia interna/externa
+  
+  // Filtros de monto (nuevos)
+  amount_from?: number;         // Monto mínimo
+  amount_to?: number;           // Monto máximo
+  
+  // Ordenamiento (nuevos)
+  sort_by?: 'invoice_date' | 'number' | 'total_amount' | 'status' | 'created_at' | 'due_date';
+  sort_order?: 'asc' | 'desc';
+  
+  // Paginación
   page?: number;
   size?: number;
+  
+  // Legacy
+  search?: string;  // Mantenido para compatibilidad
 }
 
 export interface InvoiceListResponse {
@@ -273,6 +288,38 @@ export interface TaxInfo {
   percentage: number;
   tax_type: string;
   account_id: string;
+}
+
+// ================================
+// PAYMENT TERMS SCHEDULE PREVIEW (NUEVO - Flujo Odoo)
+// ================================
+
+export interface PaymentSchedulePreview {
+  sequence: number;
+  amount: number;
+  percentage: number;
+  due_date: string;
+  description: string;
+}
+
+export interface PaymentTermsValidation {
+  is_valid: boolean;
+  errors: string[];
+}
+
+// ================================
+// JOURNAL ENTRY RELACIONADO (NUEVO - Flujo Odoo)
+// ================================
+
+export interface JournalEntryReference {
+  id: string;
+  number: string;
+  date: string;
+  reference: string;
+  state: "DRAFT" | "POSTED" | "CANCELLED";
+  lines_count: number;
+  total_debit: number;
+  total_credit: number;
 }
 
 export interface PaymentTermsInfo {
@@ -465,7 +512,6 @@ export function convertInvoiceListResponseToLegacy(response: InvoiceListResponse
       items: []
     };
   }
-
   return {
     ...response,
     page_size: response.size,
@@ -476,4 +522,111 @@ export function convertInvoiceListResponseToLegacy(response: InvoiceListResponse
       lines: [] // Lista no incluye líneas por defecto
     }))
   };
+}
+
+// ===== BULK OPERATIONS TYPES =====
+
+/**
+ * Resultado de validación de operación bulk
+ */
+export interface BulkOperationValidation {
+  operation: string;
+  total_requested: number;
+  valid_count: number;
+  invalid_count: number;
+  not_found_count: number;
+  valid_invoices: Array<{
+    id: string;
+    invoice_number: string;
+    status: string;
+    total_amount: number;
+  }>;
+  invalid_invoices: Array<{
+    id: string;
+    invoice_number: string;
+    status: string;
+    reasons: string[];
+  }>;
+  not_found_ids: string[];
+  can_proceed: boolean;
+}
+
+/**
+ * Resultado estándar de operaciones bulk
+ */
+export interface BulkOperationResult {
+  total_requested: number;
+  successful: number;
+  failed: number;
+  skipped: number;
+  successful_ids: string[];
+  failed_items: Array<{
+    id: string;
+    error: string;
+    invoice_number?: string;
+  }>;
+  skipped_items: Array<{
+    id: string;
+    reason: string;
+    current_status?: string;
+  }>;
+  execution_time_seconds: number;
+}
+
+/**
+ * Request para contabilización masiva
+ */
+export interface BulkPostRequest {
+  invoice_ids: string[];
+  posting_date?: string;
+  notes?: string;
+  force_post?: boolean;
+  stop_on_error?: boolean;
+}
+
+/**
+ * Request para cancelación masiva
+ */
+export interface BulkCancelRequest {
+  invoice_ids: string[];
+  reason?: string;
+  stop_on_error?: boolean;
+}
+
+/**
+ * Request para reset masivo a borrador
+ */
+export interface BulkResetToDraftRequest {
+  invoice_ids: string[];
+  reason?: string;
+  force_reset?: boolean;
+  stop_on_error?: boolean;
+}
+
+/**
+ * Request para eliminación masiva
+ */
+export interface BulkDeleteRequest {
+  invoice_ids: string[];
+  confirmation: 'CONFIRM_DELETE';
+  reason?: string;
+}
+
+/**
+ * Estado de selección para operaciones bulk
+ */
+export interface BulkSelectionState {
+  selectedIds: Set<string>;
+  isAllSelected: boolean;
+  isIndeterminate: boolean;
+}
+
+/**
+ * Opciones para filtrar facturas por validez en operaciones bulk
+ */
+export interface BulkOperationFilter {
+  operation: 'post' | 'cancel' | 'reset' | 'delete';
+  includeValid?: boolean;
+  includeInvalid?: boolean;
+  showReasons?: boolean;
 }

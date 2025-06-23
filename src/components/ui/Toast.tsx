@@ -4,7 +4,7 @@ export interface Toast {
   id: string;
   type: 'success' | 'error' | 'warning' | 'info';
   title: string;
-  message?: string;
+  message?: string | any; // Allow any type to be more defensive
   duration?: number;
 }
 
@@ -68,11 +68,12 @@ const ToastComponent: React.FC<ToastProps> = ({
       <div className="flex">
         <div className={`flex-shrink-0 ${iconColors[type]}`}>
           {icons[type]}
-        </div>
-        <div className="ml-3 w-0 flex-1">
+        </div>        <div className="ml-3 w-0 flex-1">
           <p className="text-sm font-medium">{title}</p>
           {message && (
-            <p className="mt-1 text-sm opacity-90">{message}</p>
+            <p className="mt-1 text-sm opacity-90">
+              {typeof message === 'string' ? message : typeof message === 'object' ? JSON.stringify(message) : String(message)}
+            </p>
           )}
         </div>
         <div className="ml-4 flex-shrink-0 flex">
@@ -97,7 +98,7 @@ interface ToastContainerProps {
 
 export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemove }) => {
   return (
-    <div className="fixed top-0 right-0 z-50 p-4 space-y-4">
+    <div className="fixed top-0 right-0 z-[1200] p-4 space-y-4">
       {toasts.map((toast) => (
         <ToastComponent
           key={toast.id}

@@ -119,18 +119,23 @@ export const PaymentTermsForm: React.FC<PaymentTermsFormProps> = ({
     // Validar payment schedules
     if (paymentSchedules.length === 0) {
       newValidationErrors.push('Debe incluir al menos un cronograma de pago');
-    } else {
-      const totalPercentage = paymentSchedules.reduce((sum, ps) => sum + ps.percentage, 0);
-      if (Math.abs(totalPercentage - 100) > 0.01) {
-        newValidationErrors.push(`Los porcentajes deben sumar 100%. Suma actual: ${totalPercentage}%`);
+    } else {      const totalPercentage = paymentSchedules.reduce((sum, ps) => sum + ps.percentage, 0);
+      if (Math.abs(totalPercentage - 100) >= 0.000001) {
+        newValidationErrors.push(`Los porcentajes deben sumar exactamente 100.000000%. Suma actual: ${totalPercentage.toFixed(6)}%`);
       }
 
       paymentSchedules.forEach((schedule, index) => {
         if (schedule.days < 0) {
           newValidationErrors.push(`Cronograma ${index + 1}: Los días deben ser mayor o igual a 0`);
+        }        if (schedule.percentage <= 0 || schedule.percentage > 100) {
+          newValidationErrors.push(`Cronograma ${index + 1}: El porcentaje debe estar entre 0.000001 y 100`);
         }
-        if (schedule.percentage <= 0 || schedule.percentage > 100) {
-          newValidationErrors.push(`Cronograma ${index + 1}: El porcentaje debe estar entre 0.01 y 100`);
+        
+        // Validar que tenga máximo 6 decimales
+        const percentageStr = schedule.percentage.toString();
+        const decimalIndex = percentageStr.indexOf('.');
+        if (decimalIndex !== -1 && percentageStr.slice(decimalIndex + 1).length > 6) {
+          newValidationErrors.push(`Cronograma ${index + 1}: El porcentaje puede tener máximo 6 decimales`);
         }
       });
 
@@ -309,8 +314,7 @@ export const PaymentTermsForm: React.FC<PaymentTermsFormProps> = ({
         </div>        {/* Resumen del cronograma */}
         <div className="mt-4 p-3 bg-blue-50 rounded-lg">
           <div className="text-sm text-blue-800">
-            <strong>Resumen:</strong> {paymentSchedules.length} cuota(s) • 
-            Total: {paymentSchedules.reduce((sum, ps) => sum + (Number(ps.percentage) || 0), 0).toFixed(2)}% • 
+            <strong>Resumen:</strong> {paymentSchedules.length} cuota(s) •            Total: {paymentSchedules.reduce((sum, ps) => sum + (Number(ps.percentage) || 0), 0).toFixed(6)}% • 
             Plazo máximo: {paymentSchedules.length > 0 ? Math.max(...paymentSchedules.map(ps => Number(ps.days) || 0)) : 0} días
           </div>
         </div>

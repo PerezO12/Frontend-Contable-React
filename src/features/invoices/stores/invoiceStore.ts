@@ -12,11 +12,10 @@ import type {
   InvoiceWorkflowAction,
   InvoiceSummary,
   InvoiceType,
-  InvoiceCreateWithLines,
-  InvoiceLineCreate
+  InvoiceCreateWithLines
 } from '../types';
 import {
-  InvoiceStatus,
+  type InvoiceStatus,
   convertInvoiceResponseToLegacy,
   convertInvoiceListResponseToLegacy,
   convertInvoiceWithLinesToLegacy,

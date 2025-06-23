@@ -15,5 +15,8 @@ export {
   ExclamationCircleIcon,
   XCircleIcon,
   DocumentDuplicateIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
+  ChevronUpIcon
 } from '../icons';

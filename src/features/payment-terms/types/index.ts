@@ -38,7 +38,19 @@ export interface PaymentTerms {
 export const paymentScheduleCreateSchema = z.object({
   sequence: z.number().int().min(1, 'La secuencia debe ser mayor a 0'),
   days: z.number().int().min(0, 'Los días deben ser mayor o igual a 0'),
-  percentage: z.number().min(0.01, 'El porcentaje debe ser mayor a 0').max(100, 'El porcentaje no puede exceder 100'),
+  percentage: z.number()
+    .min(0.000001, 'El porcentaje debe ser mayor a 0')
+    .max(100, 'El porcentaje no puede exceder 100')
+    .refine(
+      (val) => {
+        // Validar que tenga máximo 6 decimales
+        const str = val.toString();
+        const decimalIndex = str.indexOf('.');
+        if (decimalIndex === -1) return true;
+        return str.slice(decimalIndex + 1).length <= 6;
+      },
+      { message: 'El porcentaje puede tener máximo 6 decimales' }
+    ),
   description: z.string().optional()
 });
 
@@ -62,14 +74,13 @@ export const paymentTermsCreateSchema = z.object({
         return new Set(sequences).size === sequences.length;
       },
       { message: 'Las secuencias deben ser únicas' }
-    )
-    .refine(
+    )    .refine(
       (schedules) => {
-        // Validar que los porcentajes sumen 100%
+        // Validar que los porcentajes sumen exactamente 100% (hasta 6 decimales)
         const totalPercentage = schedules.reduce((sum, s) => sum + s.percentage, 0);
-        return Math.abs(totalPercentage - 100) < 0.01;
+        return Math.abs(totalPercentage - 100) < 0.000001;
       },
-      { message: 'Los porcentajes deben sumar exactamente 100%' }
+      { message: 'Los porcentajes deben sumar exactamente 100.000000%' }
     )
     .refine(
       (schedules) => {

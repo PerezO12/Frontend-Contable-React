@@ -331,12 +331,10 @@ export class PaymentTermsService {
     const sequences = schedules.map(s => s.sequence);
     if (new Set(sequences).size !== sequences.length) {
       errors.push('Las secuencias deben ser únicas');
-    }
-
-    // Validar que los porcentajes sumen 100%
+    }    // Validar que los porcentajes sumen exactamente 100% (hasta 6 decimales)
     const totalPercentage = schedules.reduce((sum, s) => sum + s.percentage, 0);
-    if (Math.abs(totalPercentage - 100) > 0.01) {
-      errors.push('Los porcentajes deben sumar exactamente 100%');
+    if (Math.abs(totalPercentage - 100) >= 0.000001) {
+      errors.push('Los porcentajes deben sumar exactamente 100.000000%');
     }
 
     // Validar que los días estén en orden ascendente por secuencia

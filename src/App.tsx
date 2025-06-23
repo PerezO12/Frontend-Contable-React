@@ -41,6 +41,7 @@ import {
 import {
   InvoiceListPage,
   InvoiceCreatePageEnhanced,
+  InvoiceCreateOdooPage,
   InvoiceEditPage,
   InvoiceDetailPage
 } from '@/features/invoices/pages';
@@ -291,6 +292,16 @@ const AppContent = () => {
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
               <MainLayout>
                 <InvoiceCreatePageEnhanced />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/invoices/create-odoo" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <InvoiceCreateOdooPage />
               </MainLayout>
             </ProtectedRoute>
           } 

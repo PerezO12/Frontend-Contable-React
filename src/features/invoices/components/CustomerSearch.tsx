@@ -8,19 +8,23 @@ import { useThirdPartiesForInvoices } from '../hooks/useThirdPartiesForInvoices'
 import { ThirdPartyType } from '@/features/third-parties/types';
 
 interface CustomerSearchProps {
-  value: string;
-  onChange: (customerId: string, customerInfo: { code?: string; name: string }) => void;
+  value?: string;
+  onChange?: (customerId: string, customerInfo: { code?: string; name: string }) => void;
+  onSelect?: (thirdParty: { id: string; name: string; code?: string; document_number?: string; third_party_type?: string; default_account_id?: string }) => void;
   disabled?: boolean;
   placeholder?: string;
   error?: string;
+  filterByType?: 'customer' | 'supplier';
 }
 
 export function CustomerSearch({ 
-  value, 
+  value = '', 
   onChange, 
+  onSelect,
   disabled = false, 
   placeholder = "Buscar cliente...",
-  error 
+  error,
+  filterByType = 'customer'
 }: CustomerSearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -50,18 +54,30 @@ export function CustomerSearch({
       )
       .slice(0, 20); // Limitar a 20 resultados
   }, [customers]);
-
   // Manejar selección de cliente
   const handleCustomerSelect = (customer: { value: string; label: string; code?: string }) => {
     setSearchTerm('');
     setSelectedCustomerName(customer.label);
     setDropdownOpen(false);
-    onChange(customer.value, { 
-      code: customer.code, 
-      name: customer.label 
-    });
-  };
-  // Manejar cambio en el input
+    
+    // Usar onSelect si está disponible (nuevo patrón Odoo)
+    if (onSelect) {
+      onSelect({
+        id: customer.value,
+        name: customer.label,
+        code: customer.code,
+        document_number: customer.code, // Por compatibilidad
+        third_party_type: filterByType,
+        default_account_id: undefined // Por ahora undefined
+      });
+    } else if (onChange) {
+      // Fallback al patrón anterior
+      onChange(customer.value, { 
+        code: customer.code, 
+        name: customer.label 
+      });
+    }
+  };  // Manejar cambio en el input
   const handleInputChange = (inputValue: string) => {
     setSearchTerm(inputValue);
     setDropdownOpen(true); // Siempre abrir dropdown, incluso sin texto
@@ -69,7 +85,9 @@ export function CustomerSearch({
     // Si se borra el input, limpiar selección
     if (!inputValue) {
       setSelectedCustomerName('');
-      onChange('', { name: '' });
+      if (onChange) {
+        onChange('', { name: '' });
+      }
     }
   };
 

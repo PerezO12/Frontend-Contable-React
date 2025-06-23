@@ -5,7 +5,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInvoiceStore } from '../stores/invoiceStore';
-import { InvoiceStatus, InvoiceType, type Invoice } from '../types';
+import { InvoiceStatus } from '../types/legacy';
+import type { Invoice } from '../types/legacy';
 import { formatCurrency, formatDate } from '@/shared/utils/formatters';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -31,65 +32,66 @@ import {
   DocumentDuplicateIcon
 } from '@/shared/components/icons';
 
-const statusConfig = {
-  [InvoiceStatus.DRAFT]: {
+type BadgeColor = "gray" | "yellow" | "blue" | "green" | "emerald" | "orange" | "red" | "purple" | "indigo" | "pink";
+
+const statusConfig: Record<string, { label: string; color: BadgeColor; icon: any }> = {
+  'DRAFT': {
     label: 'Borrador',
-    color: 'gray' as const,
+    color: 'gray',
     icon: DocumentTextIcon
   },
-  [InvoiceStatus.PENDING]: {
+  'PENDING': {
     label: 'Pendiente',
-    color: 'yellow' as const,
+    color: 'yellow',
     icon: ExclamationCircleIcon
   },
-  [InvoiceStatus.APPROVED]: {
+  'APPROVED': {
     label: 'Aprobada',
-    color: 'blue' as const,
+    color: 'blue',
     icon: CheckCircleIcon
   },
-  [InvoiceStatus.POSTED]: {
+  'POSTED': {
     label: 'Emitida',
-    color: 'green' as const,
+    color: 'green',
     icon: CheckCircleIcon
   },
-  [InvoiceStatus.PAID]: {
+  'PAID': {
     label: 'Pagada',
-    color: 'emerald' as const,
+    color: 'emerald',
     icon: BanknotesIcon
   },
-  [InvoiceStatus.PARTIALLY_PAID]: {
+  'PARTIALLY_PAID': {
     label: 'Pago Parcial',
-    color: 'orange' as const,
+    color: 'orange',
     icon: BanknotesIcon
   },
-  [InvoiceStatus.OVERDUE]: {
+  'OVERDUE': {
     label: 'Vencida',
-    color: 'red' as const,
+    color: 'red',
     icon: ExclamationCircleIcon
   },
-  [InvoiceStatus.CANCELLED]: {
+  'CANCELLED': {
     label: 'Cancelada',
-    color: 'red' as const,
+    color: 'red',
     icon: XCircleIcon
   }
 };
 
-const typeConfig = {
-  [InvoiceType.CUSTOMER_INVOICE]: {
+const typeConfig: Record<string, { label: string; color: BadgeColor }> = {
+  'CUSTOMER_INVOICE': {
     label: 'Factura Venta',
-    color: 'green' as const
+    color: 'green'
   },
-  [InvoiceType.SUPPLIER_INVOICE]: {
+  'SUPPLIER_INVOICE': {
     label: 'Factura Compra',
-    color: 'blue' as const
+    color: 'blue'
   },
-  [InvoiceType.CREDIT_NOTE]: {
-    label: 'Nota Crédito',
-    color: 'orange' as const
+  'CREDIT_NOTE': {    label: 'Nota Crédito',
+    color: 'orange'
   },
-  [InvoiceType.DEBIT_NOTE]: {
+  'DEBIT_NOTE': {
     label: 'Nota Débito',
-    color: 'purple' as const
+    color: 'purple'
   }
 };
 
@@ -232,9 +234,11 @@ export function InvoiceList() {
     },
     {
       key: 'type',
-      label: 'Tipo',
-      render: (invoice: Invoice) => {
-        const config = typeConfig[invoice.invoice_type];
+      label: 'Tipo',      render: (invoice: Invoice) => {
+        const config = typeConfig[invoice.invoice_type] || {
+          label: invoice.invoice_type,
+          color: 'gray' as BadgeColor
+        };
         return (
           <Badge color={config.color} variant="subtle">
             {config.label}
@@ -261,11 +265,10 @@ export function InvoiceList() {
     {
       key: 'dates',
       label: 'Fechas',
-      render: (invoice: Invoice) => (
-        <div className="text-sm">
+      render: (invoice: Invoice) => (        <div className="text-sm">
           <div>Emisión: {formatDate(invoice.invoice_date)}</div>
           <div className="text-gray-500">
-            Venc: {formatDate(invoice.due_date)}
+            Venc: {invoice.due_date ? formatDate(invoice.due_date) : 'N/A'}
           </div>
         </div>
       )
@@ -288,9 +291,12 @@ export function InvoiceList() {
     },
     {
       key: 'status',
-      label: 'Estado',
-      render: (invoice: Invoice) => {
-        const config = statusConfig[invoice.status];
+      label: 'Estado',      render: (invoice: Invoice) => {
+        const config = statusConfig[invoice.status] || {
+          label: invoice.status,
+          color: 'gray' as BadgeColor,
+          icon: DocumentTextIcon
+        };
         const Icon = config.icon;
         return (
           <Badge color={config.color} variant="subtle">

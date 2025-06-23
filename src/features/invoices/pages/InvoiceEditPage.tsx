@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useInvoiceStore } from '../stores/invoiceStore';
 import { useThirdPartiesForInvoices } from '../hooks/useThirdPartiesForInvoices';
-import { InvoiceType, InvoiceStatus, type InvoiceUpdateData, type InvoiceLine } from '../types';
+import { InvoiceType, InvoiceStatus, type InvoiceUpdateData, type InvoiceLineCreateLegacy as InvoiceLine } from '../types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -53,10 +53,7 @@ export function InvoiceEditPage() {
         showToast('Solo se pueden editar facturas en estado borrador', 'error');
         navigate(`/invoices/${id}`);
         return;
-      }
-
-      setFormData({
-        id: currentInvoice.id!,
+      }      setFormData({
         invoice_type: currentInvoice.invoice_type,
         third_party_id: currentInvoice.third_party_id,
         invoice_date: currentInvoice.invoice_date,
@@ -68,13 +65,12 @@ export function InvoiceEditPage() {
       });
     }
   }, [currentInvoice, id, navigate, showToast]);
-
   // Calcular totales automáticamente
   useEffect(() => {
     if (formData?.lines) {
-      const subtotal = formData.lines.reduce((sum, line) => sum + line.line_total, 0);
+      const subtotal = formData.lines.reduce((sum, line) => sum + (line.line_total || 0), 0);
       const tax_amount = formData.lines.reduce((sum, line) => 
-        sum + (line.line_total * (line.tax_rate / 100)), 0
+        sum + ((line.line_total || 0) * ((line.tax_rate || 0) / 100)), 0
       );
       
       setFormData(prev => prev ? ({
@@ -312,7 +308,7 @@ export function InvoiceEditPage() {
                         {line.tax_rate}%
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-900 font-medium">
-                        ${line.line_total.toFixed(2)}
+                        ${(line.line_total || 0).toFixed(2)}
                       </td>
                       <td className="px-4 py-4 text-sm">
                         <Button
@@ -377,7 +373,7 @@ export function InvoiceEditPage() {
             
             <div className="flex items-center justify-between mt-4">
               <div className="text-sm text-gray-600">
-                Total línea: <span className="font-medium">${newLine.line_total.toFixed(2)}</span>
+                Total línea: <span className="font-medium">${(newLine.line_total || 0).toFixed(2)}</span>
               </div>
               
               <Button

@@ -184,29 +184,12 @@ export class InvoiceAPI {
     const response = await apiClient.put(`${API_BASE}/bulk/cancel`, { invoice_ids: ids });
     return response.data;
   }
+
   /**
    * Duplicar factura
    */
   static async duplicateInvoice(id: string): Promise<InvoiceResponse> {
     const response = await apiClient.post<InvoiceResponse>(`${API_BASE}/${id}/duplicate`);
-    return response.data;
-  }
-
-  /**
-   * Métodos legacy para compatibilidad con el store existente
-   */
-  static async createInvoice(data: InvoiceCreateWithLines): Promise<InvoiceWithLines> {
-    // Alias para createInvoiceWithLines
-    return this.createInvoiceWithLines(data);
-  }
-
-  static async confirmInvoice(id: string, data?: { notes?: string }): Promise<InvoiceResponse> {
-    const response = await apiClient.post<InvoiceResponse>(`${API_BASE}/${id}/confirm`, data || {});
-    return response.data;
-  }
-
-  static async markAsPaid(id: string, data?: { notes?: string }): Promise<InvoiceResponse> {
-    const response = await apiClient.post<InvoiceResponse>(`${API_BASE}/${id}/mark-paid`, data || {});
     return response.data;
   }
 

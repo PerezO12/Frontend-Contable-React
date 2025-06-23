@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInvoiceStore } from '../stores/invoiceStore';
 import { useThirdPartiesForInvoices } from '../hooks/useThirdPartiesForInvoices';
-import { InvoiceType, type InvoiceCreateData, type InvoiceLine } from '../types';
+import { InvoiceType, type InvoiceCreateData, type InvoiceLineCreateLegacy as InvoiceLine } from '../types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -37,12 +37,11 @@ export function InvoiceCreatePage() {
     tax_rate: 21,
     line_total: 0
   });
-
   // Calcular totales automáticamente
   useEffect(() => {
-    const subtotal = formData.lines.reduce((sum, line) => sum + line.line_total, 0);
+    const subtotal = formData.lines.reduce((sum, line) => sum + (line.line_total || 0), 0);
     const tax_amount = formData.lines.reduce((sum, line) => 
-      sum + (line.line_total * (line.tax_rate / 100)), 0
+      sum + ((line.line_total || 0) * ((line.tax_rate || 0) / 100)), 0
     );
     
     setFormData(prev => ({
@@ -248,12 +247,11 @@ export function InvoiceCreatePage() {
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-900">
                         ${line.unit_price.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-4 text-sm text-gray-900">
-                        {line.tax_rate}%
+                      </td>                      <td className="px-4 py-4 text-sm text-gray-900">
+                        {line.tax_rate || 0}%
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-900 font-medium">
-                        ${line.line_total.toFixed(2)}
+                        ${(line.line_total || 0).toFixed(2)}
                       </td>
                       <td className="px-4 py-4 text-sm">
                         <Button
@@ -316,9 +314,8 @@ export function InvoiceCreatePage() {
               />
             </div>
             
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-gray-600">
-                Total línea: <span className="font-medium">${newLine.line_total.toFixed(2)}</span>
+            <div className="flex items-center justify-between mt-4">              <div className="text-sm text-gray-600">
+                Total línea: <span className="font-medium">${(newLine.line_total || 0).toFixed(2)}</span>
               </div>
               
               <Button

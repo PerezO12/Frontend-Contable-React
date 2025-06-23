@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useInvoiceStore } from '../stores/invoiceStore';
-import { InvoiceStatus, InvoiceType } from '../types';
+import { InvoiceStatus, InvoiceType } from '../types/legacy';
 import { formatCurrency, formatDate } from '@/shared/utils/formatters';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -34,28 +34,28 @@ interface WorkflowAction {
 }
 
 // Configuración de workflow
-const workflowActions: Record<InvoiceStatus, WorkflowAction[]> = {
-  [InvoiceStatus.DRAFT]: [
+const workflowActions: Record<string, WorkflowAction[]> = {
+  'draft': [
     { action: 'confirm', label: 'Confirmar', color: 'blue', icon: CheckCircleIcon },
     { action: 'post', label: 'Emitir (Contabilizar)', color: 'green', icon: CheckCircleIcon }
   ],
-  [InvoiceStatus.PENDING]: [
+  'pending': [
     { action: 'post', label: 'Emitir (Contabilizar)', color: 'green', icon: CheckCircleIcon }
   ],
-  [InvoiceStatus.APPROVED]: [
+  'approved': [
     { action: 'post', label: 'Emitir (Contabilizar)', color: 'green', icon: CheckCircleIcon }
   ],
-  [InvoiceStatus.POSTED]: [
+  'posted': [
     { action: 'mark_paid', label: 'Marcar como Pagada', color: 'emerald', icon: BanknotesIcon }
   ],
-  [InvoiceStatus.PAID]: [],
-  [InvoiceStatus.PARTIALLY_PAID]: [
+  'paid': [],
+  'partially_paid': [
     { action: 'mark_paid', label: 'Marcar como Pagada', color: 'emerald', icon: BanknotesIcon }
   ],
-  [InvoiceStatus.OVERDUE]: [
+  'overdue': [
     { action: 'mark_paid', label: 'Marcar como Pagada', color: 'emerald', icon: BanknotesIcon }
   ],
-  [InvoiceStatus.CANCELLED]: []
+  'cancelled': []
 };
 
 export function InvoiceDetailPage() {
@@ -191,10 +191,9 @@ export function InvoiceDetailPage() {
             <label className="text-sm font-medium text-gray-500">Fecha de Emisión</label>
             <p className="text-gray-900">{formatDate(invoice.invoice_date)}</p>
           </div>
-          
-          <div>
+            <div>
             <label className="text-sm font-medium text-gray-500">Fecha de Vencimiento</label>
-            <p className="text-gray-900">{formatDate(invoice.due_date)}</p>
+            <p className="text-gray-900">{invoice.due_date ? formatDate(invoice.due_date) : 'No especificada'}</p>
           </div>
         </div>
 
@@ -456,7 +455,7 @@ export function InvoiceDetailPage() {
 
           {/* Paso 4: Pago recibido */}
           <div className="flex items-center gap-3">            <div className={`h-3 w-3 rounded-full ${
-              invoice.status === 'paid' ? 'bg-green-500' : 'bg-gray-300'
+              invoice.paid_amount >= invoice.total_amount ? 'bg-green-500' : 'bg-gray-300'
             }`}></div>
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900">Pago recibido</p>
@@ -466,8 +465,7 @@ export function InvoiceDetailPage() {
                   : 'Pendiente de pago'
                 }
               </p>
-            </div>
-            {invoice.status === 'paid' ? (
+            </div>            {invoice.paid_amount >= invoice.total_amount ? (
               <CheckCircleIcon className="h-4 w-4 text-green-500" />
             ) : invoice.paid_amount > 0 ? (
               <div className="h-4 w-4 bg-yellow-500 rounded-full"></div>

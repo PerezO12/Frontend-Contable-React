@@ -4,7 +4,8 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { InvoiceType } from '../types';
+import { InvoiceType as InvoiceTypeEnum, type InvoiceType } from '../types';
+import { InvoiceAPI } from '../api/invoiceAPI';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -31,28 +32,6 @@ interface EnhancedInvoiceLine {
   subtotal?: number;
   discount_amount?: number;
   line_total?: number;
-}
-
-// Estructura de datos de factura para el backend
-interface InvoiceCreateBackendData {
-  invoice_type: string;
-  customer_id: string;
-  invoice_date: string;
-  due_date: string;
-  payment_term_id?: string;
-  currency_code?: string;
-  exchange_rate?: number;
-  description?: string;
-  notes?: string;
-  lines: {
-    sequence: number;
-    description: string;
-    quantity: number;
-    unit_price: number;
-    discount_percentage?: number;
-    account_id: string;
-    product_id?: string;
-  }[];
 }
 
 interface JournalEntryPreview {
@@ -87,7 +66,7 @@ export function InvoiceCreatePageEnhanced() {
 
   // Estado del formulario principal
   const [formData, setFormData] = useState({
-    invoice_type: InvoiceType.CUSTOMER_INVOICE,
+    invoice_type: InvoiceTypeEnum.CUSTOMER_INVOICE,
     customer_id: '',
     invoice_date: new Date().toISOString().split('T')[0],
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // +30 días
@@ -451,53 +430,48 @@ export function InvoiceCreatePageEnhanced() {
     if (!formData.customer_id) {
       showToast('Por favor seleccione un cliente', 'error');
       return;
-    }
-
-    if (formData.lines.length === 0) {
+    }    if (formData.lines.length === 0) {
       showToast('Por favor añada al menos una línea a la factura', 'error');
+      return;
+    }    if (!formData.customer_id) {
+      showToast('Por favor seleccione un cliente', 'error');
       return;
     }
 
     setSaving(true);
     try {
-      // Preparar datos para el backend
-      const invoiceData: InvoiceCreateBackendData = {
-        invoice_type: formData.invoice_type,
-        customer_id: formData.customer_id,
+      // Preparar datos para el backend en el formato correcto
+      const invoiceData = {
         invoice_date: formData.invoice_date,
         due_date: formData.due_date,
-        payment_term_id: formData.payment_term_id || undefined,
-        currency_code: formData.currency_code,
-        exchange_rate: formData.exchange_rate,
-        description: formData.description,
-        notes: formData.notes,
+        invoice_type: formData.invoice_type as InvoiceType,
+        currency_code: formData.currency_code || "USD",
+        exchange_rate: formData.exchange_rate || 1,
+        description: formData.description || "",
+        notes: formData.notes || "",
+        invoice_number: "", // Se genera automáticamente
+        third_party_id: formData.customer_id, // Ya validamos que no esté vacío
+        journal_id: undefined,
+        payment_terms_id: formData.payment_term_id || undefined,
+        third_party_account_id: undefined,
         lines: formData.lines.map(line => ({
           sequence: line.sequence,
+          product_id: line.product_id || undefined,
           description: line.description,
           quantity: line.quantity,
           unit_price: line.unit_price,
           discount_percentage: line.discount_percentage,
-          account_id: line.account_id,
-          product_id: line.product_id || undefined
+          account_id: line.account_id || undefined,
+          cost_center_id: undefined,
+          tax_ids: []
         }))
       };
 
-      // Usar el endpoint with-lines para crear factura con líneas
-      const response = await fetch('/api/invoices/with-lines', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(invoiceData)
-      });
+      // Debug: Log the data being sent
+      console.log('Sending invoice data:', invoiceData);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Error al crear la factura');
-      }
-
-      const invoice = await response.json();
+      // Usar InvoiceAPI para crear la factura
+      const invoice = await InvoiceAPI.createInvoiceWithLines(invoiceData);
       showToast('Factura creada exitosamente', 'success');
       navigate(`/invoices/${invoice.id}`);
       
@@ -590,9 +564,8 @@ export function InvoiceCreatePageEnhanced() {
               <Select
                 value={formData.invoice_type}
                 onChange={(value: string) => handleInputChange('invoice_type', value)}
-                options={[
-                  { value: InvoiceType.CUSTOMER_INVOICE, label: 'Factura de Cliente' },
-                  { value: InvoiceType.SUPPLIER_INVOICE, label: 'Factura de Proveedor' }
+                options={[                  { value: InvoiceTypeEnum.CUSTOMER_INVOICE, label: 'Factura de Cliente' },
+                  { value: InvoiceTypeEnum.SUPPLIER_INVOICE, label: 'Factura de Proveedor' }
                 ]}
               />
             </div>

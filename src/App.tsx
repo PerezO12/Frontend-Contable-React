@@ -38,6 +38,12 @@ import {
   ProductCreatePage,
   ProductEditPage
 } from '@/features/products/pages';
+import {
+  InvoiceListPage,
+  InvoiceCreatePageEnhanced,
+  InvoiceEditPage,
+  InvoiceDetailPage
+} from '@/features/invoices/pages';
 import { DataImportRoutes } from '@/features/data-import';
 import { ReportsRoutes } from '@/features/reports';
 
@@ -263,6 +269,48 @@ const AppContent = () => {
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
               <MainLayout>
                 <ProductEditPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Rutas de Facturas - Solo para ADMIN y CONTADOR */}
+        <Route 
+          path="/invoices" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <InvoiceListPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/invoices/new" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <InvoiceCreatePageEnhanced />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/invoices/:id" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <InvoiceDetailPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/invoices/:id/edit" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <InvoiceEditPage />
               </MainLayout>
             </ProtectedRoute>
           } 

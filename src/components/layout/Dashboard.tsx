@@ -15,8 +15,20 @@ export const Dashboard: React.FC = () => {
   const hasAccess = (roles: UserRole[]): boolean => {
     return roles.includes(user.role);
   };
-
   const dashboardStats = [
+    {
+      title: 'Facturas Pendientes',
+      value: '8',
+      change: '+1.2%',
+      trend: 'up' as const,
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-50',
+      icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+    },
     {
       title: 'Asientos Pendientes',
       value: '12',
@@ -70,8 +82,31 @@ export const Dashboard: React.FC = () => {
       ),
     },
   ];
-
   const quickActions = [
+    {
+      title: 'Nueva Factura',
+      description: 'Crear una nueva factura',
+      path: '/invoices/new',
+      icon: (
+        <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+      ),
+      color: 'bg-indigo-500 hover:bg-indigo-600',
+      roles: [UserRole.ADMIN, UserRole.CONTADOR],
+    },
+    {
+      title: 'Ver Facturas',
+      description: 'Gestionar facturas del sistema',
+      path: '/invoices',
+      icon: (
+        <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+      color: 'bg-emerald-500 hover:bg-emerald-600',
+      roles: [UserRole.ADMIN, UserRole.CONTADOR, UserRole.SOLO_LECTURA],
+    },
     {
       title: 'Nuevo Asiento',
       description: 'Crear un nuevo asiento contable',

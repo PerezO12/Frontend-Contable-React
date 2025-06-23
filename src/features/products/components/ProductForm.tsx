@@ -175,10 +175,22 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       }
       if (!dataToSend.external_reference || dataToSend.external_reference.trim() === '') {
         delete dataToSend.external_reference;
-      }
+      }      
       if (!dataToSend.notes || dataToSend.notes.trim() === '') {
         delete dataToSend.notes;
-      }
+      }      
+      // Función auxiliar para limpiar campos UUID
+      const cleanUUIDField = (obj: any, fieldName: string) => {
+        if (!obj[fieldName] || (typeof obj[fieldName] === 'string' && obj[fieldName].trim() === '')) {
+          delete obj[fieldName];
+        }
+      };
+
+      // Manejar campos UUID - eliminar si están vacíos para evitar errores de validación
+      cleanUUIDField(dataToSend, 'sales_account_id');
+      cleanUUIDField(dataToSend, 'purchase_account_id');
+      cleanUUIDField(dataToSend, 'inventory_account_id');
+      cleanUUIDField(dataToSend, 'cogs_account_id');
         console.log('=== INICIO OPERACIÓN DE PRODUCTO ===');
       console.log('Datos del producto a enviar:', JSON.stringify(dataToSend, null, 2));
       

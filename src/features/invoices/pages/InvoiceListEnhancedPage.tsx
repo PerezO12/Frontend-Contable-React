@@ -263,13 +263,12 @@ export function InvoiceListEnhancedPage() {
     }
     setShowExportModal(true);
   };
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'DRAFT':
         return <Badge variant="subtle">📝 Borrador</Badge>;
       case 'POSTED':
-        return <Badge variant="solid">✅ Contabilizada</Badge>;
+        return <Badge variant="subtle" color="green">✅ Contabilizada</Badge>;
       case 'CANCELLED':
         return <Badge variant="subtle">❌ Cancelada</Badge>;
       default:
@@ -302,11 +301,10 @@ export function InvoiceListEnhancedPage() {
             Gestión de facturas con flujo Odoo
           </p>
         </div>
-        
-        <div className="flex space-x-2">
+          <div className="flex space-x-2">
           <Button
             variant="primary"
-            onClick={() => navigate('/invoices/create-enhanced')}
+            onClick={() => navigate('/invoices/new')}
           >
             <PlusIcon className="h-4 w-4 mr-2" />
             Nueva Factura
@@ -449,9 +447,8 @@ export function InvoiceListEnhancedPage() {
             </div>
             <p className="text-gray-600 mb-4">
               No se encontraron facturas con los filtros seleccionados
-            </p>
-            <Button
-              onClick={() => navigate('/invoices/create-enhanced')}
+            </p>            <Button
+              onClick={() => navigate('/invoices/new')}
               variant="primary"
             >
               Crear primera factura

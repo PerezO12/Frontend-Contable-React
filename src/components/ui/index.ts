@@ -14,4 +14,5 @@ export { ConfirmDialog } from './ConfirmDialog';
 export { Textarea } from './Textarea';
 export { Modal } from './Modal';
 export { Alert } from './Alert';
+export { AccountSearchInput } from './AccountSearchInput';
 export type { Toast } from './Toast';

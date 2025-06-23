@@ -4,6 +4,7 @@ export { CustomerSearch } from './CustomerSearch';
 export { ProductSearch } from './ProductSearch';
 export { AccountSearch } from './AccountSearch';
 export { PaymentTermsSearch } from './PaymentTermsSearch';
+export { JournalSearch } from './JournalSearch';
 export { BulkActionsBar } from './BulkActionsBar';
 
 // Nuevos componentes del flujo Odoo

@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { formatCurrency } from '@/shared/utils/formatters';
 import { PlusIcon, TrashIcon, ArrowLeftIcon, PencilIcon } from '@/shared/components/icons';
-import { CustomerSearch, ProductSearch, AccountSearch, PaymentTermsSearch } from '../components';
+import { CustomerSearch, ProductSearch, AccountSearch, PaymentTermsSearch, JournalSearch } from '../components';
 
 // Estructura de línea de factura mejorada
 interface EnhancedInvoiceLine {
@@ -63,11 +63,11 @@ export function InvoiceCreatePageEnhanced() {
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<'info' | 'lines' | 'preview'>('info');
-
   // Estado del formulario principal
   const [formData, setFormData] = useState({
     invoice_type: InvoiceTypeConst.CUSTOMER_INVOICE,
     customer_id: '',
+    journal_id: '',
     invoice_date: new Date().toISOString().split('T')[0],
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // +30 días
     payment_term_id: '',
@@ -93,9 +93,13 @@ export function InvoiceCreatePageEnhanced() {
   });  // Estado del preview de asiento contable
   const [journalEntryPreview, setJournalEntryPreview] = useState<JournalEntryPreview | null>(null);
   const [isEditingPreview, setIsEditingPreview] = useState(false);
-  const [saving, setSaving] = useState(false);
-    // Estado para información adicional  
+  const [saving, setSaving] = useState(false);    // Estado para información adicional  
   const [selectedPaymentTermInfo, setSelectedPaymentTermInfo] = useState<{ name: string; days?: number; code?: string }>({ name: '' });
+  const [selectedJournalInfo, setSelectedJournalInfo] = useState<{ 
+    name: string; 
+    code: string; 
+    default_account?: { id: string; code: string; name: string } 
+  }>({ name: '', code: '' });
   
   // Calcular totales de línea automáticamente
   useEffect(() => {
@@ -357,17 +361,25 @@ export function InvoiceCreatePageEnhanced() {
       total_credit,
       is_balanced: Math.abs(journalEntryPreview.total_debit - total_credit) < 0.01
     });
-  };// Manejar cambios en inputs del formulario principal
+  };  // Manejar cambios en inputs del formulario principal
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
+      // Resetear diario cuando cambie el tipo de factura
+      ...(field === 'invoice_type' && { journal_id: '' })
     }));
-  };  // Manejar cambio de cliente
+    
+    // Limpiar información del diario seleccionado si cambia el tipo
+    if (field === 'invoice_type') {
+      setSelectedJournalInfo({ name: '', code: '' });
+    }
+  };
+
+  // Manejar cambio de cliente
   const handleCustomerChange = (customerId: string, _customerInfo: { code?: string; name: string }) => {
     setFormData(prev => ({ ...prev, customer_id: customerId }));
   };
-
   // Manejar cambio de plan de pagos
   const handlePaymentTermChange = (paymentTermId: string, paymentTermInfo: { name: string; days?: number; code?: string }) => {
     setFormData(prev => ({ ...prev, payment_term_id: paymentTermId }));
@@ -384,7 +396,37 @@ export function InvoiceCreatePageEnhanced() {
       }));
     }
   };
+  // Manejar cambio de diario
+  const handleJournalChange = (journalOption: any) => {
+    if (journalOption) {
+      setFormData(prev => ({ ...prev, journal_id: journalOption.id }));
+      setSelectedJournalInfo({
+        name: journalOption.name,
+        code: journalOption.code,
+        default_account: journalOption.default_account
+      });
 
+      // Si el diario tiene cuenta por defecto, aplicarla a la línea actual
+      if (journalOption.default_account) {
+        setCurrentLine(prev => ({
+          ...prev,
+          account_id: journalOption.default_account.id,
+          account_code: journalOption.default_account.code,
+          account_name: journalOption.default_account.name
+        }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, journal_id: '' }));
+      setSelectedJournalInfo({ name: '', code: '' });
+      // Limpiar cuenta de la línea actual si se deselecciona el diario
+      setCurrentLine(prev => ({
+        ...prev,
+        account_id: '',
+        account_code: '',
+        account_name: ''
+      }));
+    }
+  };
   // Añadir línea a la factura
   const handleAddLine = () => {
     if (!currentLine.description || !currentLine.account_id || currentLine.unit_price <= 0) {
@@ -402,7 +444,8 @@ export function InvoiceCreatePageEnhanced() {
       lines: [...prev.lines, newLine]
     }));
 
-    // Limpiar formulario de línea
+    // Limpiar formulario de línea y aplicar cuenta por defecto del diario si existe
+    const defaultAccount = selectedJournalInfo.default_account;
     setCurrentLine({
       sequence: formData.lines.length + 2,
       product_id: '',
@@ -410,7 +453,9 @@ export function InvoiceCreatePageEnhanced() {
       quantity: 1,
       unit_price: 0,
       discount_percentage: 0,
-      account_id: '',
+      account_id: defaultAccount ? defaultAccount.id : '',
+      account_code: defaultAccount ? defaultAccount.code : '',
+      account_name: defaultAccount ? defaultAccount.name : '',
       subtotal: 0,
       discount_amount: 0,
       line_total: 0
@@ -424,23 +469,25 @@ export function InvoiceCreatePageEnhanced() {
       lines: prev.lines.filter((_, i) => i !== index)
     }));
   };
-
   // Crear factura
   const handleCreateInvoice = async () => {
     if (!formData.customer_id) {
       showToast('Por favor seleccione un cliente', 'error');
       return;
-    }    if (formData.lines.length === 0) {
-      showToast('Por favor añada al menos una línea a la factura', 'error');
+    }
+
+    if (!formData.journal_id) {
+      showToast('Por favor seleccione un diario', 'error');
       return;
-    }    if (!formData.customer_id) {
-      showToast('Por favor seleccione un cliente', 'error');
+    }
+
+    if (formData.lines.length === 0) {
+      showToast('Por favor añada al menos una línea a la factura', 'error');
       return;
     }
 
     setSaving(true);
-    try {
-      // Preparar datos para el backend en el formato correcto
+    try {      // Preparar datos para el backend en el formato correcto
       const invoiceData = {
         invoice_date: formData.invoice_date,
         due_date: formData.due_date,
@@ -451,10 +498,9 @@ export function InvoiceCreatePageEnhanced() {
         notes: formData.notes || "",
         invoice_number: "", // Se genera automáticamente
         third_party_id: formData.customer_id, // Ya validamos que no esté vacío
-        journal_id: undefined,
+        journal_id: formData.journal_id || undefined,
         payment_terms_id: formData.payment_term_id || undefined,
-        third_party_account_id: undefined,
-        lines: formData.lines.map(line => ({
+        third_party_account_id: undefined,        lines: formData.lines.map(line => ({
           sequence: line.sequence,
           product_id: line.product_id || undefined,
           description: line.description,
@@ -473,14 +519,14 @@ export function InvoiceCreatePageEnhanced() {
       // Usar InvoiceAPI para crear la factura
       const invoice = await InvoiceAPI.createInvoiceWithLines(invoiceData);
       showToast('Factura creada exitosamente', 'success');
-      navigate(`/invoices/${invoice.id}`);
-      
+      navigate(`/invoices/${invoice.id}`);      
     } catch (error) {
       console.error('Error creating invoice:', error);
       showToast(error instanceof Error ? error.message : 'Error al crear la factura', 'error');
     } finally {
       setSaving(false);
-    }  };
+    }
+  };
 
   const totalAmount = formData.lines.reduce((sum, line) => sum + (line.line_total || 0), 0);
 
@@ -555,9 +601,7 @@ export function InvoiceCreatePageEnhanced() {
                 onChange={handleCustomerChange}
                 placeholder="Buscar cliente por nombre o código..."
               />
-            </div>
-
-            <div>
+            </div>            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tipo de Factura
               </label>
@@ -567,6 +611,31 @@ export function InvoiceCreatePageEnhanced() {
                   { value: InvoiceTypeConst.SUPPLIER_INVOICE, label: 'Factura de Proveedor' }
                 ]}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Diario *
+              </label>
+              <JournalSearch
+                value={formData.journal_id}
+                onSelect={handleJournalChange}
+                invoiceType={formData.invoice_type}
+                placeholder="Seleccionar diario..."
+                required
+              />
+              {selectedJournalInfo.name && (
+                <div className="mt-2 p-2 bg-blue-50 rounded-md border border-blue-200">
+                  <div className="text-sm text-blue-800">
+                    ✓ Diario seleccionado: <strong>{selectedJournalInfo.code} - {selectedJournalInfo.name}</strong>
+                  </div>
+                  {selectedJournalInfo.default_account && (
+                    <div className="text-xs text-blue-600 mt-1">
+                      Cuenta por defecto: {selectedJournalInfo.default_account.code} - {selectedJournalInfo.default_account.name}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
@@ -1142,10 +1211,10 @@ export function InvoiceCreatePageEnhanced() {
           onClick={() => navigate('/invoices')}
         >
           Cancelar
-        </Button>
-        <Button
+        </Button>        <Button
           onClick={handleCreateInvoice}
-          disabled={saving || formData.lines.length === 0 || !formData.customer_id}          className="bg-blue-600 hover:bg-blue-700"
+          disabled={saving || formData.lines.length === 0 || !formData.customer_id || !formData.journal_id}
+          className="bg-blue-600 hover:bg-blue-700"
         >
           {saving ? 'Creando...' : 'Crear Factura'}
         </Button>

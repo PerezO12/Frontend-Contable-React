@@ -39,6 +39,12 @@ import {
   ProductEditPage
 } from '@/features/products/pages';
 import {
+  JournalListPage,
+  JournalCreatePage,
+  JournalDetailPage,
+  JournalEditPage
+} from '@/features/journals/pages';
+import {
   InvoiceListEnhancedPage,
   InvoiceCreatePageEnhanced,
   InvoiceCreateOdooPage,
@@ -322,6 +328,48 @@ const AppContent = () => {
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
               <MainLayout>
                 <InvoiceEditPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Rutas de Journals - Solo para ADMIN y CONTADOR */}
+        <Route 
+          path="/journals" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <JournalListPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/journals/new" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <JournalCreatePage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/journals/:id" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <JournalDetailPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/journals/:id/edit" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <JournalEditPage />
               </MainLayout>
             </ProtectedRoute>
           } 

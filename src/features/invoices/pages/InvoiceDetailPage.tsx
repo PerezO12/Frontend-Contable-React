@@ -312,8 +312,7 @@ export function InvoiceDetailPage() {
               <th className="text-right py-3 px-4 font-medium text-gray-900 w-24">Subtotal</th>
               <th className="text-right py-3 px-4 font-medium text-gray-900 w-24">Total</th>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
+          </thead>          <tbody className="divide-y divide-gray-200">
             {invoice.lines.map((line, index) => (
               <tr key={line.id || index}>
                 <td className="py-3 px-4">
@@ -321,8 +320,12 @@ export function InvoiceDetailPage() {
                 </td>
                 <td className="py-3 px-4">
                   <div>
-                    {line.product_name && (
+                    {line.product_name ? (
                       <p className="text-sm font-medium text-gray-900">{line.product_name}</p>
+                    ) : line.product_id ? (
+                      <p className="text-sm font-medium text-red-600">ID: {line.product_id} (Sin nombre)</p>
+                    ) : (
+                      <p className="text-sm text-gray-500">Sin producto</p>
                     )}
                     {line.product_code && (
                       <p className="text-xs text-gray-500">{line.product_code}</p>
@@ -345,8 +348,7 @@ export function InvoiceDetailPage() {
                   <span className="text-sm font-mono text-gray-900">
                     {formatCurrency(line.quantity * line.unit_price)}
                   </span>
-                </td>
-                <td className="py-3 px-4 text-right">
+                </td>                <td className="py-3 px-4 text-right">
                   <span className="text-sm font-mono font-semibold text-gray-900">
                     {formatCurrency(line.line_total)}
                   </span>

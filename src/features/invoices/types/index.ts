@@ -67,6 +67,10 @@ export interface InvoiceLineResponse extends InvoiceLineBase {
   invoice_id: string;
   sequence: number;
   
+  // Información del producto relacionado
+  product_name?: string;
+  product_code?: string;
+  
   // Montos calculados
   subtotal: number;
   discount_amount: number;
@@ -481,8 +485,8 @@ export function convertInvoiceWithLinesToLegacy(response: InvoiceWithLines): Inv
       ...line,
       line_number: line.sequence,
       line_total: line.total_amount,
-      product_name: '', // TODO: obtener del producto
-      product_code: '', // TODO: obtener del producto
+      product_name: line.product_name || '', // Mantener el valor del backend
+      product_code: line.product_code || '', // Mantener el valor del backend
       tax_rate: 0 // TODO: calcular del tax_amount
     }))
   };

@@ -1,5 +1,7 @@
 export { AccountForm } from './AccountForm';
 export { AccountList } from './AccountList';
+export { AccountListEnhanced } from './AccountListEnhanced';
+export { AccountAdvancedFilters } from './AccountAdvancedFilters';
 export { AccountTree as AccountTreeComponent } from './AccountTree';
 export { AccountDetail } from './AccountDetail';
 export { AccountExportModal } from './AccountExportModal';

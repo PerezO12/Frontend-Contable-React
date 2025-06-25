@@ -82,26 +82,23 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
         }}
-      >        <div 
-          className="w-[448px] max-w-[90vw] transform transition-all duration-300 ease-out animate-in slide-in-from-top-4 zoom-in-95"
-        >
-          <div 
-            className="bg-white rounded-2xl shadow-2xl overflow-hidden p-8 text-center"
-            style={{
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
-            }}
-          >
-            <Spinner size="lg" />
-            <h3 className="text-lg font-medium text-gray-900 mt-4">
+      >
+        <div className="w-96 max-w-[90vw] transform transition-all duration-300 ease-out">
+          <div className="bg-white rounded-xl shadow-xl overflow-hidden p-8 text-center">
+            <div className="flex justify-center mb-4">
+              <Spinner size="lg" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Validando eliminación
             </h3>
-            <p className="text-gray-600 mt-2">
-              Verificando {selectedAccounts.length} cuentas seleccionadas...
+            <p className="text-gray-600">
+              Verificando {selectedAccounts.length} cuenta{selectedAccounts.length !== 1 ? 's' : ''} seleccionada{selectedAccounts.length !== 1 ? 's' : ''}...
             </p>
-          </div></div>
+          </div>
+        </div>
       </div>
-    );  }  return (
+    );
+  }  return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{
@@ -110,7 +107,7 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
         WebkitBackdropFilter: 'blur(12px)',
       }}
     >
-      <div className="w-[768px] max-w-[90vw] max-h-[90vh] overflow-hidden">
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden">
         <Card>
           <div className="card-header border-b">
             <div className="flex items-center justify-between">
@@ -129,17 +126,17 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
 
           <div className="card-body max-h-[70vh] overflow-y-auto">            {/* Resumen de validación */}
             <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h4 className="font-medium text-green-900">Se pueden eliminar</h4>
-                <p className="text-2xl font-bold text-green-600">{canDeleteAccounts.length}</p>
+              <div className="bg-green-50 border border-green-200 p-4 rounded-lg text-center">
+                <h4 className="font-medium text-green-900 text-sm">Se pueden eliminar</h4>
+                <p className="text-2xl font-bold text-green-600 mt-1">{canDeleteAccounts.length}</p>
               </div>
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h4 className="font-medium text-yellow-900">Con advertencias</h4>
-                <p className="text-2xl font-bold text-yellow-600">{accountsWithWarnings.length}</p>
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg text-center">
+                <h4 className="font-medium text-amber-900 text-sm">Con advertencias</h4>
+                <p className="text-2xl font-bold text-amber-600 mt-1">{accountsWithWarnings.length}</p>
               </div>
-              <div className="bg-red-50 p-4 rounded-lg">
-                <h4 className="font-medium text-red-900">Bloqueadas</h4>
-                <p className="text-2xl font-bold text-red-600">{blockedAccounts.length}</p>
+              <div className="bg-red-50 border border-red-200 p-4 rounded-lg text-center">
+                <h4 className="font-medium text-red-900 text-sm">Bloqueadas</h4>
+                <p className="text-2xl font-bold text-red-600 mt-1">{blockedAccounts.length}</p>
               </div>
             </div>
 
@@ -221,37 +218,42 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
 
             {/* Formulario de eliminación */}
             {canDeleteAccounts.length > 0 && (
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-4">Configuración de eliminación</h4>
+              <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-4">⚙️ Configuración de eliminación</h4>
                 
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Razón para la eliminación *
+                      Razón para la eliminación <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       value={deleteReason}
                       onChange={(e) => setDeleteReason(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                       placeholder="Describe el motivo de la eliminación (ej: Limpieza de cuentas obsoletas del ejercicio 2024)"
                       disabled={deleting}
                     />
                   </div>
 
                   {accountsWithWarnings.length > 0 && (
-                    <div>
-                      <label className="flex items-center space-x-2">
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                      <label className="flex items-start space-x-3">
                         <input
                           type="checkbox"
                           checked={forceDelete}
                           onChange={(e) => setForceDelete(e.target.checked)}
                           disabled={deleting}
-                          className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                          className="mt-1 rounded border-gray-300 text-red-600 focus:ring-red-500"
                         />
-                        <span className="text-sm text-gray-700">
-                          Forzar eliminación de cuentas con advertencias
-                        </span>
+                        <div>
+                          <span className="text-sm font-medium text-amber-900">
+                            Forzar eliminación de cuentas con advertencias
+                          </span>
+                          <p className="text-xs text-amber-700 mt-1">
+                            Permite eliminar cuentas con advertencias pero sin errores críticos.
+                          </p>
+                        </div>
                       </label>
                     </div>
                   )}
@@ -260,11 +262,12 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
             )}
           </div>
 
-          <div className="card-footer border-t bg-gray-50 flex justify-between">
+          <div className="card-footer border-t bg-gray-50 flex justify-between items-center">
             <Button
               variant="secondary"
               onClick={onClose}
               disabled={deleting}
+              className="px-6"
             >
               Cancelar
             </Button>
@@ -274,12 +277,13 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
                 variant="danger"
                 onClick={handleDelete}
                 disabled={deleting || !deleteReason.trim()}
+                className="px-6 min-w-[140px]"
               >
                 {deleting ? (
-                  <>
-                    <Spinner size="sm" className="mr-2" />
-                    Eliminando...
-                  </>
+                  <div className="flex items-center space-x-2">
+                    <Spinner size="sm" />
+                    <span>Eliminando...</span>
+                  </div>
                 ) : (
                   `Eliminar ${canDeleteAccounts.length} cuenta${canDeleteAccounts.length === 1 ? '' : 's'}`
                 )}

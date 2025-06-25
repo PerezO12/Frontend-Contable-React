@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
 import { GenericImportService } from '../../services/GenericImportService';
+import { TemplateInfoCard } from '../TemplateInfoCard';
+import { ExampleDownloadButton } from '../ExampleDownloadButton';
 
 interface FileUploadStepProps {
   onFileUpload: (file: File) => Promise<void>;
@@ -86,6 +88,26 @@ export function FileUploadStep({
           Suba un archivo CSV, XLSX o JSON con los datos para importar al modelo {selectedModel}.
         </p>
       </div>
+
+      {/* Tarjeta de información y descarga de plantilla */}
+      <TemplateInfoCard modelName={selectedModel} />
+
+      {/* Botón de ejemplos (solo para facturas) */}
+      {selectedModel === 'invoice' && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-sm font-medium text-green-800">
+                💡 ¿Necesitas ayuda con el formato?
+              </h4>
+              <p className="text-sm text-green-700 mt-1">
+                Descarga ejemplos prácticos de facturas con diferentes casos de uso
+              </p>
+            </div>
+            <ExampleDownloadButton modelName={selectedModel} />
+          </div>
+        </div>
+      )}
 
       {/* Zona de arrastre */}
       <div

@@ -194,6 +194,11 @@ export class GenericImportService {
     // Transformar la respuesta del backend al formato esperado por el frontend
     const backendResult = response.data;
     
+    console.log('🔍 [GenericImportService] Estructura de respuesta del backend:');
+    console.log('  📊 Summary:', JSON.stringify(backendResult.summary, null, 2));
+    console.log('  ⚡ Performance:', JSON.stringify(backendResult.performance_metrics, null, 2));
+    console.log('  📋 Quality Report:', JSON.stringify(backendResult.quality_report, null, 2));
+    
     // Mapear el estado del backend al formato del frontend
     let frontendStatus: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' = 'completed';
     if (backendResult.status === 'completed' || backendResult.status === 'completed_with_errors') {
@@ -202,52 +207,54 @@ export class GenericImportService {
       frontendStatus = 'failed';
     }
     
+    // Extraer estadísticas de la nueva estructura EnhancedImportExecutionResponse
+    const summary = backendResult.summary || {};
+    const performanceMetrics = backendResult.performance_metrics || {};
+    
     // Crear error_summary a partir de los errores del backend
     const error_summary: Record<string, number> = {};
-    if (backendResult.errors && Array.isArray(backendResult.errors)) {
-      backendResult.errors.forEach((error: string) => {
-        // Extraer el tipo de error para agrupar
-        let errorType = 'Error general';
-        if (error.includes('already exists')) {
-          errorType = 'Registro duplicado';
-        } else if (error.includes('Missing required')) {
-          errorType = 'Campo requerido faltante';
-        } else if (error.includes('Invalid')) {
-          errorType = 'Valor inválido';
-        }
-        
-        error_summary[errorType] = (error_summary[errorType] || 0) + 1;
+    
+    // Procesar errores por tipo desde summary.errors_by_type
+    if (summary.errors_by_type) {
+      Object.entries(summary.errors_by_type).forEach(([errorType, count]) => {
+        error_summary[errorType] = count as number;
       });
     }
     
-    // Procesar skipped_details para el error_summary
-    if (backendResult.skipped_details && Array.isArray(backendResult.skipped_details)) {
-      backendResult.skipped_details.forEach((detail: string) => {
-        let errorType = 'Registro omitido';
-        if (detail.includes('already exists')) {
-          errorType = 'Registro duplicado (omitido)';
-        } else if (detail.includes('Missing required')) {
-          errorType = 'Campo requerido faltante (omitido)';
+    // Procesar failed_records si existen
+    if (backendResult.failed_records && Array.isArray(backendResult.failed_records)) {
+      backendResult.failed_records.forEach((failedRecord: any) => {
+        if (failedRecord.error && failedRecord.error.message) {
+          const errorMessage = failedRecord.error.message;
+          let errorType = 'Error general';
+          
+          if (errorMessage.includes('already exists')) {
+            errorType = 'Registro duplicado';
+          } else if (errorMessage.includes('Missing required')) {
+            errorType = 'Campo requerido faltante';
+          } else if (errorMessage.includes('Invalid')) {
+            errorType = 'Valor inválido';
+          }
+          
+          error_summary[errorType] = (error_summary[errorType] || 0) + 1;
         }
-        
-        error_summary[errorType] = (error_summary[errorType] || 0) + 1;
       });
     }
     
     const transformedResult: ImportResult = {
-      import_id: backendResult.session_id || sessionId,
-      import_session_token: backendResult.session_id || sessionId,
+      import_id: backendResult.import_session_token || sessionId,
+      import_session_token: backendResult.import_session_token || sessionId,
       model: backendResult.model || 'unknown',
       status: frontendStatus,
-      total_rows: backendResult.total_rows || 0,
-      processed_rows: backendResult.total_rows || 0,
-      created_rows: backendResult.successful_rows || 0,
-      updated_rows: 0, // El backend actual no distingue entre created/updated
-      failed_rows: backendResult.error_rows || 0,
-      skipped_rows: backendResult.skipped_rows || 0,
-      skip_errors: backendResult.skip_errors || false,
-      skipped_details: backendResult.skipped_details || [],
-      processing_time_seconds: undefined, // El backend actual no devuelve tiempo
+      total_rows: summary.total_processed || 0,
+      processed_rows: summary.total_processed || 0,
+      created_rows: summary.successful || 0,
+      updated_rows: summary.updated || 0,
+      failed_rows: summary.failed || 0,
+      skipped_rows: summary.skipped || 0,
+      skip_errors: skipErrors,
+      skipped_details: [], // No disponible en la nueva estructura
+      processing_time_seconds: performanceMetrics.total_execution_time_seconds || undefined,
       error_summary: Object.keys(error_summary).length > 0 ? error_summary : undefined,
       detailed_errors: undefined, // No implementado en el backend actual
       created_entities: undefined,
@@ -368,6 +375,123 @@ export class GenericImportService {
       `${BASE_URL}/sessions/${sessionId}/apply-template/${templateId}`
     );
     return response.data;
+  }
+
+  /**
+   * Descarga la plantilla CSV para un modelo específico
+   */
+  static async downloadTemplate(modelName: string): Promise<void> {
+    console.log(`🔍 [GenericImportService] Descargando plantilla para modelo: ${modelName}`);
+    
+    try {
+      const response = await apiClient.get(`/api/v1/import/models/${modelName}/template`, {
+        responseType: 'blob',
+      });
+
+      // Crear un blob con el contenido CSV
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' });
+      
+      // Crear URL temporal para descarga
+      const url = window.URL.createObjectURL(blob);
+      
+      // Crear elemento de descarga temporal
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${modelName}_plantilla_importacion.csv`;
+      
+      // Ejecutar descarga
+      document.body.appendChild(link);
+      link.click();
+      
+      // Limpiar
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log(`✅ [GenericImportService] Plantilla descargada exitosamente: ${modelName}_plantilla_importacion.csv`);
+    } catch (error) {
+      console.error(`❌ [GenericImportService] Error descargando plantilla para ${modelName}:`, error);
+      throw new Error(`Error al descargar la plantilla: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    }
+  }
+
+  /**
+   * Verifica si una plantilla está disponible para un modelo
+   */
+  static async isTemplateAvailable(modelName: string): Promise<boolean> {
+    try {
+      const response = await apiClient.head(`/api/v1/import/models/${modelName}/template`);
+      return response.status === 200;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Descarga ejemplos prácticos para un modelo específico
+   */
+  static async downloadExamples(modelName: string, exampleType: string = 'complete'): Promise<void> {
+    console.log(`🔍 [GenericImportService] Descargando ejemplos para modelo: ${modelName}, tipo: ${exampleType}`);
+    
+    try {
+      const response = await apiClient.get(`/api/v1/import/models/${modelName}/examples`, {
+        params: { example_type: exampleType },
+        responseType: 'blob',
+      });
+
+      // Crear un blob con el contenido CSV
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' });
+      
+      // Crear URL temporal para descarga
+      const url = window.URL.createObjectURL(blob);
+      
+      // Crear elemento de descarga temporal
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${modelName}_ejemplos_${exampleType}.csv`;
+      
+      // Ejecutar descarga
+      document.body.appendChild(link);
+      link.click();
+      
+      // Limpiar
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log(`✅ [GenericImportService] Ejemplos descargados exitosamente: ${modelName}_ejemplos_${exampleType}.csv`);
+    } catch (error) {
+      console.error(`❌ [GenericImportService] Error descargando ejemplos para ${modelName}:`, error);
+      throw new Error(`Error al descargar ejemplos: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    }
+  }
+
+  /**
+   * Obtiene información sobre los ejemplos disponibles para un modelo
+   */
+  static async getExamplesInfo(modelName: string): Promise<any> {
+    console.log(`🔍 [GenericImportService] Obteniendo información de ejemplos para modelo: ${modelName}`);
+    
+    try {
+      const response = await apiClient.get(`/api/v1/import/models/${modelName}/examples/info`);
+      console.log(`✅ [GenericImportService] Información de ejemplos obtenida para: ${modelName}`);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ [GenericImportService] Error obteniendo información de ejemplos para ${modelName}:`, error);
+      throw new Error(`Error al obtener información de ejemplos: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    }
+  }
+
+  /**
+   * Verifica si hay ejemplos disponibles para un modelo específico
+   */
+  static async areExamplesAvailable(modelName: string, exampleType: string = 'complete'): Promise<boolean> {
+    try {
+      const response = await apiClient.head(`/api/v1/import/models/${modelName}/examples`, {
+        params: { example_type: exampleType }
+      });
+      return response.status === 200;
+    } catch {
+      return false;
+    }
   }
 
   // === Utilidades ===

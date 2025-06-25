@@ -205,17 +205,28 @@ export type ProductUpdate = z.infer<typeof ProductUpdateSchema>;
 
 // Filtros para productos
 export interface ProductFilters {
+  // Paginación
+  page?: number;
+  size?: number;
+  // Búsqueda y filtros básicos
+  search?: string; // Buscar en código, nombre o descripción
+  product_type?: string; // Filtrar por tipo de producto
+  product_status?: string; // Filtrar por estado
+  category?: string; // Filtrar por categoría
+  brand?: string; // Filtrar por marca
+  // Filtros booleanos
+  manage_inventory?: boolean; // Filtrar por manejo de inventario
+  low_stock?: boolean; // Solo productos con stock bajo
+  needs_reorder?: boolean; // Solo productos que necesitan reorden
+  // Filtros de precio
+  min_price?: number; // Precio mínimo
+  max_price?: number; // Precio máximo
+  // Para compatibilidad con código existente
   skip?: number;
   limit?: number;
-  page?: number;
-  q?: string; // para búsqueda por texto
-  product_type?: ProductType | ProductType[];
+  q?: string; // alias para search
   status?: ProductStatus | ProductStatus[];
   is_active?: boolean;
-  low_stock?: boolean;
-  category?: string;
-  min_price?: string;
-  max_price?: string;
   sort_by?: 'name' | 'code' | 'sale_price' | 'current_stock' | 'created_at';
   sort_order?: 'asc' | 'desc';
 }

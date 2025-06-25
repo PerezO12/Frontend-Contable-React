@@ -2,11 +2,20 @@ import React, { useState } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Card } from '../../../components/ui/Card';
-import { Spinner } from '../../../components/ui/Spinner';
+import { Badge } from '../../../components/ui/Badge';
+import { LoadingSpinner } from '../../../components/ui/LoadingSpinner';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { useProducts } from '../hooks';
 import { SimpleExportControls } from '../components/SimpleExportControls';
 import { BulkDeleteModal } from '../components/BulkDeleteModal';
 import { formatCurrency } from '../../../shared/utils';
+import { 
+  PlusIcon, 
+  FunnelIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ExclamationCircleIcon
+} from '../../../shared/components/icons';
 import { 
   ProductTypeLabels, 
   ProductStatusLabels,
@@ -28,10 +37,11 @@ export const ProductList: React.FC<ProductListProps> = ({
   onCreateProduct,
   initialFilters,
   showActions = true
-}) => {const [filters, setFilters] = useState<ProductFilters>(initialFilters || {});
+}) => {const [filters, setFilters] = useState<ProductFilters>(initialFilters || { page: 1, size: 50 });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const { 
     products, 
@@ -51,10 +61,10 @@ export const ProductList: React.FC<ProductListProps> = ({
   // Función para manejar búsqueda
   const handleSearch = () => {
     if (searchTerm.trim()) {
-      handleFilterChange('q', searchTerm.trim());
+      handleFilterChange('search', searchTerm.trim());
     } else {
       const newFilters = { ...filters };
-      delete newFilters.q;
+      delete newFilters.search;
       setFilters(newFilters);
       refetchWithFilters(newFilters);
     }
@@ -98,16 +108,57 @@ export const ProductList: React.FC<ProductListProps> = ({
   };
 
   const getStatusBadge = (status: ProductStatus) => {
-    const colors = {
-      [ProductStatus.ACTIVE]: 'bg-green-100 text-green-800',
-      [ProductStatus.INACTIVE]: 'bg-gray-100 text-gray-800',
-      [ProductStatus.DISCONTINUED]: 'bg-red-100 text-red-800'
+    const statusConfig = {
+      [ProductStatus.ACTIVE]: {
+        label: ProductStatusLabels[status],
+        color: 'green' as const,
+        icon: CheckCircleIcon
+      },
+      [ProductStatus.INACTIVE]: {
+        label: ProductStatusLabels[status], 
+        color: 'gray' as const,
+        icon: XCircleIcon
+      },
+      [ProductStatus.DISCONTINUED]: {
+        label: ProductStatusLabels[status],
+        color: 'red' as const,
+        icon: XCircleIcon
+      }
     };
     
+    const config = statusConfig[status];
+    const Icon = config.icon;
+    
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[status]}`}>
-        {ProductStatusLabels[status]}
-      </span>
+      <Badge color={config.color} variant="subtle">
+        <Icon className="h-3 w-3 mr-1" />
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const getTypeBadge = (type: ProductType) => {
+    const typeConfig = {
+      [ProductType.PRODUCT]: {
+        label: ProductTypeLabels[type],
+        color: 'blue' as const
+      },
+      [ProductType.SERVICE]: {
+        label: ProductTypeLabels[type],
+        color: 'purple' as const
+      },
+      [ProductType.BOTH]: {
+        label: ProductTypeLabels[type],
+        color: 'green' as const
+      }
+    };
+    
+    const config = typeConfig[type];
+    
+    return (
+      <Badge color={config.color} variant="subtle">
+        {config.label}
+      </Badge>
     );
   };
 
@@ -120,40 +171,45 @@ export const ProductList: React.FC<ProductListProps> = ({
     
     if (stock <= 0) {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        <Badge color="red" variant="subtle">
+          <ExclamationCircleIcon className="h-3 w-3 mr-1" />
           Sin stock
-        </span>
+        </Badge>
       );
     }
     
     if (minStock > 0 && stock <= minStock) {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+        <Badge color="yellow" variant="subtle">
+          <ExclamationCircleIcon className="h-3 w-3 mr-1" />
           Stock bajo
-        </span>
+        </Badge>
       );
     }
     
     if (maxStock > 0 && stock >= maxStock) {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        <Badge color="blue" variant="subtle">
           Stock alto
-        </span>
+        </Badge>
       );
     }
     
     return null;
   };  const clearFilters = () => {
     setSearchTerm('');
-    const newFilters = {};
+    const newFilters = {
+      page: 1,
+      size: 50
+    };
     setFilters(newFilters);
     refetchWithFilters(newFilters);
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Spinner size="lg" />
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
@@ -161,18 +217,68 @@ export const ProductList: React.FC<ProductListProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Productos</h1>
-          <p className="text-gray-600">
-            Gestión de productos y servicios
+          <p className="text-gray-600 mt-1">
+            Gestión completa de productos y servicios
+            {pagination && pagination.total > 0 && (
+              <span className="ml-2 text-sm font-medium">
+                • {pagination.total} productos encontrados
+                {pagination.pages > 1 && (
+                  <span className="text-gray-500">
+                    {' '}(página {pagination.page} de {pagination.pages})
+                  </span>
+                )}
+              </span>
+            )}
           </p>
         </div>
-        {showActions && onCreateProduct && (
-          <Button onClick={onCreateProduct} variant="primary">
-            Nuevo Producto
+        
+        <div className="flex items-center gap-3">
+          {/* Control de elementos por página */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-700">Mostrar:</span>
+            <select
+              value={filters.size || 50}
+              onChange={(e) => {
+                const newSize = parseInt(e.target.value);
+                const newFilters = { 
+                  ...filters, 
+                  size: newSize, 
+                  page: 1 // Reset to first page
+                };
+                setFilters(newFilters);
+                refetchWithFilters(newFilters);
+              }}
+              className="px-2 py-1 border border-gray-300 rounded text-sm"
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value={200}>200</option>
+              <option value={500}>500</option>
+              <option value={1000}>1000</option>
+            </select>
+            <span className="text-sm text-gray-700">por página</span>
+          </div>
+          
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2"
+          >
+            <FunnelIcon className="h-4 w-4" />
+            Filtros
           </Button>
-        )}
+          
+          {showActions && onCreateProduct && (
+            <Button onClick={onCreateProduct} variant="primary" className="flex items-center gap-2">
+              <PlusIcon className="h-4 w-4" />
+              Nuevo Producto
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Error Display */}
@@ -195,107 +301,109 @@ export const ProductList: React.FC<ProductListProps> = ({
           </div>
         </div>
       )}      {/* Filters and Search */}
-      <Card className="p-6">
-        <div className="space-y-4">
-          {/* Search and Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            {/* Search */}
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Buscar
-              </label>
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Código, nombre, descripción..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                />
-                <Button 
-                  onClick={handleSearch}
-                  variant="secondary"
-                  disabled={loading}
-                >
+      {showFilters && (
+        <Card className="p-6">
+          <div className="space-y-4">
+            {/* Search and Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              {/* Search */}
+              <div className="md:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Buscar
-                </Button>
+                </label>
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder="Código, nombre, descripción..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  />
+                  <Button 
+                    onClick={handleSearch}
+                    variant="secondary"
+                    disabled={loading}
+                  >
+                    Buscar
+                  </Button>
+                </div>
+              </div>
+
+              {/* Product Type Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo de Producto
+                </label>
+                <select
+                  value={filters.product_type || ''}
+                  onChange={(e) => handleFilterChange('product_type', e.target.value || undefined)}
+                  className="form-select w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Todos los tipos</option>
+                  {Object.entries(ProductTypeLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Estado
+                </label>
+                <select
+                  value={filters.product_status || ''}
+                  onChange={(e) => handleFilterChange('product_status', e.target.value || undefined)}
+                  className="form-select w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Todos los estados</option>
+                  {Object.entries(ProductStatusLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            {/* Product Type Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tipo de Producto
-              </label>
-              <select
-                value={filters.product_type?.[0] || ''}
-                onChange={(e) => handleFilterChange('product_type', e.target.value ? [e.target.value as ProductType] : undefined)}
-                className="form-select w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="">Todos los tipos</option>
-                {Object.entries(ProductTypeLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Additional Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Low Stock Filter */}
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={filters.low_stock || false}
+                    onChange={(e) => handleFilterChange('low_stock', e.target.checked || undefined)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Solo productos con stock bajo</span>
+                </label>
+              </div>
 
-            {/* Status Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Estado
-              </label>
-              <select
-                value={filters.status?.[0] || ''}
-                onChange={(e) => handleFilterChange('status', e.target.value ? [e.target.value as ProductStatus] : undefined)}
-                className="form-select w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="">Todos los estados</option>
-                {Object.entries(ProductStatusLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+              {/* Clear Filters Button */}
+              <div className="flex items-end">
+                <Button
+                  onClick={clearFilters}
+                  variant="outline"
+                  disabled={!searchTerm && !filters.product_type && !filters.product_status && !filters.low_stock}
+                >
+                  Limpiar filtros
+                </Button>
+              </div>
 
-          {/* Additional Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Low Stock Filter */}
-            <div>
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={filters.low_stock || false}
-                  onChange={(e) => handleFilterChange('low_stock', e.target.checked || undefined)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              {/* Export Controls */}
+              <div>
+                <SimpleExportControls 
+                  selectedProductIds={Array.from(selectedProducts)}
+                  productCount={selectedProducts.size}
                 />
-                <span className="ml-2 text-sm text-gray-700">Solo productos con stock bajo</span>
-              </label>
-            </div>
-
-            {/* Clear Filters Button */}
-            <div className="flex items-end">
-              <Button
-                onClick={clearFilters}
-                variant="outline"
-                disabled={!searchTerm && !filters.product_type && !filters.status && !filters.low_stock}
-              >
-                Limpiar filtros
-              </Button>
-            </div>
-
-            {/* Export Controls */}
-            <div>
-              <SimpleExportControls 
-                selectedProductIds={Array.from(selectedProducts)}
-                productCount={selectedProducts.size}
-              />
+              </div>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Bulk Actions */}
       {selectedProducts.size > 0 && showActions && (
@@ -386,9 +494,7 @@ export const ProductList: React.FC<ProductListProps> = ({
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {ProductTypeLabels[product.product_type]}
-                    </span>
+                    {getTypeBadge(product.product_type)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatPrice(product.sale_price)}
@@ -418,42 +524,39 @@ export const ProductList: React.FC<ProductListProps> = ({
 
         {/* Empty State */}
         {products.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No hay productos</h3>            <p className="mt-1 text-sm text-gray-500">
-              {searchTerm || filters.product_type || filters.status || filters.low_stock
-                ? 'No se encontraron productos que coincidan con los filtros aplicados.'
-                : 'Comienza creando tu primer producto.'
+          <div className="py-12">
+            <EmptyState
+              title="No hay productos"
+              description={
+                searchTerm || filters.product_type || filters.product_status || filters.low_stock
+                  ? 'No se encontraron productos que coincidan con los filtros aplicados.'
+                  : 'Comienza creando tu primer producto.'
               }
-            </p>
-            {showActions && onCreateProduct && (
-              <div className="mt-6">
+              action={showActions && onCreateProduct ? (
                 <Button onClick={onCreateProduct} variant="primary">
                   Crear Producto
                 </Button>
-              </div>
-            )}
+              ) : undefined}
+            />
           </div>
         )}
 
         {/* Pagination */}
         {pagination && pagination.pages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">            <div className="flex-1 flex justify-between sm:hidden">              <Button
-                onClick={() => handleFilterChange('skip', Math.max(0, (filters.skip || 0) - (filters.limit || 50)))}
-                disabled={!filters.skip || filters.skip <= 0}
-                variant="outline"
-              >
-                Anterior
-              </Button>
-              <Button
-                onClick={() => handleFilterChange('skip', (filters.skip || 0) + (filters.limit || 50))}
-                disabled={pagination.page >= pagination.pages}
-                variant="outline"
-              >
-                Siguiente
-              </Button>
+          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">            <div className="flex-1 flex justify-between sm:hidden">                <Button
+                  onClick={() => handleFilterChange('page', Math.max(1, (pagination.page || 1) - 1))}
+                  disabled={!pagination.page || pagination.page <= 1}
+                  variant="outline"
+                >
+                  Anterior
+                </Button>
+                <Button
+                  onClick={() => handleFilterChange('page', (pagination.page || 1) + 1)}
+                  disabled={pagination.page >= pagination.pages}
+                  variant="outline"
+                >
+                  Siguiente
+                </Button>
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
@@ -471,8 +574,8 @@ export const ProductList: React.FC<ProductListProps> = ({
                 </p>
               </div>
               <div>                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">                  <Button
-                    onClick={() => handleFilterChange('skip', Math.max(0, (filters.skip || 0) - (filters.limit || 50)))}
-                    disabled={!filters.skip || filters.skip <= 0}
+                    onClick={() => handleFilterChange('page', Math.max(1, (pagination.page || 1) - 1))}
+                    disabled={!pagination.page || pagination.page <= 1}
                     variant="outline"
                     className="rounded-l-md"
                   >
@@ -482,7 +585,7 @@ export const ProductList: React.FC<ProductListProps> = ({
                     Página {pagination.page || 1} de {pagination.pages}
                   </span>
                   <Button
-                    onClick={() => handleFilterChange('skip', (filters.skip || 0) + (filters.limit || 50))}
+                    onClick={() => handleFilterChange('page', (pagination.page || 1) + 1)}
                     disabled={pagination.page >= pagination.pages}
                     variant="outline"
                     className="rounded-r-md"

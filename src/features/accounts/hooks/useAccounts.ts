@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AccountService } from '../services';
 import { useToast } from '../../../shared/hooks/useToast';
 import type { 
@@ -13,38 +13,89 @@ import type {
   BulkAccountDeleteResult
 } from '../types';
 
-export const useAccounts = (initialFilters?: AccountFilters) => {
+export const useAccounts = (filters?: AccountFilters) => {
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [currentFilters, setCurrentFilters] = useState<AccountFilters | undefined>(initialFilters);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { success, error: showError } = useToast();
 
+  // Estabilizar filters para evitar bucles infinitos
+  const stableFilters = useMemo(() => filters, [
+    filters?.search,
+    filters?.account_type,
+    filters?.category,
+    filters?.cash_flow_category,
+    filters?.is_active,
+    filters?.skip,
+    filters?.limit
+  ]);
+
+  // Ref para evitar fetch duplicado
+  const lastFetchFilters = useRef<string>('');
+
   const fetchAccounts = useCallback(async (filters?: AccountFilters) => {
+    const filtersKey = JSON.stringify(filters || {});
+    
+    // Evitar petición duplicada si los filtros son los mismos
+    if (lastFetchFilters.current === filtersKey) {
+      return;
+    }
+    
+    lastFetchFilters.current = filtersKey;
+    
+    console.log('🔍 [useAccounts] fetchAccounts called with filters:', filters);
     setLoading(true);
     setError(null);
     
     try {
-      const filtersToUse = filters || currentFilters;
-      const data = await AccountService.getAccounts(filtersToUse);
-      setAccounts(data);
+      const response = await AccountService.getAccounts(filters);
+      console.log('🔍 [useAccounts] Response from service:', response);
+      
+      // Handle both array and paginated response formats
+      if (Array.isArray(response)) {
+        // Backend returned plain array
+        console.log('🔍 [useAccounts] Response is plain array, converting to paginated format');
+        setAccounts(response);
+        setTotal(response.length);
+        console.log('🔍 [useAccounts] Set accounts from array:', response.length, 'total:', response.length);
+      } else {
+        // Backend returned paginated response
+        console.log('🔍 [useAccounts] Response is paginated object');
+        setAccounts(response.items);
+        setTotal(response.total);
+        console.log('🔍 [useAccounts] Set accounts from object:', response.items.length, 'total:', response.total);
+      }
     } catch (err) {
+      console.error('❌ [useAccounts] Error fetching accounts:', err);
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar las cuentas';
       setError(errorMessage);
       showError(errorMessage);
+      setAccounts([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [currentFilters, showError]);
+  }, [showError]);
 
-  const refetchWithFilters = useCallback(async (newFilters: AccountFilters) => {
-    setCurrentFilters(newFilters);
-    await fetchAccounts(newFilters);
+  const refetch = useCallback(() => {
+    fetchAccounts(stableFilters);
+  }, [fetchAccounts, stableFilters]);
+
+  const refetchWithFilters = useCallback((newFilters: AccountFilters) => {
+    fetchAccounts(newFilters);
   }, [fetchAccounts]);
 
-  const refetch = useCallback(async () => {
-    await fetchAccounts(currentFilters);
-  }, [fetchAccounts, currentFilters]);
+  // Función para forzar refetch ignorando cache
+  const forceRefetch = useCallback((newFilters?: AccountFilters) => {
+    // Limpiar cache para forzar nueva petición
+    lastFetchFilters.current = '';
+    fetchAccounts(newFilters || stableFilters);
+  }, [fetchAccounts, stableFilters]);
+
+  useEffect(() => {
+    fetchAccounts(stableFilters);
+  }, [fetchAccounts, stableFilters]);
 
   const createAccount = useCallback(async (accountData: AccountCreate): Promise<Account | null> => {
     setLoading(true);
@@ -125,14 +176,8 @@ export const useAccounts = (initialFilters?: AccountFilters) => {
       setLoading(false);
     }
   }, [success, showError]);
-  useEffect(() => {
-    // Ejecutar solo una vez al montar con los filtros iniciales
-    if (initialFilters) {
-      fetchAccounts(initialFilters);
-    } else {
-      fetchAccounts();
-    }
-  }, []); // Array vacío para ejecutar solo una vez// Método para obtener cuentas potenciales padre por tipo
+
+  // Método para obtener cuentas potenciales padre por tipo
   const getParentAccountsByType = useCallback(async (accountType: AccountType): Promise<Account[]> => {
     try {
       // Filtramos por tipo de cuenta y solo cuentas activas
@@ -140,12 +185,20 @@ export const useAccounts = (initialFilters?: AccountFilters) => {
         account_type: accountType,
         is_active: true
       };
-      const possibleParents = await AccountService.getAccounts(filters);
-      console.log('Posibles cuentas padre encontradas:', possibleParents);
-      return possibleParents;
+      const response = await AccountService.getAccounts(filters);
+      
+      // Handle both array and paginated response formats
+      if (Array.isArray(response)) {
+        console.log('Posibles cuentas padre encontradas:', response.length);
+        return response;
+      } else {
+        console.log('Posibles cuentas padre encontradas:', response.items.length);
+        return response.items;
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar las cuentas padre potenciales';
-      showError(errorMessage);      return [];
+      showError(errorMessage);
+      return [];
     }
   }, [showError]);
 
@@ -187,10 +240,12 @@ export const useAccounts = (initialFilters?: AccountFilters) => {
   }, [showError]);
   return {
     accounts,
+    total,
     loading,
     error,
     refetch,
     refetchWithFilters,
+    forceRefetch,
     createAccount,
     updateAccount,
     deleteAccount,

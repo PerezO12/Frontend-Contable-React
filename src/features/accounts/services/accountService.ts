@@ -6,6 +6,7 @@ import type {
   AccountCreate, 
   AccountUpdate, 
   AccountFilters,
+  AccountListResponse,
   BulkAccountDelete,
   AccountDeleteValidation,
   BulkAccountDeleteResult
@@ -30,9 +31,10 @@ export class AccountService {
   }
 
   /**
-   * Obtener lista de cuentas con filtros
+   * Obtener lista de cuentas con filtros y paginación
    */
-  static async getAccounts(filters?: AccountFilters): Promise<Account[]> {
+  static async getAccounts(filters?: AccountFilters): Promise<AccountListResponse | Account[]> {
+    console.log('🔍 [AccountService] getAccounts called with filters:', filters);
     const params = new URLSearchParams();
     
     if (filters) {
@@ -46,8 +48,27 @@ export class AccountService {
     }
 
     const url = params.toString() ? `${this.BASE_URL}?${params}` : this.BASE_URL;
-    const response = await apiClient.get<Account[]>(url);
-    return response.data;
+    console.log('🔍 [AccountService] Final URL:', url);
+    
+    try {
+      const response = await apiClient.get<any>(url);
+      console.log('✅ [AccountService] Response received:', response.data);
+      
+      // Check if response is paginated format
+      if (response.data && typeof response.data === 'object' && 'items' in response.data && 'total' in response.data) {
+        console.log('🔍 [AccountService] Response is paginated format');
+        return response.data as AccountListResponse;
+      } else if (Array.isArray(response.data)) {
+        console.log('🔍 [AccountService] Response is plain array, returning as-is for hook to handle');
+        return response.data as Account[];
+      } else {
+        console.warn('⚠️ [AccountService] Unexpected response format, trying to extract accounts');
+        return response.data;
+      }
+    } catch (error) {
+      console.error('❌ [AccountService] Error fetching accounts:', error);
+      throw error;
+    }
   }
 
   /**

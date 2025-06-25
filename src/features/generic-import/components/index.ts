@@ -1,6 +1,10 @@
 export { ImportStepper } from './ImportStepper';
 export { GenericImportWizard } from './GenericImportWizard';
 export { ValidationErrorsDisplay } from './ValidationErrorsDisplay';
+export { TemplateDownloadButton } from './TemplateDownloadButton';
+export { TemplateInfoCard } from './TemplateInfoCard';
+export { ExampleDownloadButton } from './ExampleDownloadButton';
+export { QuickTemplateDownload } from './QuickTemplateDownload';
 
 // Step components
 export { ModelSelectionStep } from './steps/ModelSelectionStep';

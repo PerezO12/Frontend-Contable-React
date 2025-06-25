@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '../../../components/ui/Button';
-import { AccountList, AccountTreeComponent as AccountTree, AccountForm, AccountDetail, CashFlowCategoryManager } from '../components';
+import { AccountListEnhanced, AccountTreeComponent as AccountTree, AccountForm, AccountDetail, CashFlowCategoryManager } from '../components';
 import { ExportTestComponent } from '../components/ExportTestComponent';
 import type { Account } from '../types';
 
@@ -222,9 +222,8 @@ export const AccountsPage: React.FC = () => {
         return (
           <>            
           {viewMode === 'list' ? (
-              <AccountList
+              <AccountListEnhanced
                 onAccountSelect={handleViewAccount}
-                onCreateAccount={() => handleCreateAccount()}
               />
             ) : (
               <AccountTree

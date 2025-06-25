@@ -1,45 +1,15 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ProductList, ProductDetail } from '../components';
-import type { Product } from '../types';
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import { ProductsMainPage } from './ProductsMainPage';
+import { ProductCreatePage } from './ProductCreatePage';
+import { ProductEditPage } from './ProductEditPage';
 
-export function ProductsPage() {
-  const navigate = useNavigate();
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [showDetail, setShowDetail] = useState(false);
-
-  const handleProductSelect = (product: Product) => {
-    setSelectedProduct(product);
-    setShowDetail(true);
-  };
-
-  const handleCreateProduct = () => {
-    navigate('/products/new');
-  };
-
-  const handleEditProduct = (product: Product) => {
-    navigate(`/products/${product.id}/edit`);
-  };
-
-  const handleBackToList = () => {
-    setShowDetail(false);
-    setSelectedProduct(null);
-  };
-
-  if (showDetail && selectedProduct) {
-    return (
-      <ProductDetail
-        productId={selectedProduct.id}
-        onEdit={handleEditProduct}
-        onClose={handleBackToList}
-      />
-    );
-  }
+export const ProductsPage: React.FC = () => {
   return (
-    <ProductList
-      onProductSelect={handleProductSelect}
-      onCreateProduct={handleCreateProduct}
-      showActions={true}
-    />
+    <Routes>
+      <Route path="/" element={<ProductsMainPage />} />
+      <Route path="/create" element={<ProductCreatePage />} />
+      <Route path="/:id/edit" element={<ProductEditPage />} />
+    </Routes>
   );
-}
+};

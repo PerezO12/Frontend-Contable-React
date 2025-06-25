@@ -123,6 +123,17 @@ export interface AccountFilters {
   is_active?: boolean;
   parent_id?: string;
   search?: string;
+  // Paginación como parte del filtro
+  page?: number;
+  size?: number;
+}
+
+// API Response types
+export interface AccountListResponse {
+  items: Account[];
+  total: number;
+  skip: number;
+  limit: number;
 }
 
 // Validation schemas using Zod

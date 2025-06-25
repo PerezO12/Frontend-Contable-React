@@ -1,0 +1,34 @@
+/* CSS fix específico para el asistente de importación genérico */
+.generic-import-wizard {
+  line-height: 1.5 !important;
+}
+
+.generic-import-wizard * {
+  line-height: inherit !important;
+}
+
+.generic-import-wizard h1,
+.generic-import-wizard h2,
+.generic-import-wizard h3,
+.generic-import-wizard h4,
+.generic-import-wizard h5,
+.generic-import-wizard h6 {
+  line-height: 1.25 !important;
+}
+
+.generic-import-wizard p {
+  line-height: 1.4 !important;
+  margin-bottom: 0.5rem;
+}
+
+.generic-import-wizard button {
+  line-height: 1.25 !important;
+}
+
+.generic-import-wizard .space-y-6 > * + * {
+  margin-top: 1.5rem !important;
+}
+
+.generic-import-wizard .space-y-4 > * + * {
+  margin-top: 1rem !important;
+}

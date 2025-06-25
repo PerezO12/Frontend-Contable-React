@@ -32,10 +32,22 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
 
     setStep('deleting');
     const thirdPartyIds = selectedThirdParties.map(tp => tp.id);
-    const result = await bulkDeleteReal(thirdPartyIds, forceDelete, deleteReason);
     
-    if (result) {
-      onSuccess(result);
+    try {
+      const result = await bulkDeleteReal(thirdPartyIds, forceDelete, deleteReason);
+      
+      if (result) {
+        // Éxito: cerrar modal inmediatamente y notificar
+        onSuccess(result);
+        onClose();
+      } else {
+        // Error: volver al estado de confirmación
+        setStep('confirmation');
+      }
+    } catch (error) {
+      // Error: volver al estado de confirmación
+      setStep('confirmation');
+      console.error('Error en eliminación masiva:', error);
     }
   };
   // Verificar si hay terceros que no se pueden eliminar

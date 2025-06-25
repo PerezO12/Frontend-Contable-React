@@ -31,20 +31,21 @@ export function useImportHistory() {
   const getImportHistory = useCallback(async (
     page: number = 1,
     limit: number = 20,
-    dataType?: 'accounts' | 'journal_entries'
+    _dataType?: 'accounts' | 'journal_entries'
   ) => {
     setState(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const result = await DataImportService.getImportHistory(page, limit, dataType);
+      // Nota: Los parámetros se ignoran porque el servicio no los acepta
+      const result = await DataImportService.getImportHistory();
       
       setState(prev => ({
         ...prev,
         isLoading: false,
         imports: result.imports,
         total: result.total,
-        page: result.page,
-        limit: result.limit,
+        page: page, // Usar los parámetros pasados para el estado local
+        limit: limit,
         totalPages: result.total_pages,
       }));
 

@@ -35,6 +35,7 @@ export class ThirdPartyService {
     }
 
     const url = params.toString() ? `${this.BASE_URL}?${params}` : this.BASE_URL;
+    console.log('🔍 [ThirdPartyService] Final URL:', url);
     
     try {
       const response = await apiClient.get<ThirdPartyListResponse>(url);
@@ -44,12 +45,22 @@ export class ThirdPartyService {
       throw error;
     }
   }  static async getThirdParty(id: string): Promise<ThirdParty> {
+    console.log('🔍 [ThirdPartyService] Getting third party with ID:', id);
+    console.log('🔍 [ThirdPartyService] Full URL:', `${this.BASE_URL}/${id}`);
+    
     try {
       const response = await apiClient.get<ThirdParty>(`${this.BASE_URL}/${id}`);
+      console.log('✅ [ThirdPartyService] Success response:', response.status);
+      console.log('✅ [ThirdPartyService] Response data:', response.data);
       // El backend retorna directamente el objeto, no envuelto en data
       return response.data;
     } catch (error) {
       console.error('❌ [ThirdPartyService] Error en getThirdParty:', error);
+      console.error('❌ [ThirdPartyService] Error details:', {
+        id,
+        url: `${this.BASE_URL}/${id}`,
+        error: error instanceof Error ? error.message : error
+      });
       throw error;
     }
   }  static async createThirdParty(data: ThirdPartyCreate): Promise<ThirdParty> {

@@ -1,7 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DataImportWizard } from '../components';
 
 export function DataImportMainPage() {
+  const navigate = useNavigate();
   const [selectedDataType, setSelectedDataType] = React.useState<'accounts' | 'journal_entries' | null>(null);
   const handleImportComplete = (result: any) => {
     console.log('Import completed:', result);
@@ -43,17 +45,30 @@ export function DataImportMainPage() {
         </div>
 
         {/* Contenido principal */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center mb-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">          <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">
               Sistema de Importación de Datos
             </h1>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-gray-600 mb-6">
               Importa datos contables de forma masiva y eficiente
             </p>
-          </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Acceso rápido al asistente genérico */}
+            <div className="bg-gradient-to-r from-purple-500 to-blue-600 text-white rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-center space-x-3">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span className="text-lg font-medium">¿Necesitas importar cualquier tipo de datos?</span>
+              </div>
+              <button
+                onClick={() => navigate('/import-export/generic')}
+                className="mt-3 bg-white text-purple-600 px-6 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors duration-200"
+              >
+                Usar Asistente Genérico
+              </button>
+            </div>
+          </div><div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Importar Cuentas */}
           <div 
             onClick={() => setSelectedDataType('accounts')}
@@ -115,6 +130,38 @@ export function DataImportMainPage() {
             
             <div className="mt-4 inline-flex items-center text-green-600 font-medium">
               Comenzar importación →
+            </div>
+          </div>
+
+          {/* Importación Genérica */}
+          <div 
+            onClick={() => navigate('/import-export/generic')}
+            className="cursor-pointer bg-white border-2 border-gray-200 rounded-lg p-6 hover:border-purple-500 hover:shadow-lg transition-all duration-200"
+          >
+            <div className="flex items-center mb-4">
+              <div className="bg-purple-100 rounded-lg p-3 mr-4">
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">
+                Asistente Genérico
+              </h3>
+            </div>
+            
+            <p className="text-gray-600 mb-4">
+              Importación flexible para cualquier tipo de datos del sistema
+            </p>
+            
+            <ul className="text-sm text-gray-500 space-y-1">
+              <li>• Cualquier modelo de datos</li>
+              <li>• Mapeo inteligente de campos</li>
+              <li>• Vista previa antes de importar</li>
+              <li>• Políticas de importación flexibles</li>
+            </ul>
+            
+            <div className="mt-4 inline-flex items-center text-purple-600 font-medium">
+              Abrir asistente →
             </div>
           </div>
         </div>

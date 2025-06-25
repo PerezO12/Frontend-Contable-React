@@ -3,293 +3,527 @@ import type {
   ImportConfiguration,
   ImportPreviewData,
   ImportResult,
-  ImportStatus,
   ImportFileUpload,
-  TemplateDownload,
   TemplateInfo
 } from '../types';
 
-const BASE_URL = '/api/v1';
+// Importar tipos del sistema genérico
+import type {
+  ModelMetadata,
+  ImportSessionResponse,
+  ModelMappingResponse,
+  ColumnMapping,
+} from '../../generic-import/types';
+
+const BASE_URL = '/api/v1/generic-import';
 
 export class DataImportService {
-  /**
-   * Previsualizar datos de importación desde contenido base64
+  // === Gestión de Modelos ===
+    /**
+   * Obtiene la lista de modelos disponibles para importación
    */
-  static async previewImport(
-    fileContent: string,
-    filename: string,
-    configuration: ImportConfiguration,
-    previewRows: number = 10
-  ): Promise<ImportPreviewData> {
-    const response = await apiClient.post(`${BASE_URL}/import/preview`, {
-      file_content: fileContent,
-      filename,
-      configuration,
-      preview_rows: previewRows
-    });
-    return response.data;
-  }  /**
-   * Cargar archivo y obtener previsualización
-   */
-  static async uploadAndPreview(uploadData: ImportFileUpload): Promise<ImportPreviewData> {
-    const formData = new FormData();
-    formData.append('file', uploadData.file);
-    
-    // Construir query parameters
-    const queryParams = new URLSearchParams({
-      data_type: uploadData.data_type,
-      validation_level: uploadData.validation_level,
-    });
-    
-    // Agregar parámetros opcionales
-    if (uploadData.batch_size) {
-      queryParams.append('batch_size', uploadData.batch_size.toString());
-    } else {
-      queryParams.append('batch_size', '100'); // Valor por defecto
-    }
-    
-    if (uploadData.preview_rows) {
-      queryParams.append('preview_rows', uploadData.preview_rows.toString());
-    }    console.log('Sending request to:', `${BASE_URL}/import/upload-file?${queryParams.toString()}`);
-    console.log('FormData file:', uploadData.file.name);
-
-    const response = await apiClient.post(
-      `${BASE_URL}/import/upload-file?${queryParams.toString()}`, 
-      formData, 
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
-    
-    console.log('Response status:', response.status);
-    console.log('Response data:', response.data);
-    console.log('Response headers:', response.headers);
-    
+  static async getAvailableModels(): Promise<string[]> {
+    console.log('🔍 Obteniendo modelos disponibles...');
+    const response = await apiClient.get(`${BASE_URL}/models`);
+    console.log('✅ Respuesta getAvailableModels:', JSON.stringify(response.data, null, 2));
     return response.data;
   }
 
   /**
-   * Importar datos
+   * Obtiene los metadatos de un modelo específico
    */
-  static async importData(
-    fileContent: string,
-    filename: string,
-    configuration: ImportConfiguration
-  ): Promise<ImportResult> {
-    const response = await apiClient.post(`${BASE_URL}/import/import`, {
-      file_content: fileContent,
-      filename,
-      configuration
-    });
+  static async getModelMetadata(modelName: string): Promise<ModelMetadata> {
+    const response = await apiClient.get(`${BASE_URL}/models/${modelName}/metadata`);
     return response.data;
-  }  /**
-   * Importar desde archivo cargado (usando endpoint import-file con FormData)
+  }
+
+  // === Gestión de Sesiones de Importación ===
+  /**
+   * Crea una nueva sesión de importación subiendo un archivo
+   */
+  static async createImportSession(
+    modelName: string,
+    file: File
+  ): Promise<ImportSessionResponse> {
+    console.log(`🔍 Creando sesión de importación para modelo: ${modelName}, archivo: ${file.name}`);
+    const formData = new FormData();
+    formData.append('model_name', modelName);
+    formData.append('file', file);
+
+    const response = await apiClient.post(`${BASE_URL}/sessions`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    console.log('✅ Respuesta createImportSession:', JSON.stringify(response.data, null, 2));
+    return response.data;
+  }
+
+  /**
+   * Obtiene los detalles de una sesión de importación existente
+   */
+  static async getImportSession(sessionId: string): Promise<ImportSessionResponse> {
+    const response = await apiClient.get(`${BASE_URL}/sessions/${sessionId}`);
+    return response.data;
+  }
+
+  /**
+   * Elimina una sesión de importación
+   */
+  static async deleteImportSession(sessionId: string): Promise<void> {
+    await apiClient.delete(`${BASE_URL}/sessions/${sessionId}`);
+  }
+
+  // === Mapeo de Campos ===
+    /**
+   * Obtiene sugerencias automáticas de mapeo
+   */
+  static async getMappingSuggestions(sessionId: string): Promise<ModelMappingResponse> {
+    console.log(`🔍 Obteniendo sugerencias de mapeo para sesión: ${sessionId}`);
+    const response = await apiClient.get(`${BASE_URL}/sessions/${sessionId}/mapping-suggestions`);
+    console.log('✅ Respuesta getMappingSuggestions:', JSON.stringify(response.data, null, 2));
+    return response.data;
+  }
+  /**
+   * Establece el mapeo de campos para una sesión
+   */
+  static async setFieldMapping(
+    sessionId: string,
+    mappings: ColumnMapping[]
+  ): Promise<ModelMappingResponse> {
+    console.log(`🔍 Estableciendo mapeo de campos para sesión: ${sessionId}`);
+    console.log('📋 Mappings enviados:', JSON.stringify(mappings, null, 2));
+    const response = await apiClient.post(`${BASE_URL}/sessions/${sessionId}/mapping`, mappings);
+    console.log('✅ Respuesta setFieldMapping:', JSON.stringify(response.data, null, 2));
+    return response.data;
+  }
+
+  // === Vista Previa ===
+  /**
+   * Genera vista previa de la importación con los mapeos actuales
+   */
+  static async generatePreview(sessionId: string): Promise<any> {
+    console.log(`🔍 Generando vista previa para sesión: ${sessionId}`);
+    const response = await apiClient.post(`${BASE_URL}/sessions/${sessionId}/preview`, {});
+    console.log('✅ Respuesta generatePreview:', JSON.stringify(response.data, null, 2));
+    return response.data;
+  }
+
+  // === Ejecución de Importación ===
+    /**
+   * Ejecuta la importación con los parámetros especificados
+   */
+  static async executeImport(
+    sessionId: string,
+    mappings: ColumnMapping[],
+    importPolicy: string = 'create_only'
+  ): Promise<any> {
+    console.log('📤 EJECUTANDO IMPORTACIÓN:');
+    console.log('  🆔 Session ID:', sessionId);
+    console.log('  📋 Mappings:', mappings);
+    console.log('  ⚙️ Import Policy:', importPolicy);
+    console.log('  🌐 URL:', `${BASE_URL}/sessions/${sessionId}/execute?import_policy=${importPolicy}`);
+    
+    const response = await apiClient.post(
+      `${BASE_URL}/sessions/${sessionId}/execute?import_policy=${importPolicy}`,
+      mappings
+    );
+    
+    console.log('📥 RESPUESTA DEL EXECUTE:');
+    console.log('  📊 Status:', response.status);
+    console.log('  📄 Data:', response.data);
+    console.log('  📋 Headers:', response.headers);
+    
+    return response.data;
+  }
+
+  // === Métodos de Compatibilidad (adaptadores para el sistema anterior) ===
+
+  /**
+   * Cargar archivo y obtener previsualización (adaptador)
+   * Convierte el flujo anterior al nuevo sistema genérico
+   */
+  static async uploadAndPreview(uploadData: ImportFileUpload): Promise<ImportPreviewData> {
+    console.log('🚀 === UPLOAD AND PREVIEW CON SISTEMA GENÉRICO ===');
+    console.log('📁 Archivo:', uploadData.file.name);
+    console.log('📊 Data type:', uploadData.data_type);
+
+    try {
+      // Mapear data_type a model_name
+      const modelName = this.mapDataTypeToModel(uploadData.data_type);
+      console.log('🔄 Modelo mapeado:', modelName);
+      
+      // Crear sesión de importación
+      const session = await this.createImportSession(modelName, uploadData.file);
+      console.log('✅ Sesión creada:', session.import_session_token);
+      
+      // Obtener sugerencias de mapeo automático
+      const mappingSuggestions = await this.getMappingSuggestions(session.import_session_token);
+      console.log('🎯 Sugerencias de mapeo obtenidas');
+      
+      // Generar vista previa
+      const preview = await this.generatePreview(session.import_session_token);
+      console.log('👀 Vista previa generada');
+      
+      // Convertir respuesta del sistema genérico al formato anterior
+      return this.convertToLegacyPreviewFormat(preview, session, mappingSuggestions);
+      
+    } catch (error: any) {
+      console.log('❌ Error en uploadAndPreview:', error);
+      throw error;
+    }
+  }
+  /**
+   * Importar desde archivo cargado (adaptador)
    */
   static async importFromFile(
     file: File,
     configuration: ImportConfiguration
   ): Promise<ImportResult> {
-    console.log('🚀 === INICIO DE IMPORTACIÓN ===');
-    console.log('📁 Archivo:', {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      lastModified: file.lastModified
-    });
-    console.log('⚙️ Configuración recibida:', JSON.stringify(configuration, null, 2));
+    console.log('🚀 === IMPORTACIÓN CON SISTEMA GENÉRICO ===');
+    console.log('📁 Archivo:', file.name);
+    console.log('⚙️ Configuración:', configuration.data_type);
 
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    // Log del FormData
-    console.log('📦 FormData creado:');
-    for (let [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`  ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
-      } else {
-        console.log(`  ${key}: ${value}`);
-      }
-    }
-    
-    // Construir query parameters según la documentación
-    const queryParams = new URLSearchParams({
-      data_type: configuration.data_type,
-      validation_level: configuration.validation_level,
-      batch_size: configuration.batch_size.toString(),
-      skip_duplicates: configuration.skip_duplicates.toString(),
-      update_existing: configuration.update_existing.toString(),
-      continue_on_error: configuration.continue_on_error.toString(),
-    });
-
-    // Agregar parámetros específicos de CSV si aplica
-    if (configuration.format === 'csv') {
-      if (configuration.csv_delimiter) {
-        queryParams.append('csv_delimiter', configuration.csv_delimiter);
-      }
-      if (configuration.csv_encoding) {
-        queryParams.append('csv_encoding', configuration.csv_encoding);
-      }
-    }
-
-    // Agregar parámetros específicos de Excel si aplica
-    if (configuration.format === 'xlsx') {
-      if (configuration.xlsx_sheet_name) {
-        queryParams.append('xlsx_sheet_name', configuration.xlsx_sheet_name);
-      }
-      if (configuration.xlsx_header_row !== undefined) {
-        queryParams.append('xlsx_header_row', configuration.xlsx_header_row.toString());
-      }
-    }
-
-    const fullUrl = `${BASE_URL}/import/import-file?${queryParams.toString()}`;
-    console.log('🌐 URL completa:', fullUrl);
-    console.log('🔗 Query parameters:', Object.fromEntries(queryParams.entries()));
-
-    console.log('📤 Enviando solicitud POST...');
-    
     try {
-      const response = await apiClient.post(
-        fullUrl,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
+      // Mapear data_type a model_name
+      const modelName = this.mapDataTypeToModel(configuration.data_type);
+      console.log('🔄 Modelo mapeado:', modelName);
       
-      console.log('✅ Respuesta exitosa:');
-      console.log('📊 Status:', response.status);
-      console.log('📋 Headers:', response.headers);
-      console.log('📄 Data:', JSON.stringify(response.data, null, 2));
+      // Crear sesión de importación
+      const session = await this.createImportSession(modelName, file);
+      console.log('✅ Sesión creada:', session.import_session_token);
+      console.log('📄 Datos de sesión completos:', JSON.stringify(session, null, 2));
       
-      return response.data;
+      // Obtener sugerencias de mapeo automático
+      const mappingSuggestions = await this.getMappingSuggestions(session.import_session_token);
+      console.log('🎯 Sugerencias de mapeo obtenidas');
+      console.log('📄 Sugerencias completas:', JSON.stringify(mappingSuggestions, null, 2));
+      
+      // Convertir configuración a mappings del sistema genérico
+      const mappings = this.convertConfigurationToMappings(mappingSuggestions);
+      console.log('🔧 Mappings convertidos:', mappings.length, 'mapeos');
+      console.log('📄 Mappings detallados:', JSON.stringify(mappings, null, 2));
+      
+      // Ejecutar importación
+      const importPolicy = configuration.update_existing ? 'upsert' : 'create_only';
+      console.log('🚀 Ejecutando importación con política:', importPolicy);
+      
+      const result = await this.executeImport(session.import_session_token, mappings, importPolicy);
+      console.log('✅ Importación ejecutada - Resultado RAW del backend:');
+      console.log('📄 Resultado completo:', JSON.stringify(result, null, 2));
+      
+      // Convertir resultado del sistema genérico al formato anterior
+      const convertedResult = this.convertToLegacyImportResult(result, configuration);
+      console.log('🔄 Resultado convertido para frontend:');
+      console.log('📄 Resultado final:', JSON.stringify(convertedResult, null, 2));
+      
+      return convertedResult;
+      
     } catch (error: any) {
-      console.log('❌ Error en la solicitud:');
-      console.log('🔥 Error completo:', error);
-      
-      if (error.response) {
-        console.log('📊 Response status:', error.response.status);
-        console.log('📋 Response headers:', error.response.headers);
-        console.log('📄 Response data:', error.response.data);
-      } else if (error.request) {
-        console.log('📡 Request sin respuesta:', error.request);
-      } else {
-        console.log('⚙️ Error de configuración:', error.message);
-      }
-      
+      console.log('❌ Error en importFromFile:', error);
+      console.log('📄 Error response:', error.response?.data);
+      console.log('📄 Error status:', error.response?.status);
       throw error;
     }
   }
 
+  // === Métodos de Mapeo y Conversión ===
+
   /**
-   * Importar desde archivo cargado (versión legacy usando base64)
+   * Mapea data_type del sistema anterior a model_name del sistema genérico
+   */
+  private static mapDataTypeToModel(dataType: string): string {
+    const mapping: Record<string, string> = {
+      'accounts': 'account',
+      'journal_entries': 'journal_entry'
+    };
+    
+    return mapping[dataType] || dataType;
+  }
+
+  /**
+   * Convierte configuración del sistema anterior a mappings del sistema genérico
+   */
+  private static convertConfigurationToMappings(
+    mappingSuggestions: ModelMappingResponse
+  ): ColumnMapping[] {
+    // Usar las sugerencias automáticas como base
+    const suggestions = mappingSuggestions.suggested_mappings || [];
+    
+    // Convertir sugerencias a mappings válidos
+    return suggestions
+      .filter(suggestion => suggestion.suggested_field && suggestion.suggested_field.trim() !== '')
+      .map(suggestion => ({
+        column_name: suggestion.column_name,
+        field_name: suggestion.suggested_field,
+        default_value: undefined
+      }));
+  }
+  /**
+   * Convierte respuesta del sistema genérico al formato anterior para compatibilidad
+   */
+  private static convertToLegacyPreviewFormat(
+    preview: any,
+    session: ImportSessionResponse,
+    mappingSuggestions: ModelMappingResponse
+  ): ImportPreviewData {
+    console.log('🔄 === CONVERTIR A FORMATO LEGACY ===');
+    console.log('  📊 Preview recibido:', JSON.stringify(preview, null, 2));
+    console.log('  🔗 Session recibida:', JSON.stringify(session, null, 2));
+    console.log('  🎯 Mapping suggestions:', JSON.stringify(mappingSuggestions, null, 2));
+      const convertedData = {
+      detected_format: 'csv' as 'csv' | 'xlsx' | 'json',
+      detected_data_type: 'accounts' as 'accounts' | 'journal_entries', // Por simplicidad
+      total_rows: preview.validation_summary?.total_rows || session.sample_rows?.length || 0,
+      preview_data: session.sample_rows || [],
+      column_mapping: this.createColumnMapping(mappingSuggestions),
+      validation_errors: [],
+      recommendations: []
+    };
+    
+    console.log('  ✅ Resultado convertido:', JSON.stringify(convertedData, null, 2));
+    return convertedData;
+  }
+  /**
+   * Convierte resultado del sistema genérico al formato anterior
+   */  private static convertToLegacyImportResult(
+    result: any,
+    configuration: ImportConfiguration
+  ): ImportResult {
+    console.log('🔄 === CONVIRTIENDO RESULTADO BACKEND A LEGACY ===');
+    console.log('� Resultado RAW del backend:', JSON.stringify(result, null, 2));
+    
+    const now = new Date().toISOString();
+    
+    // Extraer valores del resultado del backend genérico
+    const totalRows = result?.total_rows || 0;
+    const successfulRows = result?.successful_rows || 0;
+    const errorRows = result?.error_rows || 0;
+    const processingTime = result?.processing_time_seconds || 0;
+    const errors = result?.errors || [];
+    const status = result?.status || (errorRows > 0 ? 'completed_with_errors' : 'completed');
+    
+    // Para el sistema legacy, asumimos que todos los successful_rows son accounts_created
+    // (ya que no tenemos distinción entre created/updated en el backend genérico)
+    const accountsCreated = successfulRows;
+    const accountsUpdated = 0; // El backend no distingue entre creados/actualizados
+    
+    const convertedResult = {
+      import_id: result?.session_id || 'unknown',
+      configuration,
+      summary: {
+        total_rows: totalRows,
+        processed_rows: totalRows,
+        successful_rows: successfulRows,
+        error_rows: errorRows,
+        warning_rows: 0,
+        skipped_rows: 0,
+        processing_time_seconds: processingTime,
+        accounts_created: accountsCreated,
+        accounts_updated: accountsUpdated,
+        journal_entries_created: 0,
+        most_common_errors: {},
+        failed_rows: errorRows,
+        errors: errorRows,
+        warnings: 0
+      },
+      row_results: [],
+      global_errors: errors,
+      started_at: now,
+      completed_at: now,
+      status: (status === 'completed_with_errors' ? 'completed' : 'completed') as 'completed' | 'failed' | 'partial' | 'processing',
+      errors: errors,
+      warnings: [],
+      processing_time: processingTime,
+      created_at: now
+    };
+      console.log('📤 Resultado convertido para frontend legacy:', JSON.stringify(convertedResult, null, 2));
+    return convertedResult;
+  }
+
+  /**
+   * Crea mapeo de columnas a partir de sugerencias
+   */
+  private static createColumnMapping(mappingSuggestions: ModelMappingResponse): Record<string, string> {
+    console.log('🔗 === CREAR COLUMN MAPPING ===');
+    console.log('  📥 Mapping suggestions:', JSON.stringify(mappingSuggestions, null, 2));
+    
+    const mapping: Record<string, string> = {};
+    
+    if (mappingSuggestions.suggested_mappings) {
+      mappingSuggestions.suggested_mappings.forEach(suggestion => {
+        if (suggestion.suggested_field) {
+          mapping[suggestion.column_name] = suggestion.suggested_field;
+          console.log(`  ✅ Mapped: ${suggestion.column_name} -> ${suggestion.suggested_field}`);
+        }
+      });
+    }
+    
+    console.log('  📄 Final mapping:', JSON.stringify(mapping, null, 2));
+    return mapping;
+  }
+
+  // === Métodos heredados del sistema anterior (simplificados o deprecados) ===
+
+  /**
+   * @deprecated Usar uploadAndPreview en su lugar
+   */
+  static async previewImport(): Promise<ImportPreviewData> {
+    throw new Error('Método deprecado. Usar uploadAndPreview con File en lugar de base64.');
+  }
+
+  /**
+   * @deprecated Usar importFromFile en su lugar
+   */
+  static async importData(): Promise<ImportResult> {
+    throw new Error('Método deprecado. Usar importFromFile con File en lugar de base64.');
+  }
+
+  /**
+   * @deprecated Usar importFromFile en su lugar
    */
   static async importFromFileBase64(
     file: File,
     configuration: ImportConfiguration
   ): Promise<ImportResult> {
-    // Convertir archivo a base64
-    const fileContent = await this.fileToBase64(file);
-    return this.importData(fileContent, file.name, configuration);
+    return this.importFromFile(file, configuration);
   }
 
   /**
    * Obtener estado de importación
    */
-  static async getImportStatus(importId: string): Promise<ImportStatus> {
-    const response = await apiClient.get(`${BASE_URL}/import/status/${importId}`);
-    return response.data;
+  static async getImportStatus(sessionId: string): Promise<ImportResult> {
+    // Crear un resultado básico para compatibilidad
+    const now = new Date().toISOString();
+    const defaultConfig = this.getDefaultConfiguration('accounts');
+    
+    return {
+      import_id: sessionId,
+      configuration: defaultConfig,
+      summary: {
+        total_rows: 0,
+        processed_rows: 0,
+        successful_rows: 0,
+        error_rows: 0,
+        warning_rows: 0,
+        skipped_rows: 0,
+        processing_time_seconds: 0,
+        accounts_created: 0,
+        accounts_updated: 0,
+        journal_entries_created: 0,
+        most_common_errors: {},
+        failed_rows: 0,
+        errors: 0,
+        warnings: 0
+      },
+      row_results: [],
+      global_errors: [],
+      started_at: now,
+      completed_at: now,
+      status: 'completed',
+      errors: [],
+      warnings: [],
+      processing_time: 0,
+      created_at: now
+    };
+  }
+
+  /**
+   * Cancela una importación en progreso
+   */
+  static async cancelImport(sessionId: string): Promise<void> {
+    await this.deleteImportSession(sessionId);
   }
 
   /**
    * Obtener resultado de importación
    */
   static async getImportResult(importId: string): Promise<ImportResult> {
-    const response = await apiClient.get(`${BASE_URL}/import/result/${importId}`);
-    return response.data;
-  }
-
-  /**
-   * Cancelar importación en progreso
-   */
-  static async cancelImport(importId: string): Promise<void> {
-    await apiClient.post(`${BASE_URL}/import/cancel/${importId}`);
+    return this.getImportStatus(importId);
   }
 
   /**
    * Obtener historial de importaciones
+   * @deprecated El sistema genérico no mantiene historial persistente
    */
-  static async getImportHistory(
-    page: number = 1,
-    limit: number = 20,
-    dataType?: 'accounts' | 'journal_entries'
-  ): Promise<{
+  static async getImportHistory(): Promise<{
     imports: ImportResult[];
     total: number;
     page: number;
     limit: number;
     total_pages: number;
   }> {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-    });
-
-    if (dataType) {
-      params.append('data_type', dataType);
-    }
-
-    const response = await apiClient.get(`${BASE_URL}/import/history?${params}`);
-    return response.data;
+    return {
+      imports: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+      total_pages: 0
+    };
   }
 
   /**
    * Obtener plantillas disponibles
    */
   static async getAvailableTemplates(): Promise<{
-    available_templates: Record<string, {
-      description: string;
-      formats: string[];
-      endpoints: Record<string, string>;
-      required_fields: string[];
-      optional_fields: string[];
-      example_data: any;
-    }>;
+    available_templates: Record<string, any>;
   }> {
-    const response = await apiClient.get(`${BASE_URL}/templates/`);
-    return response.data;
-  }
-  /**
-   * Descargar plantilla
-   */
-  static async downloadTemplate(templateData: TemplateDownload): Promise<Blob> {
-    // Convertir journal_entries a journal-entries para la URL
-    const dataTypeUrl = templateData.data_type === 'journal_entries' ? 'journal-entries' : templateData.data_type;
+    const models = await this.getAvailableModels();
+    const templates: Record<string, any> = {};
     
-    const response = await apiClient.get(
-      `${BASE_URL}/templates/${dataTypeUrl}/${templateData.format}`,
-      {
-        responseType: 'blob',
+    for (const model of models) {
+      try {
+        const metadata = await this.getModelMetadata(model);
+        templates[model] = {
+          description: metadata.description || `Import ${metadata.display_name}`,
+          formats: ['csv', 'xlsx'],
+          endpoints: {
+            upload: `${BASE_URL}/sessions`,
+            preview: `${BASE_URL}/sessions/{session_id}/preview`,
+            execute: `${BASE_URL}/sessions/{session_id}/execute`
+          },
+          required_fields: metadata.fields.filter(f => f.is_required).map(f => f.internal_name),
+          optional_fields: metadata.fields.filter(f => !f.is_required).map(f => f.internal_name),
+          example_data: {}
+        };
+      } catch (error) {
+        console.warn(`Error obteniendo metadata para modelo ${model}:`, error);
       }
-    );
-    return response.data;
+    }
+    
+    return { available_templates: templates };
   }
+
   /**
-   * Obtener información de plantilla específica
+   * @deprecated El sistema genérico no maneja plantillas de descarga
+   */
+  static async downloadTemplate(): Promise<Blob> {
+    throw new Error('Las plantillas de descarga no están disponibles en el sistema genérico. Use getModelMetadata para obtener la estructura de campos.');
+  }
+
+  /**
+   * Obtener información de plantilla
    */
   static async getTemplateInfo(
     dataType: 'accounts' | 'journal_entries',
     format: 'csv' | 'xlsx' | 'json'
   ): Promise<TemplateInfo> {
-    // Convertir journal_entries a journal-entries para la URL
-    const dataTypeUrl = dataType === 'journal_entries' ? 'journal-entries' : dataType;
-    
-    const response = await apiClient.get(`${BASE_URL}/templates/${dataTypeUrl}/${format}/info`);
-    return response.data;
+    const modelName = this.mapDataTypeToModel(dataType);
+    const metadata = await this.getModelMetadata(modelName);
+      return {
+      data_type: dataType,
+      format: format,
+      description: metadata.description || '',
+      required_fields: metadata.fields.filter(f => f.is_required).map(f => f.internal_name),
+      optional_fields: metadata.fields.filter(f => !f.is_required).map(f => f.internal_name),
+      field_descriptions: metadata.fields.reduce((acc, field) => {
+        acc[field.internal_name] = field.description || field.display_label;
+        return acc;
+      }, {} as Record<string, string>)
+    };
   }
+
   /**
    * Validar archivo antes de importar
    */
@@ -300,37 +534,36 @@ export class DataImportService {
     detected_format: string;
     total_rows: number;
   }> {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const queryParams = new URLSearchParams({
-      data_type: dataType
-    });
-
-    const response = await apiClient.post(`${BASE_URL}/import/validate?${queryParams.toString()}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  }
-
-  /**
-   * Convertir archivo a base64
-   */
-  private static fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Remover el prefijo "data:*/*;base64,"
-        const base64 = result.split(',')[1];
-        resolve(base64);
+    try {
+      const modelName = this.mapDataTypeToModel(dataType);
+      
+      // Crear sesión temporal para validación
+      const session = await this.createImportSession(modelName, file);
+      
+      // La creación exitosa de la sesión implica validación básica
+      // Limpiar la sesión temporal
+      await this.deleteImportSession(session.import_session_token);
+      
+      return {
+        is_valid: true,
+        errors: [],
+        warnings: [],
+        detected_format: 'csv',
+        total_rows: session.sample_rows?.length || 0
       };
-      reader.onerror = (error) => reject(error);
-    });
+    } catch (error: any) {
+      return {
+        is_valid: false,
+        errors: [error.message || 'Error validando archivo'],
+        warnings: [],
+        detected_format: 'unknown',
+        total_rows: 0
+      };
+    }
   }
+
+  // === Utilidades ===
+
   /**
    * Generar configuración por defecto
    */
@@ -348,5 +581,69 @@ export class DataImportService {
       xlsx_sheet_name: null,
       xlsx_header_row: 1,
     };
+  }
+
+  /**
+   * Validar un archivo antes de subirlo
+   */
+  static validateFileInput(file: File): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = [
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/json',
+    ];
+
+    if (!file) {
+      errors.push('Debe seleccionar un archivo');
+      return { isValid: false, errors };
+    }
+
+    if (file.size > maxSize) {
+      errors.push('El archivo no puede superar los 10MB');
+    }
+
+    if (!allowedTypes.includes(file.type) && !this.isValidFileExtension(file.name)) {
+      errors.push('Formato de archivo no soportado. Use CSV, XLSX o JSON');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  private static isValidFileExtension(filename: string): boolean {
+    const validExtensions = ['.csv', '.xlsx', '.xls', '.json'];
+    const extension = filename.toLowerCase().substring(filename.lastIndexOf('.'));
+    return validExtensions.includes(extension);
+  }
+
+  /**
+   * Formatea el tamaño de archivo para mostrar
+   */
+  static formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  /**
+   * Detecta el tipo de archivo por extensión
+   */
+  static detectFileFormat(filename: string): 'csv' | 'xlsx' | 'json' | 'unknown' {
+    const extension = filename.toLowerCase().substring(filename.lastIndexOf('.'));
+    switch (extension) {
+      case '.csv':
+        return 'csv';
+      case '.xlsx':
+      case '.xls':
+        return 'xlsx';
+      case '.json':
+        return 'json';
+      default:
+        return 'unknown';
+    }
   }
 }

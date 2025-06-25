@@ -5,3 +5,4 @@ export { TemplateDownload } from './TemplateDownload';
 export { ImportProgress } from './ImportProgress';
 export { ImportResultDetails } from './ImportResultDetails';
 export { DataImportWizard } from './DataImportWizard';
+export { ValidationErrorsDisplay } from './ValidationErrorsDisplay';

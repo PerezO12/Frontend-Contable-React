@@ -39,12 +39,13 @@ export const AdvancedExportModal: React.FC<AdvancedExportModalProps> = ({
       };
 
       // Agregar filtros específicos del modal
-      if (dateFrom) {
-        combinedFilters.created_after = dateFrom;
-      }
-      if (dateTo) {
-        combinedFilters.created_before = dateTo;
-      }
+      // Nota: Los filtros de fecha no son soportados por el backend actual
+      // if (dateFrom) {
+      //   combinedFilters.created_after = dateFrom;
+      // }
+      // if (dateTo) {
+      //   combinedFilters.created_before = dateTo;
+      // }
       if (!includeInactive) {
         combinedFilters.is_active = true;
       }

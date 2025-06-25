@@ -1,34 +1,27 @@
 // Types for the Third Parties module
 import { z } from 'zod';
 
-// Third Party Types (matching backend enum values)
+// Third Party Types (matching backend enum values EXACTLY)
 export const ThirdPartyType = {
   CUSTOMER: 'customer',
   SUPPLIER: 'supplier', 
-  EMPLOYEE: 'employee'
+  EMPLOYEE: 'employee',
+  SHAREHOLDER: 'shareholder',
+  BANK: 'bank',
+  GOVERNMENT: 'government',
+  OTHER: 'other'
 } as const;
 
 export type ThirdPartyType = typeof ThirdPartyType[keyof typeof ThirdPartyType];
 
-// Document Types (matching backend enum values)
+// Document Types (matching backend enum values EXACTLY)
 export const DocumentType = {
   RUT: 'rut',
   NIT: 'nit',
-  DNI: 'dni',
-  PASSPORT: 'passport',
-  RFC: 'rfc',
   CUIT: 'cuit',
-  CC: 'cc',
-  CE: 'ce',
-  CURP: 'curp',
-  INE: 'ine',
-  CUIL: 'cuil',
-  RUC: 'ruc',
-  NIF: 'nif',
-  NIE: 'nie',
-  CIF: 'cif',
-  TAX_ID: 'tax_id',
-  BUSINESS_ID: 'business_id',
+  RFC: 'rfc',
+  PASSPORT: 'passport',
+  DNI: 'dni',
   OTHER: 'other'
 } as const;
 
@@ -131,24 +124,30 @@ export interface ThirdPartyUpdate {
   internal_code?: string;
 }
 
-// Filters for API queries
+// Filters for API queries - Debe coincidir exactamente con los query params del backend
 export interface ThirdPartyFilters {
-  third_party_type?: ThirdPartyType;
-  document_type?: DocumentType;
-  document_number?: string;
-  name?: string;
-  commercial_name?: string;
-  email?: string;
-  is_active?: boolean;
-  has_balance?: boolean;
-  created_after?: string;
-  created_before?: string;
-  credit_limit_min?: number;
-  credit_limit_max?: number;
-  order_by?: 'document_number' | 'business_name' | 'created_at' | 'credit_limit';
-  order_desc?: boolean;
-  skip?: number;
-  limit?: number;
+  // Parámetros que acepta el backend endpoint GET /api/v1/third-parties
+  search?: string; // Búsqueda en código, nombre, número de documento
+  third_party_type?: ThirdPartyType; // Tipo de tercero (customer, supplier, employee, etc.)
+  document_type?: DocumentType; // Tipo de documento
+  is_active?: boolean; // Estado activo/inactivo
+  city?: string; // Ciudad
+  country?: string; // País
+  skip?: number; // Registros a omitir (paginación)
+  limit?: number; // Límite de registros (paginación)
+  
+  // Los siguientes campos están en la interfaz original pero NO los usa el backend:
+  // document_number?: string;
+  // name?: string;
+  // commercial_name?: string;
+  // email?: string;
+  // has_balance?: boolean;
+  // created_after?: string;
+  // created_before?: string;
+  // credit_limit_min?: number;
+  // credit_limit_max?: number;
+  // order_by?: 'document_number' | 'business_name' | 'created_at' | 'credit_limit';
+  // order_desc?: boolean;
 }
 
 // Statement interfaces
@@ -347,27 +346,20 @@ export interface BulkThirdPartyResult {
 export const THIRD_PARTY_TYPE_LABELS: Record<ThirdPartyType, string> = {
   [ThirdPartyType.CUSTOMER]: 'Cliente',
   [ThirdPartyType.SUPPLIER]: 'Proveedor',
-  [ThirdPartyType.EMPLOYEE]: 'Empleado'
+  [ThirdPartyType.EMPLOYEE]: 'Empleado',
+  [ThirdPartyType.SHAREHOLDER]: 'Accionista',
+  [ThirdPartyType.BANK]: 'Banco',
+  [ThirdPartyType.GOVERNMENT]: 'Entidad Gubernamental',
+  [ThirdPartyType.OTHER]: 'Otro'
 };
 
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   [DocumentType.RUT]: 'RUT (Chile)',
   [DocumentType.NIT]: 'NIT (Colombia)',
-  [DocumentType.DNI]: 'DNI (Argentina/Perú)',
+  [DocumentType.DNI]: 'DNI/Cédula',
   [DocumentType.PASSPORT]: 'Pasaporte',
   [DocumentType.RFC]: 'RFC (México)',
   [DocumentType.CUIT]: 'CUIT (Argentina)',
-  [DocumentType.CC]: 'CC - Cédula de Ciudadanía (Colombia)',
-  [DocumentType.CE]: 'CE - Cédula de Extranjería (Colombia)',
-  [DocumentType.CURP]: 'CURP (México)',
-  [DocumentType.INE]: 'INE (México)',
-  [DocumentType.CUIL]: 'CUIL (Argentina)',
-  [DocumentType.RUC]: 'RUC (Perú)',
-  [DocumentType.NIF]: 'NIF (España)',
-  [DocumentType.NIE]: 'NIE (España)',
-  [DocumentType.CIF]: 'CIF (España)',
-  [DocumentType.TAX_ID]: 'Tax ID (Internacional)',
-  [DocumentType.BUSINESS_ID]: 'Business ID (Internacional)',
   [DocumentType.OTHER]: 'Otro'
 };
 

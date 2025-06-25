@@ -2,8 +2,7 @@ import { DataImportService } from '@/features/data-import/services/DataImportSer
 import type { 
   ImportConfiguration, 
   ImportPreviewData, 
-  ImportResult,
-  TemplateDownload 
+  ImportResult
 } from '@/features/data-import/types';
 
 /**
@@ -93,15 +92,11 @@ export class CashFlowImportService {
    * Genera plantilla específica para flujo de efectivo
    */
   static async downloadCashFlowTemplate(
-    format: 'csv' | 'xlsx' | 'json'
+    _format: 'csv' | 'xlsx' | 'json'
   ): Promise<Blob> {
-    const templateData: TemplateDownload = {
-      data_type: 'journal_entries',
-      format
-    };
-    
-    // Por ahora usar el servicio base, pero se puede extender
-    return DataImportService.downloadTemplate(templateData);
+    // Por ahora usar el servicio base, pero se puede extender (sin parámetros)
+    // El parámetro format se ignorará hasta que el servicio base lo soporte
+    return DataImportService.downloadTemplate();
   }
   
   /**

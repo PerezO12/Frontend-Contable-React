@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Card } from '../../../components/ui/Card';
@@ -31,29 +31,46 @@ export const ThirdPartyList: React.FC<ThirdPartyListProps> = ({
 }) => {
   const [filters, setFilters] = useState<ThirdPartyFilters>(initialFilters || {});
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedThirdParties, setSelectedThirdParties] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
-  const { thirdParties, loading, error, refetch, refetchWithFilters } = useThirdParties(filters);
 
-  // Filter third parties based on search term
-  const filteredThirdParties = useMemo(() => {
-    if (!thirdParties || !Array.isArray(thirdParties)) return [];
-    if (!searchTerm) return thirdParties;
-    
-    const term = searchTerm.toLowerCase();
-    return thirdParties.filter(thirdParty =>
-      thirdParty.document_number.toLowerCase().includes(term) ||
-      thirdParty.name.toLowerCase().includes(term) ||
-      thirdParty.commercial_name?.toLowerCase().includes(term) ||
-      thirdParty.email?.toLowerCase().includes(term)
-    );
-  }, [thirdParties, searchTerm]);
+  // Debounce del término de búsqueda
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300); // 300ms de delay
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
+  // Combinar filtros con término de búsqueda para enviar al backend
+  const combinedFilters = useMemo(() => {
+    const result = {
+      ...filters,
+      search: debouncedSearchTerm.trim() || undefined // Usar debouncedSearchTerm
+    };
+    console.log('🔍 [ThirdPartyList] combinedFilters updated:', result);
+    return result;
+  }, [filters, debouncedSearchTerm]);
+  
+  const { thirdParties, loading, error, refetch } = useThirdParties(combinedFilters);
+
+  // Ya no necesitamos filtrado local porque el backend maneja la búsqueda
+  const filteredThirdParties = thirdParties || [];
 
   const handleFilterChange = (key: keyof ThirdPartyFilters, value: any) => {
+    console.log(`🔧 [ThirdPartyList] Filter change: ${key} = ${value} (type: ${typeof value})`);
     const newFilters = { ...filters, [key]: value };
+    console.log('🔧 [ThirdPartyList] New filters object:', newFilters);
     setFilters(newFilters);
-    refetchWithFilters(newFilters);
+    // No necesitamos refetch manual porque useThirdParties reacciona a combinedFilters
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    // El search se actualizará automáticamente vía combinedFilters
   };
 
   // Manejar selección individual de terceros
@@ -112,7 +129,11 @@ export const ThirdPartyList: React.FC<ThirdPartyListProps> = ({
     const colors = {
       [ThirdPartyType.CUSTOMER]: 'bg-green-100 text-green-800',
       [ThirdPartyType.SUPPLIER]: 'bg-blue-100 text-blue-800',
-      [ThirdPartyType.EMPLOYEE]: 'bg-purple-100 text-purple-800'
+      [ThirdPartyType.EMPLOYEE]: 'bg-purple-100 text-purple-800',
+      [ThirdPartyType.SHAREHOLDER]: 'bg-yellow-100 text-yellow-800',
+      [ThirdPartyType.BANK]: 'bg-indigo-100 text-indigo-800',
+      [ThirdPartyType.GOVERNMENT]: 'bg-red-100 text-red-800',
+      [ThirdPartyType.OTHER]: 'bg-gray-100 text-gray-800'
     };
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
@@ -165,7 +186,7 @@ export const ThirdPartyList: React.FC<ThirdPartyListProps> = ({
                 type="text"
                 placeholder="Buscar por documento, nombre, email..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearchChange}
                 className="w-full"
               />
             </div>

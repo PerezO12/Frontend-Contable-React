@@ -13,29 +13,22 @@ import type {
 } from '../types';
 
 // Hook para listar terceros con filtros
-export const useThirdParties = (initialFilters?: ThirdPartyFilters) => {
+export const useThirdParties = (filters?: ThirdPartyFilters) => {
   const [thirdParties, setThirdParties] = useState<ThirdParty[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
-  // Estabilizar initialFilters para evitar bucles infinitos
-  const stableFilters = useMemo(() => initialFilters, [
-    initialFilters?.is_active,
-    initialFilters?.third_party_type,
-    initialFilters?.document_type,
-    initialFilters?.document_number,
-    initialFilters?.name,
-    initialFilters?.commercial_name,
-    initialFilters?.email,
-    initialFilters?.has_balance,
-    initialFilters?.created_after,
-    initialFilters?.created_before,
-    initialFilters?.credit_limit_min,
-    initialFilters?.credit_limit_max,
-    initialFilters?.order_by,
-    initialFilters?.order_desc,
-    initialFilters?.skip,
-    initialFilters?.limit
+  
+  // Estabilizar filters para evitar bucles infinitos - Solo campos soportados por el backend
+  const stableFilters = useMemo(() => filters, [
+    filters?.search,
+    filters?.third_party_type,
+    filters?.document_type,
+    filters?.is_active,
+    filters?.city,
+    filters?.country,
+    filters?.skip,
+    filters?.limit
   ]);
 
   // Ref para evitar fetch duplicado
@@ -46,7 +39,6 @@ export const useThirdParties = (initialFilters?: ThirdPartyFilters) => {
     
     // Evitar petición duplicada si los filtros son los mismos
     if (lastFetchFilters.current === filtersKey) {
-      console.log('🔄 [useThirdParties] Evitando fetch duplicado:', filters);
       return;
     }
     
@@ -55,7 +47,6 @@ export const useThirdParties = (initialFilters?: ThirdPartyFilters) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔍 [useThirdParties] Fetching with filters:', filters);
       const response = await ThirdPartyService.getThirdParties(filters);
       setThirdParties(response.items || []);
       setTotal(response.total || 0);
@@ -77,6 +68,13 @@ export const useThirdParties = (initialFilters?: ThirdPartyFilters) => {
     fetchThirdParties(filters);
   }, [fetchThirdParties]);
 
+  // Función para forzar refetch ignorando cache
+  const forceRefetch = useCallback((newFilters?: ThirdPartyFilters) => {
+    // Limpiar cache para forzar nueva petición
+    lastFetchFilters.current = '';
+    fetchThirdParties(newFilters || stableFilters);
+  }, [fetchThirdParties, stableFilters]);
+
   useEffect(() => {
     fetchThirdParties(stableFilters);
   }, [fetchThirdParties, stableFilters]);
@@ -87,7 +85,8 @@ export const useThirdParties = (initialFilters?: ThirdPartyFilters) => {
     error,
     total,
     refetch,
-    refetchWithFilters
+    refetchWithFilters,
+    forceRefetch
   };
 };
 
@@ -101,9 +100,12 @@ export const useThirdParty = (id?: string) => {
     try {
       setLoading(true);
       setError(null);
+      console.log('🔍 [useThirdParty] Fetching third party with ID:', thirdPartyId);
       const data = await ThirdPartyService.getThirdParty(thirdPartyId);
+      console.log('✅ [useThirdParty] Successfully fetched third party:', data.id);
       setThirdParty(data);
     } catch (err) {
+      console.error('❌ [useThirdParty] Error fetching third party:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar tercero');
     } finally {
       setLoading(false);

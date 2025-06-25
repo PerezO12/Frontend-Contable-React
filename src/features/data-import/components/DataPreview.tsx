@@ -1,4 +1,5 @@
 import { Card } from '@/components/ui';
+import { ValidationErrorsDisplay } from './ValidationErrorsDisplay';
 import type { ImportPreviewData } from '../types';
 
 interface DataPreviewProps {
@@ -166,56 +167,14 @@ export function DataPreview({ previewData, className = '' }: DataPreviewProps) {
             </p>
           )}
         </Card>
-      )}
-
-      {/* Errores de validación */}
+      )}      {/* Errores de validación */}
       {validation_errors && validation_errors.length > 0 && (
-        <Card className="p-6">
-          <h4 className="text-lg font-semibold text-gray-900 mb-4">
-            Errores de Validación
-          </h4>
-          
-          <div className="space-y-3 max-h-60 overflow-y-auto">
-            {validation_errors.map((error, index) => (
-              <div
-                key={index}
-                className={`p-3 rounded-lg border ${
-                  error.severity === 'error'
-                    ? 'bg-red-50 border-red-200'
-                    : 'bg-yellow-50 border-yellow-200'
-                }`}
-              >
-                <div className="flex items-start">
-                  <div className={`rounded-full p-1 mr-3 mt-0.5 ${
-                    error.severity === 'error' ? 'bg-red-100' : 'bg-yellow-100'
-                  }`}>
-                    {error.severity === 'error' ? (
-                      <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className={`text-sm font-medium ${
-                      error.severity === 'error' ? 'text-red-800' : 'text-yellow-800'
-                    }`}>
-                      Fila {error.row_number} - Campo: {error.field_name}
-                    </p>
-                    <p className={`text-sm ${
-                      error.severity === 'error' ? 'text-red-600' : 'text-yellow-600'
-                    }`}>
-                      {error.message}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <ValidationErrorsDisplay 
+          errors={validation_errors}
+          title="Errores y Advertencias Detallados"
+          showRowNumbers={true}
+          maxHeight="max-h-80"
+        />
       )}
 
       {/* Recomendaciones */}

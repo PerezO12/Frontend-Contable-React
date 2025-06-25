@@ -144,18 +144,39 @@ export function useDataImport() {
   }, [success, error, warning]);
 
   /**
+   * Convierte ImportResult a ImportStatus para compatibilidad
+   */
+  const convertToImportStatus = useCallback((result: ImportResult): ImportStatus => {
+    return {
+      import_id: result.import_id,
+      status: result.status as 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled',
+      progress: result.summary.total_rows > 0 ? 
+        (result.summary.processed_rows / result.summary.total_rows) * 100 : 0,
+      current_batch: 1,
+      total_batches: 1,
+      processed_rows: result.summary.processed_rows,
+      total_rows: result.summary.total_rows,
+      errors: result.summary.errors || result.summary.error_rows || 0,
+      warnings: result.summary.warnings || result.summary.warning_rows || 0,
+      started_at: result.started_at,
+      updated_at: result.completed_at || result.started_at
+    };
+  }, []);
+
+  /**
    * Obtiene el estado de una importación en progreso
    */
-  const getImportStatus = useCallback(async (importId: string) => {
+  const getImportStatus = useCallback(async (importId: string): Promise<ImportStatus> => {
     try {
-      const status = await DataImportService.getImportStatus(importId);
+      const result = await DataImportService.getImportStatus(importId);
+      const status = convertToImportStatus(result);
       setState(prev => ({ ...prev, importStatus: status }));
       return status;
     } catch (err) {
       error('Error de estado', 'Error al obtener el estado de la importación');
       throw err;
     }
-  }, [error]);
+  }, [error, convertToImportStatus]);
 
   /**
    * Cancela una importación en progreso

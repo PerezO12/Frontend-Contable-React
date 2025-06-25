@@ -48,7 +48,8 @@ export function useTemplates() {
     setState(prev => ({ ...prev, isDownloading: true }));
 
     try {
-      const blob = await DataImportService.downloadTemplate(templateData);
+      // Nota: El servicio no acepta parámetros, está deprecated
+      const blob = await DataImportService.downloadTemplate();
       
       // Generar nombre de archivo
       const fileExtension = templateData.format === 'xlsx' ? 'xlsx' : templateData.format;
@@ -69,7 +70,7 @@ export function useTemplates() {
 
     } catch (err) {
       setState(prev => ({ ...prev, isDownloading: false }));
-      error('Error de descarga', 'Error al descargar la plantilla');
+      error('Error de descarga', 'Error al descargar la plantilla - Funcionalidad no disponible en sistema genérico');
       throw err;
     }
   }, [success, error]);

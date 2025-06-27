@@ -123,6 +123,16 @@ export function InvoiceList() {
       fetchInvoices(); // Refrescar la lista después de operaciones bulk
     }
   });
+  
+  // Obtener facturas seleccionadas para información de NFE
+  const selectedInvoices = (invoices || []).filter(invoice => 
+    bulkOperations.selectedIds.has(invoice.id)
+  ).map(invoice => ({
+    id: invoice.id,
+    invoice_number: invoice.number,
+    description: invoice.description,
+    notes: invoice.notes
+  }));
 
   // Cargar facturas al montar el componente
   useEffect(() => {
@@ -374,6 +384,7 @@ export function InvoiceList() {
       {/* Barra de acciones bulk */}
       <BulkActionsBar
         selectedCount={bulkOperations.selectedCount}
+        selectedInvoices={selectedInvoices}
         isProcessing={bulkOperations.isProcessing}
         validationData={bulkOperations.validationData}
         onValidateOperation={bulkOperations.validateOperation}

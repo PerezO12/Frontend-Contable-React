@@ -68,7 +68,10 @@ export function DataImportMainPage() {
                 Usar Asistente Genérico
               </button>
             </div>
-          </div><div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
           {/* Importar Cuentas */}
           <div 
             onClick={() => setSelectedDataType('accounts')}
@@ -81,7 +84,7 @@ export function DataImportMainPage() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-gray-900">
-                Importar Cuentas Contables
+                Cuentas Contables
               </h3>
             </div>
             
@@ -90,14 +93,13 @@ export function DataImportMainPage() {
             </p>
             
             <ul className="text-sm text-gray-500 space-y-1">
-              <li>• Estructura jerárquica de cuentas</li>
+              <li>• Estructura jerárquica</li>
               <li>• Validación de códigos únicos</li>
-              <li>• Configuración de tipos y categorías</li>
-              <li>• Soporta cuentas padre e hijo</li>
+              <li>• Tipos y categorías</li>
             </ul>
             
             <div className="mt-4 inline-flex items-center text-blue-600 font-medium">
-              Comenzar importación →
+              Comenzar →
             </div>
           </div>
 
@@ -113,7 +115,7 @@ export function DataImportMainPage() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-gray-900">
-                Importar Asientos Contables
+                Asientos Contables
               </h3>
             </div>
             
@@ -122,14 +124,44 @@ export function DataImportMainPage() {
             </p>
             
             <ul className="text-sm text-gray-500 space-y-1">
-              <li>• Asientos con múltiples líneas</li>
-              <li>• Validación de balance automática</li>
-              <li>• Soporte para terceros y centros de costo</li>
-              <li>• Diferentes tipos de asientos</li>
+              <li>• Múltiples líneas</li>
+              <li>• Validación de balance</li>
+              <li>• Terceros y centros de costo</li>
             </ul>
             
             <div className="mt-4 inline-flex items-center text-green-600 font-medium">
-              Comenzar importación →
+              Comenzar →
+            </div>
+          </div>
+
+          {/* Importar NFe (NUEVO) */}
+          <div 
+            onClick={() => navigate('/import-export/nfe')}
+            className="cursor-pointer bg-white border-2 border-gray-200 rounded-lg p-6 hover:border-orange-500 hover:shadow-lg transition-all duration-200"
+          >
+            <div className="flex items-center mb-4">
+              <div className="bg-orange-100 rounded-lg p-3 mr-4">
+                <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">
+                NFe Brasileñas
+              </h3>
+            </div>
+            
+            <p className="text-gray-600 mb-4">
+              Importa Notas Fiscais Eletrônicas (NFe) en formato XML masivamente
+            </p>
+            
+            <ul className="text-sm text-gray-500 space-y-1">
+              <li>• Hasta 1000 archivos XML</li>
+              <li>• Archivos ZIP soportados</li>
+              <li>• Facturas y productos automáticos</li>
+            </ul>
+            
+            <div className="mt-4 inline-flex items-center text-orange-600 font-medium">
+              Comenzar →
             </div>
           </div>
 

@@ -151,7 +151,9 @@ export function InvoiceListEnhancedPage() {
     } finally {
       setActionLoading(false);
     }
-  };  const handleBulkReset = async () => {
+  };
+
+  const handleBulkReset = async () => {
     if (selectedInvoices.length === 0) {
       showToast('Selecciona al menos una factura', 'warning');
       return;
@@ -183,7 +185,9 @@ export function InvoiceListEnhancedPage() {
     } finally {
       setActionLoading(false);
     }
-  };  const handleBulkDelete = async () => {
+  };
+
+  const handleBulkDelete = async () => {
     if (selectedInvoices.length === 0) {
       showToast('Selecciona al menos una factura', 'warning');
       return;
@@ -200,8 +204,11 @@ export function InvoiceListEnhancedPage() {
       // Usar la API bulk delete
       const result = await InvoiceAPI.bulkDeleteInvoices({
         invoice_ids: selectedInvoices,
-        confirmation: 'CONFIRM_DELETE'
+        confirmation: 'CONFIRM_DELETE',
+        reason: 'Eliminación bulk desde listado de facturas'
       });
+      
+      console.log('✅ Respuesta exitosa del backend:', result);
       
       if (result.successful > 0) {
         showToast(`${result.successful} factura${result.successful !== 1 ? 's' : ''} eliminada${result.successful !== 1 ? 's' : ''}`, 'success');
@@ -219,9 +226,15 @@ export function InvoiceListEnhancedPage() {
           `${result.skipped} factura${result.skipped !== 1 ? 's' : ''} omitida${result.skipped !== 1 ? 's' : ''} (no están en estado DRAFT)`,
           'info'
         );
-      }      setSelectedInvoices([]);
+      }
+
+      setSelectedInvoices([]);
       loadInvoices();
     } catch (error: any) {
+      console.log('❌ Error del backend:', error);
+      console.log('❌ Error response:', error.response);
+      console.log('❌ Error data:', error.response?.data);
+      console.log('❌ Error status:', error.response?.status);
       showToast(error.message || 'Error al eliminar facturas', 'error');
     } finally {
       setActionLoading(false);
@@ -478,12 +491,14 @@ export function InvoiceListEnhancedPage() {
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Fecha
-                  </th>                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Total
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">                {invoices.map((invoice) => (
+              <tbody className="bg-white divide-y divide-gray-200">
+                {invoices.map((invoice) => (
                   <tr 
                     key={invoice.id}
                     className={`hover:bg-gray-50 cursor-pointer transition-colors ${
@@ -544,6 +559,8 @@ export function InvoiceListEnhancedPage() {
                     <option value="50">50</option>
                     <option value="100">100</option>
                     <option value="200">200</option>
+                    <option value="500">500</option>
+                    <option value="1000">1000</option>
                   </select>
                 </div>
               </div>

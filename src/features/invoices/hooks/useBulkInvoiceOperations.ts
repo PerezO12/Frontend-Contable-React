@@ -293,23 +293,50 @@ export function useBulkInvoiceOperations({
 
     setIsProcessing(true);
     try {
+      // Verificar si hay facturas de NFE entre las seleccionadas
+      const selectedInvoices = invoices.filter(inv => selectedIds.has(inv.id));
+      const nfeInvoices = selectedInvoices.filter(inv => 
+        inv.invoice_number?.includes('NFe') || 
+        inv.description?.toLowerCase().includes('nfe') ||
+        inv.notes?.toLowerCase().includes('nfe')
+      );
+      
       const result = await InvoiceAPI.bulkDeleteInvoices({
         ...options,
         invoice_ids: Array.from(selectedIds)
       });
 
       if (result.successful > 0) {
-        showToast(
-          `${result.successful} facturas eliminadas exitosamente`,
-          'success'
-        );
+        let successMessage = `${result.successful} facturas eliminadas exitosamente`;
+        
+        // Si hay facturas NFE, agregar información adicional
+        if (nfeInvoices.length > 0) {
+          const nfeDeletedCount = nfeInvoices.filter(inv => 
+            result.successful_ids.includes(inv.id)
+          ).length;
+          
+          if (nfeDeletedCount > 0) {
+            successMessage += ` (incluyendo ${nfeDeletedCount} facturas de NFE que fueron desvinculadas)`;
+          }
+        }
+        
+        showToast(successMessage, 'success');
       }
 
       if (result.failed > 0) {
-        showToast(
-          `${result.failed} facturas fallaron en la eliminación`,
-          'error'
+        let errorMessage = `${result.failed} facturas fallaron en la eliminación`;
+        
+        // Verificar si hay errores relacionados con NFE
+        const nfeErrors = result.failed_items.filter(item => 
+          item.error?.toLowerCase().includes('nfe') || 
+          item.error?.toLowerCase().includes('nota fiscal')
         );
+        
+        if (nfeErrors.length > 0) {
+          errorMessage += `. ${nfeErrors.length} relacionadas con NFE - verifique las referencias`;
+        }
+        
+        showToast(errorMessage, 'error');
       }
 
       clearSelection();

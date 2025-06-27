@@ -19,6 +19,7 @@ import {
   DocumentDuplicateIcon,
   EyeIcon
 } from '@/shared/components/icons';
+import { NFEBulkInfo } from './NFEBulkInfo';
 import type { 
   BulkOperationValidation,
   BulkPostRequest,
@@ -29,6 +30,12 @@ import type {
 
 interface BulkActionsBarProps {
   selectedCount: number;
+  selectedInvoices: Array<{ 
+    id: string; 
+    invoice_number: string; 
+    description?: string; 
+    notes?: string; 
+  }>;
   isProcessing: boolean;
   validationData: BulkOperationValidation | null;
   onValidateOperation: (operation: 'post' | 'cancel' | 'reset' | 'delete') => Promise<BulkOperationValidation | null>;
@@ -81,6 +88,7 @@ const operationConfigs: Record<BulkOperation, OperationConfig> = {
 
 export function BulkActionsBar({
   selectedCount,
+  selectedInvoices,
   isProcessing,
   validationData,
   onValidateOperation,
@@ -382,6 +390,14 @@ export function BulkActionsBar({
                 />
               </div>
             </div>            
+            {/* Información específica para facturas NFE */}
+            {currentOperation && (
+              <NFEBulkInfo
+                selectedInvoices={selectedInvoices}
+                operation={currentOperation}
+              />
+            )}
+            
             {/* Advertencia para eliminación */}
             {currentOperation === 'delete' && (
               <Alert>

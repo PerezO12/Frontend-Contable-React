@@ -4,7 +4,8 @@ import {
   AccountsImportPage,
   JournalEntriesImportPage,
   ImportHistoryPage,
-  GenericImportPage
+  GenericImportPage,
+  NFeImportPage
 } from '../pages';
 
 export function DataImportRoutes() {
@@ -13,6 +14,7 @@ export function DataImportRoutes() {
       <Route path="/" element={<DataImportMainPage />} />
       <Route path="/accounts" element={<AccountsImportPage />} />
       <Route path="/journal-entries" element={<JournalEntriesImportPage />} />
+      <Route path="/nfe" element={<NFeImportPage />} />
       <Route path="/history" element={<ImportHistoryPage />} />
       <Route path="/generic" element={<GenericImportPage />} />
       {/* Redirigir rutas alternativas */}

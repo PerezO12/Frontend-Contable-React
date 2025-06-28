@@ -54,7 +54,14 @@ export function AccountSearchInput({
       };
       
       const results = await AccountService.getAccounts(filters);
-      setAccounts(results);
+      // Verificar el tipo de respuesta y extraer los items si es necesario
+      if (Array.isArray(results)) {
+        setAccounts(results);
+      } else if (results && 'items' in results) {
+        setAccounts(results.items);
+      } else {
+        setAccounts([]);
+      }
     } catch (error) {
       console.error('Error al buscar cuentas:', error);
       setAccounts([]);

@@ -11,4 +11,6 @@ export { InvoiceDetailPage } from './InvoiceDetailPage';
 // Nuevas páginas con flujo Odoo mejorado
 export { InvoiceCreateEnhancedPage } from './InvoiceCreateEnhancedPage';
 export { InvoiceDetailOdooPage } from './InvoiceDetailOdooPage';
-export { InvoiceListEnhancedPage } from './InvoiceListEnhancedPage';
+
+// Página genérica migrada al patrón del template
+export { InvoiceListGenericPage } from './InvoiceListGenericPage';

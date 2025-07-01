@@ -3,6 +3,9 @@
  * Implementa todas las llamadas al backend siguiendo IMPLEMENTAR.md
  */
 import { apiClient } from '@/shared/api/client';
+import axios from 'axios';
+import { TokenManager } from '@/features/auth/utils/tokenManager';
+import { APP_CONFIG } from '@/shared/constants';
 import type { 
   InvoiceCreateWithLines,
   InvoiceCreate,
@@ -15,6 +18,27 @@ import type {
   PaymentSchedulePreview,
   PaymentTermsValidation
 } from '../types';
+
+// Cliente API especial para operaciones bulk con timeout extendido
+const bulkApiClient = axios.create({
+  baseURL: APP_CONFIG.API_URL,
+  timeout: 60000, // 60 segundos para operaciones bulk
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Interceptor para añadir token a operaciones bulk
+bulkApiClient.interceptors.request.use(
+  (config) => {
+    const token = TokenManager.getAccessToken();
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 const API_BASE = '/api/v1/invoices';
 
@@ -111,7 +135,7 @@ export class InvoiceAPI {
   }
 
   // ===== BULK OPERATIONS =====
-    /**
+  /**
    * Validar operación bulk antes de ejecutar
    */
   static async validateBulkOperation(operation: 'post' | 'cancel' | 'reset' | 'delete', invoiceIds: string[]): Promise<{
@@ -141,7 +165,7 @@ export class InvoiceAPI {
       params.append('operation', operation);
       invoiceIds.forEach(id => params.append('invoice_ids', id));
       
-      const response = await apiClient.post(`${API_BASE}/bulk/validate?${params.toString()}`);
+      const response = await bulkApiClient.post(`${API_BASE}/bulk/validate?${params.toString()}`);
       console.log('✅ Validación exitosa:', response.data);
       return response.data;
     } catch (error: any) {
@@ -182,7 +206,7 @@ export class InvoiceAPI {
     }>;
     execution_time_seconds: number;
   }> {
-    const response = await apiClient.post(`${API_BASE}/bulk/post`, data);
+    const response = await bulkApiClient.post(`${API_BASE}/bulk/post`, data);
     return response.data;
   }
 
@@ -211,7 +235,7 @@ export class InvoiceAPI {
     }>;
     execution_time_seconds: number;
   }> {
-    const response = await apiClient.post(`${API_BASE}/bulk/cancel`, data);
+    const response = await bulkApiClient.post(`${API_BASE}/bulk/cancel`, data);
     return response.data;
   }
   /**
@@ -242,7 +266,7 @@ export class InvoiceAPI {
   }> {
     try {
       console.log('🔄 Enviando request bulk reset-to-draft:', data);
-      const response = await apiClient.post(`${API_BASE}/bulk/reset-to-draft`, data);
+      const response = await bulkApiClient.post(`${API_BASE}/bulk/reset-to-draft`, data);
       console.log('✅ Respuesta exitosa bulk reset-to-draft:', response.data);
       return response.data;
     } catch (error: any) {
@@ -282,7 +306,7 @@ export class InvoiceAPI {
     }>;
     execution_time_seconds: number;
   }> {
-    const response = await apiClient.delete(`${API_BASE}/bulk/delete`, { data });
+    const response = await bulkApiClient.delete(`${API_BASE}/bulk/delete`, { data });
     return response.data;
   }
   /**

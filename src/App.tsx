@@ -45,7 +45,7 @@ import {
   JournalEditPage
 } from '@/features/journals/pages';
 import {
-  InvoiceListEnhancedPage,
+  InvoiceListGenericPage,
   InvoiceCreatePageEnhanced,
   InvoiceCreateOdooPage,
   InvoiceEditPage,
@@ -287,7 +287,7 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
               <MainLayout>
-                <InvoiceListEnhancedPage />
+                <InvoiceListGenericPage />
               </MainLayout>
             </ProtectedRoute>
           } 

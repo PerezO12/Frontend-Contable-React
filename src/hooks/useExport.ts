@@ -335,10 +335,72 @@ export const useJournalEntriesExport = () => {
 };
 
 export const useInvoicesExport = () => {
-  return useExport({
-    entityName: 'facturas',
-    exportFunction: ExportService.exportInvoices
-  });
+  const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const exportData = async (format: string, options: any) => {
+    try {
+      setIsExporting(true);
+      setError(null);
+      
+      console.log('Exportando facturas con opciones:', { format, options });
+      
+      // Determinar IDs a exportar
+      let invoiceIds: string[] = [];
+      
+      if (options.scope === 'selected' && options.selectedItems) {
+        invoiceIds = options.selectedItems.map((invoice: any) => invoice.id);
+      } else {
+        // Para scope 'all', obtener todas las facturas con los filtros actuales
+        console.log('Obteniendo todas las facturas con filtros:', options.filters);
+        
+        // Obtener todas las facturas aplicando los filtros actuales
+        const { InvoiceService } = await import('../features/invoices/services');
+        const allInvoicesResponse = await InvoiceService.getInvoices(options.filters);
+        invoiceIds = allInvoicesResponse.items.map((invoice: any) => invoice.id);
+        
+        console.log(`Se encontraron ${invoiceIds.length} facturas para exportar`);
+      }
+      
+      if (invoiceIds.length === 0) {
+        throw new Error('No hay facturas para exportar con los filtros aplicados');
+      }
+      
+      // Usar InvoiceService.exportInvoices que usa el sistema genérico
+      const { InvoiceService } = await import('../features/invoices/services');
+      const blob = await InvoiceService.exportInvoices(
+        invoiceIds,
+        format as 'csv' | 'xlsx' | 'json'
+      );
+      
+      // Generar nombre de archivo
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+      const filename = `facturas_${invoiceIds.length}_registros_${timestamp}.${format}`;
+      
+      // Descargar archivo
+      const { ExportService } = await import('../shared/services/exportService');
+      ExportService.downloadBlob(blob, filename);
+      
+      console.log(`✅ Exportación de facturas completada: ${filename}`);
+      
+    } catch (error) {
+      console.error('Error al exportar facturas:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const clearError = () => setError(null);
+
+  return {
+    isExporting,
+    error,
+    exportData,
+    clearError
+  };
 };
 
 export const useJournalsExport = () => {

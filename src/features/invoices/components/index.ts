@@ -6,6 +6,7 @@ export { AccountSearch } from './AccountSearch';
 export { PaymentTermsSearch } from './PaymentTermsSearch';
 export { JournalSearch } from './JournalSearch';
 export { BulkActionsBar } from './BulkActionsBar';
+export { InvoiceBulkActionsBar } from './InvoiceBulkActionsBar';
 export { NFEBulkInfo } from './NFEBulkInfo';
 
 // Nuevos componentes del flujo Odoo

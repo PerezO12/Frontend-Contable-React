@@ -1,1 +1,0 @@
-export { JournalEntryService } from './journalEntryService';

@@ -19,6 +19,7 @@ export const ThirdPartyListPage: React.FC = () => {
       <ThirdPartyListView
         onThirdPartySelect={handleThirdPartySelect}
         onCreateThirdParty={handleCreateThirdParty}
+        showActions={true}
       />
     </div>
   );

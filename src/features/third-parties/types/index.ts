@@ -136,6 +136,12 @@ export interface ThirdPartyFilters {
   skip?: number; // Registros a omitir (paginación)
   limit?: number; // Límite de registros (paginación)
   
+  // Campos para el ListView genérico
+  page?: number;
+  per_page?: number;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
+  
   // Los siguientes campos están en la interfaz original pero NO los usa el backend:
   // document_number?: string;
   // name?: string;
@@ -400,6 +406,10 @@ export interface ThirdPartyListResponse {
   total: number;
   skip: number;
   limit: number;
+  // Campos adicionales para compatibilidad con ListView
+  page?: number;
+  pages?: number;
+  per_page?: number;
 }
 
 export interface ThirdPartyResponse {

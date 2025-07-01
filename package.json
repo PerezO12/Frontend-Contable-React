@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "axios": "^1.9.0",
+    "clsx": "^2.1.1",
     "decimal.js": "^10.5.0",
     "dompurify": "^3.2.6",
     "immer": "^10.1.1",
@@ -20,6 +21,7 @@
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.58.1",
     "react-router-dom": "^7.6.2",
+    "tailwind-merge": "^3.3.1",
     "xlsx": "^0.18.5",
     "zod": "^3.25.57",
     "zustand": "^5.0.5"

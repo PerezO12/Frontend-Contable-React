@@ -6,7 +6,6 @@ import { Badge } from '../../ui/Badge';
 import { formatCurrency } from '../../../shared/utils/formatters';
 import { useProductsExport } from '../../../hooks/useExport';
 import { BulkActionsBar } from '../../../features/products/components/BulkActionsBar';
-import { useBulkProductOperations } from '../../../features/products/hooks/useBulkProductOperations';
 import type { ListViewColumn, ListViewFilter, ListViewAction } from '../types';
 import type { Product, ProductFilters } from '../../../features/products/types';
 import { ProductService } from '../../../features/products/services';
@@ -39,9 +38,6 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
   initialFilters,
   showActions = true,
 }) => {
-  // Estado para la lista de productos (necesario para el hook bulk)
-  const [products, setProducts] = useState<Product[]>([]);
-  
   // Estado para selección (manejado por ListView)
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   
@@ -99,7 +95,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
     }
   }, [selectedProducts]);
 
-  const handleBulkDeactivate = useCallback(async (options: { reason?: string }) => {
+  const handleBulkDeactivate = useCallback(async (_options: { reason?: string } = {}) => {
     if (selectedProducts.length === 0) {
       return;
     }
@@ -109,13 +105,13 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
       const selectedIds = selectedProducts.map(p => p.id);
       const result = await ProductService.bulkDeactivateProducts(selectedIds);
       
-      if (result.total_processed > 0) {
-        console.log(`${result.total_processed} productos desactivados exitosamente`);
+      if (result.successful > 0) {
+        console.log(`${result.successful} productos desactivados exitosamente`);
         // TODO: Show success toast and refresh data
       }
       
-      if (result.total_errors > 0) {
-        console.log(`${result.total_errors} productos fallaron en la desactivación`);
+      if (result.failed > 0) {
+        console.log(`${result.failed} productos fallaron en la desactivación`);
         // TODO: Show error toast
       }
 
@@ -129,7 +125,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
     }
   }, [selectedProducts]);
 
-  const handleBulkDelete = useCallback(async (options: { reason: string }) => {
+  const handleBulkDelete = useCallback(async (_options: { reason: string }) => {
     if (selectedProducts.length === 0) {
       return;
     }
@@ -174,11 +170,6 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
   };
 
   // Handlers para el modal de exportación
-  const handleExportClick = useCallback((selectedItems: Product[]) => {
-    setSelectedForExport(selectedItems);
-    setExportModalOpen(true);
-  }, []);
-
   const handleExport = useCallback(async (format: string, options: any) => {
     try {
       await exportData(format, {
@@ -431,7 +422,6 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
       
       // Actualizar la lista de productos para el hook bulk
       const productList = response.items || [];
-      setProducts(productList);
 
       return {
         items: productList,

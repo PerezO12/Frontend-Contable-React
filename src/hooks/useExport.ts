@@ -124,10 +124,71 @@ export const useProductsExport = () => {
 };
 
 export const useThirdPartiesExport = () => {
-  return useExport({
-    entityName: 'terceros',
-    exportFunction: ExportService.exportThirdParties
-  });
+  const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const exportData = async (format: string, options: any) => {
+    try {
+      setIsExporting(true);
+      setError(null);
+      
+      console.log('Exportando terceros con opciones:', { format, options });
+      
+      // Determinar IDs a exportar
+      let thirdPartyIds: string[] = [];
+      
+      if (options.scope === 'selected' && options.selectedItems) {
+        thirdPartyIds = options.selectedItems.map((thirdParty: any) => thirdParty.id);
+      } else {
+        // Para scope 'all', obtener todos los terceros con los filtros actuales
+        console.log('Obteniendo todos los terceros con filtros:', options.filters);
+        
+        // Obtener todos los terceros aplicando los filtros actuales
+        const { ThirdPartyService } = await import('../features/third-parties/services');
+        const allThirdPartiesResponse = await ThirdPartyService.getThirdParties(options.filters);
+        thirdPartyIds = allThirdPartiesResponse.items.map((thirdParty: any) => thirdParty.id);
+        
+        console.log(`Se encontraron ${thirdPartyIds.length} terceros para exportar`);
+      }
+      
+      if (thirdPartyIds.length === 0) {
+        throw new Error('No hay terceros para exportar con los filtros aplicados');
+      }
+      
+      // Usar ThirdPartyService.exportThirdParties que usa el sistema genérico
+      const { ThirdPartyService } = await import('../features/third-parties/services');
+      const blob = await ThirdPartyService.exportThirdParties(
+        thirdPartyIds,
+        format as 'csv' | 'xlsx' | 'json'
+      );
+      
+      // Generar nombre de archivo
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+      const filename = `terceros_${thirdPartyIds.length}_registros_${timestamp}.${format}`;
+      
+      // Descargar archivo
+      GenericExportService.downloadBlob(blob, filename);
+      
+      console.log(`✅ Exportación de terceros completada: ${filename}`);
+      
+    } catch (error) {
+      console.error('Error al exportar terceros:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const clearError = () => setError(null);
+
+  return {
+    isExporting,
+    error,
+    exportData,
+    clearError
+  };
 };
 
 export const useAccountsExport = () => {

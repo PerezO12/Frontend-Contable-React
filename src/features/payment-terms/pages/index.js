@@ -1,1 +1,0 @@
-export { PaymentTermsPage } from './PaymentTermsPage';

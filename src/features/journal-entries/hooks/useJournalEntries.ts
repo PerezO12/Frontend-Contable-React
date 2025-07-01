@@ -43,10 +43,10 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
       setEntries(response.items);
       setPagination({
         total: response.total,
-        page: response.page,
-        pages: response.pages,
-        has_next: response.has_next,
-        has_prev: response.has_prev
+        page: Math.floor(response.skip / response.limit) + 1, // Calcular página actual
+        pages: Math.ceil(response.total / response.limit), // Calcular total de páginas
+        has_next: response.skip + response.limit < response.total, // Verificar si hay página siguiente
+        has_prev: response.skip > 0 // Verificar si hay página anterior
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar los asientos contables';
@@ -232,10 +232,10 @@ export const useJournalEntries = (initialFilters?: JournalEntryFilters) => {
       setEntries(response.items);
       setPagination({
         total: response.total,
-        page: response.page,
-        pages: response.pages,
-        has_next: response.has_next,
-        has_prev: response.has_prev
+        page: Math.floor(response.skip / response.limit) + 1, // Calcular página actual
+        pages: Math.ceil(response.total / response.limit), // Calcular total de páginas
+        has_next: response.skip + response.limit < response.total, // Verificar si hay página siguiente
+        has_prev: response.skip > 0 // Verificar si hay página anterior
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error en la búsqueda';

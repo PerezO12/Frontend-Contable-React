@@ -1230,4 +1230,59 @@ export class JournalEntryService {
       totalScheduledPayments
     };
   }
+
+  /**
+   * Operaciones bulk para activar/desactivar asientos contables (compatibilidad con patrón genérico)
+   * Nota: Para asientos contables, "activar" es equivalente a aprobar, y "desactivar" a resetear a borrador
+   */
+  static async bulkActivate(ids: string[], reason?: string): Promise<{
+    successful: number;
+    failed: number;
+    errors: any[];
+  }> {
+    console.log('Activando (aprobando) asientos contables masivamente:', { ids, reason });
+    
+    try {
+      // Usar el método de bulk approve existente
+      const result = await this.bulkApproveEntries(ids, reason);
+      
+      return {
+        successful: result.total_approved,
+        failed: result.total_failed,
+        errors: result.failed_entries?.map(entry => entry.error) || []
+      };
+    } catch (error) {
+      console.error('Error en activación masiva:', error);
+      throw error;
+    }
+  }
+
+  static async bulkDeactivate(ids: string[], reason?: string): Promise<{
+    successful: number;
+    failed: number;
+    errors: any[];
+  }> {
+    console.log('Desactivando (reseteando a borrador) asientos contables masivamente:', { ids, reason });
+    
+    try {
+      // Usar el método de bulk reset to draft existente
+      const operation: BulkJournalEntryResetToDraft = {
+        journal_entry_ids: ids,
+        reason: reason || ''
+      };
+      
+      const result = await this.bulkResetToDraftEntries(operation);
+      
+      return {
+        successful: result.total_processed - result.total_failed,
+        failed: result.total_failed,
+        errors: result.processed_entries
+          ?.filter(entry => entry.errors && entry.errors.length > 0)
+          ?.flatMap(entry => entry.errors) || []
+      };
+    } catch (error) {
+      console.error('Error en desactivación masiva:', error);
+      throw error;
+    }
+  }
 }

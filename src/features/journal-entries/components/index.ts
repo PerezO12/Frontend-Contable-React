@@ -12,3 +12,4 @@ export { BulkOperationsWithPaymentTerms } from './BulkOperationsWithPaymentTerms
 export { JournalEntryPaymentTermsDisplay } from './JournalEntryPaymentTermsDisplay';
 export { JournalEntryProductLine } from './JournalEntryProductLine';
 export { JournalEntryProductIntegration } from './JournalEntryProductIntegration';
+export { JournalEntryBulkActionsBar } from './JournalEntryBulkActionsBar';

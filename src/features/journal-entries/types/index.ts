@@ -529,10 +529,8 @@ export interface JournalEntryBalance {
 export interface JournalEntryListResponse {
   items: JournalEntry[];
   total: number;
-  page: number;
-  pages: number;
-  has_next: boolean;
-  has_prev: boolean;
+  skip: number;
+  limit: number;
 }
 
 export interface JournalEntryOperationResponse {

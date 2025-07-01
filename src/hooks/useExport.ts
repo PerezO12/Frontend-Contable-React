@@ -266,10 +266,72 @@ export const useCostCentersExport = () => {
 };
 
 export const useJournalEntriesExport = () => {
-  return useExport({
-    entityName: 'asientos contables',
-    exportFunction: ExportService.exportJournalEntries
-  });
+  const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const exportData = async (format: string, options: any) => {
+    try {
+      setIsExporting(true);
+      setError(null);
+      
+      console.log('Exportando asientos contables con opciones:', { format, options });
+      
+      // Determinar IDs a exportar
+      let entryIds: string[] = [];
+      
+      if (options.scope === 'selected' && options.selectedItems) {
+        entryIds = options.selectedItems.map((entry: any) => entry.id);
+      } else {
+        // Para scope 'all', obtener todos los asientos con los filtros actuales
+        console.log('Obteniendo todos los asientos contables con filtros:', options.filters);
+        
+        // Obtener todos los asientos aplicando los filtros actuales
+        const { JournalEntryService } = await import('../features/journal-entries/services');
+        const allEntriesResponse = await JournalEntryService.getJournalEntries(options.filters);
+        entryIds = allEntriesResponse.items.map((entry: any) => entry.id);
+        
+        console.log(`Se encontraron ${entryIds.length} asientos contables para exportar`);
+      }
+      
+      if (entryIds.length === 0) {
+        throw new Error('No hay asientos contables para exportar con los filtros aplicados');
+      }
+      
+      // Usar JournalEntryService.exportJournalEntries que usa el sistema genérico
+      const { JournalEntryService } = await import('../features/journal-entries/services');
+      const blob = await JournalEntryService.exportJournalEntries(
+        entryIds,
+        format as 'csv' | 'xlsx' | 'json'
+      );
+      
+      // Generar nombre de archivo
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+      const filename = `asientos_contables_${entryIds.length}_registros_${timestamp}.${format}`;
+      
+      // Descargar archivo
+      const { ExportService } = await import('../shared/services/exportService');
+      ExportService.downloadBlob(blob, filename);
+      
+      console.log(`✅ Exportación de asientos contables completada: ${filename}`);
+      
+    } catch (error) {
+      console.error('Error al exportar asientos contables:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const clearError = () => setError(null);
+
+  return {
+    isExporting,
+    error,
+    exportData,
+    clearError
+  };
 };
 
 export const useInvoicesExport = () => {

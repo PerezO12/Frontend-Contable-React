@@ -1,2 +1,2 @@
 export { AccountService } from './accountService';
-export { AccountDeletionService } from './accountDeletionService';
+export { AccountDeletionService, accountDeletionService } from './accountDeletionService';

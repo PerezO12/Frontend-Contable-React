@@ -10,3 +10,4 @@ export { SimpleExportControls } from './SimpleExportControls';
 export { ExportTestComponent } from './ExportTestComponent';
 export { CashFlowCategoryManager } from './CashFlowCategoryManager';
 export { BulkDeleteModal } from './BulkDeleteModal';
+export { AccountBulkActionsBar } from './AccountBulkActionsBar';

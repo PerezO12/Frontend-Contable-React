@@ -58,3 +58,5 @@ export class AccountDeletionService implements DeletionService<Account> {
     }
   }
 }
+
+export const accountDeletionService = new AccountDeletionService();

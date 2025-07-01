@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Button } from '../../../components/ui/Button';
-import { AccountListEnhanced, AccountTreeComponent as AccountTree, AccountForm, AccountDetail, CashFlowCategoryManager } from '../components';
+import { Button } from '@/components/ui/Button';
+import { AccountTreeComponent as AccountTree, AccountForm, AccountDetail, CashFlowCategoryManager } from '../components';
 import { ExportTestComponent } from '../components/ExportTestComponent';
+import { AccountListView } from '@/components/atomic/templates/AccountListView';
 import type { Account } from '../types';
 
 type ViewMode = 'list' | 'tree';
@@ -222,8 +223,10 @@ export const AccountsPage: React.FC = () => {
         return (
           <>            
           {viewMode === 'list' ? (
-              <AccountListEnhanced
+              <AccountListView 
                 onAccountSelect={handleViewAccount}
+                onCreateAccount={() => handleCreateAccount()}
+                showActions={true}
               />
             ) : (
               <AccountTree

@@ -126,6 +126,9 @@ export interface AccountFilters {
   // Paginación como parte del filtro
   page?: number;
   size?: number;
+  // Ordenamiento
+  order_by?: 'code' | 'name' | 'created_at' | 'level';
+  order_desc?: boolean;
 }
 
 // API Response types
@@ -208,6 +211,35 @@ export interface BulkAccountDeleteResult {
   total_requested: number;
   successfully_deleted: string[];
   failed_to_delete: Array<{
+    account_id: string;
+    reason: string;
+    details: Record<string, any>;
+  }>;
+  validation_errors: Array<{
+    account_id: string;
+    error: string;
+  }>;
+  warnings: string[];
+  success_count: number;
+  failure_count: number;
+  success_rate: number;
+}
+
+// Bulk activate/deactivate types
+export interface BulkAccountActivate {
+  account_ids: string[];
+  activation_reason?: string;
+}
+
+export interface BulkAccountDeactivate {
+  account_ids: string[];
+  deactivation_reason?: string;
+}
+
+export interface BulkAccountStatusResult {
+  total_requested: number;
+  successfully_processed: string[];
+  failed_to_process: Array<{
     account_id: string;
     reason: string;
     details: Record<string, any>;

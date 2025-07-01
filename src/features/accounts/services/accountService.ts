@@ -9,7 +9,10 @@ import type {
   AccountListResponse,
   BulkAccountDelete,
   AccountDeleteValidation,
-  BulkAccountDeleteResult
+  BulkAccountDeleteResult,
+  BulkAccountActivate,
+  BulkAccountDeactivate,
+  BulkAccountStatusResult
 } from '../types';
 
 export class AccountService {
@@ -301,6 +304,42 @@ export class AccountService {
       return response.data;
     } catch (error) {
       console.error('Error en eliminación masiva:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Activar múltiples cuentas
+   */
+  static async bulkActivateAccounts(activateData: BulkAccountActivate): Promise<BulkAccountStatusResult> {
+    console.log('Activación masiva de cuentas:', activateData);
+    try {
+      const response = await apiClient.post<BulkAccountStatusResult>(
+        `${this.BASE_URL}/bulk-activate`,
+        activateData
+      );
+      console.log('Activación masiva completada:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error en activación masiva:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Desactivar múltiples cuentas
+   */
+  static async bulkDeactivateAccounts(deactivateData: BulkAccountDeactivate): Promise<BulkAccountStatusResult> {
+    console.log('Desactivación masiva de cuentas:', deactivateData);
+    try {
+      const response = await apiClient.post<BulkAccountStatusResult>(
+        `${this.BASE_URL}/bulk-deactivate`,
+        deactivateData
+      );
+      console.log('Desactivación masiva completada:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error en desactivación masiva:', error);
       throw error;
     }
   }

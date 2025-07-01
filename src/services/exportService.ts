@@ -338,7 +338,64 @@ export class ExportService {
    * Exportar cuentas
    */
   static async exportAccounts(params: ExportParams): Promise<void> {
-    return ExportService.exportData('/api/v1/export/accounts/export', params, 'cuentas');
+    // Usar el endpoint genérico de exportación con tabla 'accounts'
+    const body = {
+      table: 'accounts',
+      format: params.format,
+      ids: params.selectedIds || [],
+      file_name: params.file_name
+    };
+
+    try {
+      const response = await fetch('/api/v1/export', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+          'Accept': params.format === 'csv' ? 'text/csv' : 
+                   params.format === 'json' ? 'application/json' :
+                   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error al exportar: ${response.statusText}`);
+      }
+
+      if (params.format === 'json') {
+        const data = await response.json();
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `cuentas_${timestamp}.json`;
+        await this.downloadJson(data, filename);
+      } else {
+        // Para CSV y XLSX, descargar directamente el archivo
+        const contentDisposition = response.headers.get('content-disposition');
+        let filename = `cuentas_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${params.format}`;
+        
+        if (contentDisposition) {
+          const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+          if (matches != null && matches[1]) {
+            filename = matches[1].replace(/['"]/g, '');
+          }
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        window.URL.revokeObjectURL(downloadUrl);
+      }
+    } catch (error) {
+      console.error('Error al exportar cuentas:', error);
+      throw new Error(`Error al exportar cuentas: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    }
   }
 
   /**

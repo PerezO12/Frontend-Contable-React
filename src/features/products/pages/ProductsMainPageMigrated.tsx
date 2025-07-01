@@ -9,7 +9,7 @@ import { Badge } from '../../../components/ui/Badge';
 import { ExclamationCircleIcon } from '../../../shared/components/icons';
 import type { Product } from '../types';
 
-export function ProductsMainPage() {
+export function ProductsMainPageMigrated() {
   const navigate = useNavigate();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showDetail, setShowDetail] = useState(false);
@@ -96,6 +96,7 @@ export function ProductsMainPage() {
         )}
       </Card>      
       
+      {/* Nueva implementación con ListView */}
       <ProductListView
         onProductSelect={handleProductSelect}
         onCreateProduct={handleCreateProduct}

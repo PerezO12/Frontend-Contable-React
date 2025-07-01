@@ -121,7 +121,7 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
                   {validations
                     .filter((v: ProductDeletionValidation) => v.can_delete)
                     .map((v: ProductDeletionValidation) => (
-                      <li key={v.product_id}>• {v.product_name}</li>
+                      <li key={v.product_id}>• {v.dependencies?.product_name || v.product_id}</li>
                     ))}
                 </ul>
               </div>
@@ -136,7 +136,7 @@ export const BulkDeleteModal: React.FC<BulkDeleteModalProps> = ({
                     .filter((v: ProductDeletionValidation) => !v.can_delete)
                     .map((v: ProductDeletionValidation) => (
                       <div key={v.product_id} className="text-sm text-red-700">
-                        <div className="font-medium">• {v.product_name}</div>
+                        <div className="font-medium">• {v.dependencies?.product_name || v.product_id}</div>
                         <div className="ml-4 text-xs">
                           Razones: {v.blocking_reasons.join(', ')}
                         </div>

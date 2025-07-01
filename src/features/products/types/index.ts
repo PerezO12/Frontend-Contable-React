@@ -463,19 +463,10 @@ export interface BulkProductDeleteResult {
 // Validación de eliminación
 export interface ProductDeletionValidation {
   product_id: string;
-  product_code: string;
-  product_name: string;
-  product_status: ProductStatus;
-  current_stock: string;
   can_delete: boolean;
-  can_deactivate: boolean;
   blocking_reasons: string[];
   warnings: string[];
-  recommendations: string[];
-  estimated_stock_value: string;
-  last_movement_date?: string;
-  creation_date: string;
-  risk_level: 'low' | 'medium' | 'high' | 'critical';
+  dependencies: Record<string, any>;
 }
 
 // Labels para mostrar en UI

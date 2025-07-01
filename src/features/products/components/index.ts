@@ -2,7 +2,6 @@ export { ProductSelector } from './ProductSelector';
 export { ProductLineInfo } from './ProductLineInfo';
 export { ProductForm } from './ProductForm';
 export { ProductEditForm } from './ProductEditForm';
-export { ProductList } from './ProductList';
 export { ProductDetail } from './ProductDetail';
 export { BulkDeleteModal } from './BulkDeleteModal';
 export { SimpleExportControls } from './SimpleExportControls';

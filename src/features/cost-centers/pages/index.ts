@@ -1,5 +1,3 @@
-export { CostCenterManagementPage } from './CostCenterManagementPage';
-export { CostCenterTestPage } from './CostCenterTestPage';
 export { CostCentersPage } from './CostCentersPage';
 export { CostCenterListPage } from './CostCenterListPage';
 export { CostCenterCreatePage } from './CostCenterCreatePage';

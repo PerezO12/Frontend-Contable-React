@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { CostCenterListPage } from './CostCenterListPage';
+import { CostCenterListPage } from './CostCenterListPageNew';
 import { CostCenterCreatePage } from './CostCenterCreatePage';
 import { CostCenterDetailPage } from './CostCenterDetailPage';
 import { CostCenterEditPage } from './CostCenterEditPage';

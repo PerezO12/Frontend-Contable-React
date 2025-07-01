@@ -38,7 +38,7 @@ export const CostCenterMovements: React.FC<CostCenterMovementsProps> = ({
       skip: 0,
       limit: pageSize
     };
-    refetch(costCenter.id, filters);
+    refetch(filters);
     setCurrentPage(0);
   };
 
@@ -49,7 +49,7 @@ export const CostCenterMovements: React.FC<CostCenterMovementsProps> = ({
       skip: newPage * pageSize,
       limit: pageSize
     };
-    refetch(costCenter.id, filters);
+    refetch(filters);
     setCurrentPage(newPage);
   };
 

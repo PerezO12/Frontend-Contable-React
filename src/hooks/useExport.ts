@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ExportService } from '../services/exportService';
 import { ExportService as GenericExportService } from '../shared/services/exportService';
 import { ProductService } from '../features/products/services/productService';
+import { CostCenterService } from '../features/cost-centers/services/costCenterService';
 import type { ExportParams } from '../services/exportService';
 
 export interface UseExportOptions {
@@ -199,10 +200,69 @@ export const useAccountsExport = () => {
 };
 
 export const useCostCentersExport = () => {
-  return useExport({
-    entityName: 'centros de costo',
-    exportFunction: ExportService.exportCostCenters
-  });
+  const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const exportData = async (format: string, options: any) => {
+    try {
+      setIsExporting(true);
+      setError(null);
+      
+      console.log('Exportando centros de costo con opciones:', { format, options });
+      
+      // Determinar IDs a exportar
+      let costCenterIds: string[] = [];
+      
+      if (options.scope === 'selected' && options.selectedItems) {
+        costCenterIds = options.selectedItems.map((costCenter: any) => costCenter.id);
+      } else {
+        // Para scope 'all', obtener todos los centros de costo con los filtros actuales
+        console.log('Obteniendo todos los centros de costo con filtros:', options.filters);
+        
+        // Obtener todos los centros de costo aplicando los filtros actuales
+        const allCostCentersResponse = await CostCenterService.getCostCenters(options.filters);
+        costCenterIds = allCostCentersResponse.data.map((costCenter: any) => costCenter.id);
+        
+        console.log(`Se encontraron ${costCenterIds.length} centros de costo para exportar`);
+      }
+      
+      if (costCenterIds.length === 0) {
+        throw new Error('No hay centros de costo para exportar con los filtros aplicados');
+      }
+      
+      // Usar CostCenterService.exportCostCenters que usa el sistema genérico
+      const blob = await CostCenterService.exportCostCenters(
+        costCenterIds,
+        format as 'csv' | 'xlsx' | 'json'
+      );
+      
+      // Generar nombre de archivo
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+      const filename = `centros_de_costo_${costCenterIds.length}_registros_${timestamp}.${format}`;
+      
+      // Descargar archivo
+      GenericExportService.downloadBlob(blob, filename);
+      
+      console.log(`✅ Exportación de centros de costo completada: ${filename}`);
+      
+    } catch (error) {
+      console.error('Error al exportar centros de costo:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const clearError = () => setError(null);
+
+  return {
+    isExporting,
+    error,
+    exportData,
+    clearError
+  };
 };
 
 export const useJournalEntriesExport = () => {

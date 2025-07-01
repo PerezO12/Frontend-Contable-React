@@ -219,7 +219,7 @@ export class ExportService {
     };
 
     try {
-      const response = await fetch('/api/v1/export/export', {
+      const response = await fetch('/api/v1/export', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -274,7 +274,64 @@ export class ExportService {
    * Exportar terceros
    */
   static async exportThirdParties(params: ExportParams): Promise<void> {
-    return ExportService.exportData('/api/v1/export/third-parties/export', params, 'terceros');
+    // Usar el endpoint genérico de exportación con tabla 'third_parties'
+    const body = {
+      table: 'third_parties',
+      format: params.format,
+      ids: params.selectedIds || [],
+      file_name: params.file_name
+    };
+
+    try {
+      const response = await fetch('/api/v1/export', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+          'Accept': params.format === 'csv' ? 'text/csv' : 
+                   params.format === 'json' ? 'application/json' :
+                   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error al exportar: ${response.statusText}`);
+      }
+
+      if (params.format === 'json') {
+        const data = await response.json();
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `terceros_${timestamp}.json`;
+        await this.downloadJson(data, filename);
+      } else {
+        // Para CSV y XLSX, descargar directamente el archivo
+        const contentDisposition = response.headers.get('content-disposition');
+        let filename = `terceros_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${params.format}`;
+        
+        if (contentDisposition) {
+          const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+          if (matches != null && matches[1]) {
+            filename = matches[1].replace(/['"]/g, '');
+          }
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        window.URL.revokeObjectURL(downloadUrl);
+      }
+    } catch (error) {
+      console.error('Error al exportar terceros:', error);
+      throw new Error(`Error al exportar terceros: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    }
   }
 
   /**
@@ -288,7 +345,64 @@ export class ExportService {
    * Exportar centros de costo
    */
   static async exportCostCenters(params: ExportParams): Promise<void> {
-    return ExportService.exportData('/api/v1/export/cost-centers/export', params, 'centros_de_costo');
+    // Usar el endpoint genérico de exportación con tabla 'cost_centers'
+    const body = {
+      table: 'cost_centers',
+      format: params.format,
+      ids: params.selectedIds || [],
+      file_name: params.file_name
+    };
+
+    try {
+      const response = await fetch('/api/v1/export', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+          'Accept': params.format === 'csv' ? 'text/csv' : 
+                   params.format === 'json' ? 'application/json' :
+                   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error al exportar: ${response.statusText}`);
+      }
+
+      if (params.format === 'json') {
+        const data = await response.json();
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `centros_de_costo_${timestamp}.json`;
+        await this.downloadJson(data, filename);
+      } else {
+        // Para CSV y XLSX, descargar directamente el archivo
+        const contentDisposition = response.headers.get('content-disposition');
+        let filename = `centros_de_costo_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${params.format}`;
+        
+        if (contentDisposition) {
+          const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+          if (matches != null && matches[1]) {
+            filename = matches[1].replace(/['"]/g, '');
+          }
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        window.URL.revokeObjectURL(downloadUrl);
+      }
+    } catch (error) {
+      console.error('Error al exportar centros de costo:', error);
+      throw new Error(`Error al exportar centros_de_costo: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    }
   }
 
   /**

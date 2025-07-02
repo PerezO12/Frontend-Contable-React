@@ -14,6 +14,11 @@ import type {
   JournalStats,
   JournalType,
   JournalPagination,
+  BankJournalConfigCreate,
+  BankJournalConfigUpdate,
+  BankJournalConfigRead,
+  BankJournalConfigValidation,
+  JournalWithBankConfig,
 } from '../types';
 
 // Respuesta paginada del backend
@@ -94,7 +99,10 @@ export class JournalAPI {
    * Actualizar un journal
    */
   static async updateJournal(id: string, data: JournalUpdate): Promise<JournalDetail> {
+    console.log('🔄 JournalAPI.updateJournal - ID:', id);
+    console.log('🔄 JournalAPI.updateJournal - Datos enviados:', data);
     const response = await apiClient.put<JournalDetail>(`${this.BASE_URL}/${id}`, data);
+    console.log('✅ JournalAPI.updateJournal - Respuesta:', response.data);
     return response.data;
   }
 
@@ -172,6 +180,70 @@ export class JournalAPI {
       { skip: 0, limit, order_by: 'name', order_dir: 'asc' }
     );
     return response.items;
+  }
+
+  // ==================== CONFIGURACIÓN BANCARIA ====================
+
+  /**
+   * Crear configuración bancaria para un journal
+   */
+  static async createBankConfig(
+    journalId: string, 
+    data: BankJournalConfigCreate
+  ): Promise<JournalWithBankConfig> {
+    const response = await apiClient.post<JournalWithBankConfig>(
+      `${this.BASE_URL}/${journalId}/bank-config`, 
+      data
+    );
+    return response.data;
+  }
+
+  /**
+   * Obtener configuración bancaria de un journal
+   */
+  static async getBankConfig(journalId: string): Promise<BankJournalConfigRead | null> {
+    try {
+      const response = await apiClient.get<BankJournalConfigRead>(
+        `${this.BASE_URL}/${journalId}/bank-config`
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Actualizar configuración bancaria de un journal
+   */
+  static async updateBankConfig(
+    journalId: string, 
+    data: BankJournalConfigUpdate
+  ): Promise<BankJournalConfigRead> {
+    const response = await apiClient.put<BankJournalConfigRead>(
+      `${this.BASE_URL}/${journalId}/bank-config`, 
+      data
+    );
+    return response.data;
+  }
+
+  /**
+   * Eliminar configuración bancaria de un journal
+   */
+  static async deleteBankConfig(journalId: string): Promise<void> {
+    await apiClient.delete(`${this.BASE_URL}/${journalId}/bank-config`);
+  }
+
+  /**
+   * Validar configuración bancaria de un journal
+   */
+  static async validateBankConfig(journalId: string): Promise<BankJournalConfigValidation> {
+    const response = await apiClient.post<BankJournalConfigValidation>(
+      `${this.BASE_URL}/${journalId}/bank-config/validate`
+    );
+    return response.data;
   }
 }
 

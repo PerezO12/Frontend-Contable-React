@@ -1,5 +1,5 @@
 import React from 'react';
-import { CostCenterListView } from '../../../components/atomic/templates/CostCenterListView';
+import { CostCenterListView } from '../../../components/atomic/templatesViews/CostCenterListView';
 import { useNavigate } from 'react-router-dom';
 import type { CostCenter } from '../types';
 

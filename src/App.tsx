@@ -34,6 +34,11 @@ import {
   PaymentTermsPage
 } from '@/features/payment-terms/pages';
 import {
+  PaymentListPage,
+  PaymentCreatePage,
+  PaymentDetailPage
+} from '@/features/payments/pages';
+import {
   ProductsPage,
   ProductCreatePage,
   ProductEditPage
@@ -370,6 +375,48 @@ const AppContent = () => {
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
               <MainLayout>
                 <JournalEditPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Rutas de Pagos - Solo para ADMIN y CONTADOR */}
+        <Route 
+          path="/payments" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <PaymentListPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/payments/list" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <PaymentListPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/payments/new" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <PaymentCreatePage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/payments/:id" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR]}>
+              <MainLayout>
+                <PaymentDetailPage />
               </MainLayout>
             </ProtectedRoute>
           } 

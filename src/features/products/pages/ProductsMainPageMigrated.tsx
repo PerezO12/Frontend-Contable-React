@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ProductListView } from '../../../components/atomic/templates/ProductListView';
+import { ProductListView } from '../../../components/atomic/templatesViews/ProductListView';
 import { ProductDetail, LowStockAlerts } from '../components';
 import { ProductService } from '../services';
 import { Button } from '../../../components/ui/Button';

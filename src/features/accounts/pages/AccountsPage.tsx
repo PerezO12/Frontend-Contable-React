@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { AccountTreeComponent as AccountTree, AccountForm, AccountDetail, CashFlowCategoryManager } from '../components';
 import { ExportTestComponent } from '../components/ExportTestComponent';
-import { AccountListView } from '@/components/atomic/templates/AccountListView';
+import { AccountListView } from '@/components/atomic/templatesViews/AccountListView';
 import type { Account } from '../types';
 
 type ViewMode = 'list' | 'tree';

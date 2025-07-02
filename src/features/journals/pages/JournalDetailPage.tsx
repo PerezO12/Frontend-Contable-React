@@ -1,10 +1,11 @@
 /**
  * Página de detalle de journal
- * Muestra información completa de un journal específico
+ * Muestra información completa de un journal específico incluyendo configuración bancaria
  */
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useJournal, useJournalStats, useJournalSequence } from '../hooks/useJournals';
+import { useBankJournalConfig } from '../hooks/useBankJournalConfig';
 import { JournalTypeLabels, JournalTypeColors } from '../types';
 import { formatDate } from '@/shared/utils/formatters';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +13,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { BankJournalConfigForm } from '../components/BankJournalConfigForm';
 import { useToast } from '@/shared/contexts/ToastContext';
 import {
   ArrowLeftIcon,
@@ -30,7 +32,7 @@ export function JournalDetailPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [resetReason, setResetReason] = useState('');
-  const [activeTab, setActiveTab] = useState<'info' | 'stats' | 'sequence'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'stats' | 'sequence' | 'bank-config'>('info');
 
   // Hooks
   const {
@@ -54,9 +56,47 @@ export function JournalDetailPage() {
     refresh: refreshSequence,
   } = useJournalSequence(id || '', !!id);
 
+  const {
+    loading: bankConfigLoading,
+    saving: bankConfigSaving,
+    error: bankConfigError,
+    validation,
+    updateBankConfig,
+    deleteBankConfig,
+    validateBankConfig,
+  } = useBankJournalConfig();
+
   useEffect(() => {
     clearError();
   }, [clearError]);
+
+  // Obtener configuración bancaria desde el journal (ya incluida en la respuesta)
+  const bankConfig = journal?.bank_config;
+  
+  // Debug: verificar el estado de bank_config
+  console.log('🔍 Journal:', journal);
+  console.log('🔍 Bank Config:', bankConfig);
+  console.log('🔍 Journal Type:', journal?.type);
+  console.log('🔍 Is Bank Type:', journal?.type === 'bank');
+  console.log('🔍 Has Bank Config:', !!bankConfig);
+
+  // Handlers para configuración bancaria
+  const handleUpdateBankConfig = async (data: any) => {
+    if (!journal?.id) return;
+    await updateBankConfig(journal.id, data);
+  };
+
+  const handleDeleteBankConfig = async () => {
+    if (!journal?.id) return;
+    if (confirm('¿Estás seguro de que deseas eliminar la configuración bancaria?')) {
+      await deleteBankConfig(journal.id);
+    }
+  };
+
+  const handleValidateBankConfig = async () => {
+    if (!journal?.id) return;
+    await validateBankConfig(journal.id);
+  };
 
   if (loading) {
     return (
@@ -129,7 +169,7 @@ export function JournalDetailPage() {
   };
 
   // Renderizar pestañas
-  const renderTabButton = (tabId: 'info' | 'stats' | 'sequence', label: string) => (
+  const renderTabButton = (tabId: 'info' | 'stats' | 'sequence' | 'bank-config', label: string) => (
     <button
       onClick={() => setActiveTab(tabId)}
       className={`px-4 py-2 font-medium text-sm rounded-lg transition-colors ${
@@ -207,6 +247,7 @@ export function JournalDetailPage() {
           {renderTabButton('info', 'Información')}
           {renderTabButton('stats', 'Estadísticas')}
           {renderTabButton('sequence', 'Secuencia')}
+          {journal.type === 'bank' && renderTabButton('bank-config', 'Config. Bancaria')}
         </div>
 
         {/* Contenido según pestaña activa */}
@@ -425,7 +466,129 @@ export function JournalDetailPage() {
               </div>
             )}
           </Card>
-        )}        {/* Diálogo de confirmación para eliminar */}
+        )}
+
+        {activeTab === 'bank-config' && journal.type === 'bank' && (
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Configuración Bancaria</h2>
+                <p className="text-sm text-gray-600">
+                  Configuración avanzada para operaciones bancarias
+                </p>
+              </div>
+              
+              {/* Botones de acción para configuración bancaria */}
+              <div className="flex space-x-2">
+                {bankConfig && (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={handleValidateBankConfig}
+                      disabled={bankConfigLoading}
+                      size="sm"
+                    >
+                      Validar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleDeleteBankConfig}
+                      disabled={bankConfigSaving}
+                      size="sm"
+                      className="text-red-600 border-red-300 hover:bg-red-50"
+                    >
+                      Eliminar
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {bankConfigLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <LoadingSpinner />
+                <span className="ml-2 text-gray-600">Cargando configuración bancaria...</span>
+              </div>
+            ) : bankConfig ? (
+              <div>
+                <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-green-800">
+                        Configuración Activa
+                      </h4>
+                      <p className="mt-1 text-sm text-green-700">
+                        Este journal tiene configuración bancaria activa. Puedes editarla usando el botón "Editar Journal".
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <BankJournalConfigForm
+                  journalId={journal.id}
+                  initialData={bankConfig}
+                  onSubmit={handleUpdateBankConfig}
+                  isSubmitting={bankConfigSaving}
+                  errors={validation?.errors || []}
+                  warnings={validation?.warnings || []}
+                />
+              </div>
+            ) : (
+              <div>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-blue-800">
+                        Sin Configuración Bancaria
+                      </h4>
+                      <p className="mt-1 text-sm text-blue-700">
+                        Este journal no tiene configuración bancaria. Puedes crear una usando el botón "Editar Journal".
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center py-8">
+                  <Button
+                    onClick={() => navigate(`/journals/${journal.id}/edit`)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <PencilIcon className="w-4 h-4 mr-2" />
+                    Editar Journal para Configurar
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {bankConfigError && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-red-800">Error</h4>
+                    <p className="mt-1 text-sm text-red-700">{bankConfigError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Diálogo de confirmación para eliminar */}
         <ConfirmDialog
           open={showDeleteDialog}
           onClose={() => setShowDeleteDialog(false)}

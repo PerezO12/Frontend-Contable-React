@@ -409,3 +409,121 @@ export const useJournalsExport = () => {
     exportFunction: ExportService.exportJournals
   });
 };
+
+export const usePaymentsExport = () => {
+  const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const exportData = async (data: any, format: 'csv' | 'excel') => {
+    try {
+      setIsExporting(true);
+      setError(null);
+      
+      console.log('Exportando pagos con datos:', { format, data });
+      
+      // Importar las funciones necesarias
+      const { PaymentFlowAPI } = await import('../features/payments/api/paymentFlowAPI');
+      const { PAYMENT_STATUS_LABELS, PAYMENT_TYPE_LABELS } = await import('../features/payments/types');
+      
+      // Determinar qué pagos exportar
+      let paymentsToExport: any[] = [];
+      
+      if (data.payments) {
+        // Exportar pagos seleccionados
+        paymentsToExport = data.payments;
+      } else if (data.filters) {
+        // Exportar todos los pagos con filtros
+        const response = await PaymentFlowAPI.getPayments({
+          ...data.filters,
+          per_page: 1000, // Obtener muchos registros para exportación
+        });
+        paymentsToExport = response.data || [];
+      }
+      
+      if (paymentsToExport.length === 0) {
+        throw new Error('No hay pagos para exportar');
+      }
+      
+      // Transformar datos para exportación
+      const exportData = paymentsToExport.map(payment => ({
+        'Referencia': payment.reference || '-',
+        'Fecha de Pago': payment.payment_date,
+        'Tercero': payment.partner_name || '-',
+        'Tipo': PAYMENT_TYPE_LABELS[payment.payment_type as keyof typeof PAYMENT_TYPE_LABELS] || payment.payment_type,
+        'Estado': PAYMENT_STATUS_LABELS[payment.status as keyof typeof PAYMENT_STATUS_LABELS] || payment.status,
+        'Importe': payment.amount,
+        'Moneda': payment.currency_code,
+        'Diario': payment.journal_name || '-',
+        'Descripción': payment.description || '-',
+        'Fecha Creación': payment.created_at,
+        'Última Actualización': payment.updated_at,
+      }));
+      
+      // Crear y descargar archivo
+      let blob: Blob;
+      let filename: string;
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+      
+      if (format === 'csv') {
+        const headers = Object.keys(exportData[0]);
+        const csvContent = [
+          headers.join(','),
+          ...exportData.map(row => 
+            headers.map(header => {
+              const value = row[header as keyof typeof row];
+              return `"${String(value).replace(/"/g, '""')}"`;
+            }).join(',')
+          )
+        ].join('\n');
+        
+        blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        filename = `pagos_${paymentsToExport.length}_registros_${timestamp}.csv`;
+      } else {
+        // Para Excel, crear un CSV con formato que Excel pueda abrir
+        const headers = Object.keys(exportData[0]);
+        const csvContent = [
+          headers.join('\t'),
+          ...exportData.map(row => 
+            headers.map(header => {
+              const value = row[header as keyof typeof row];
+              return String(value);
+            }).join('\t')
+          )
+        ].join('\n');
+        
+        blob = new Blob([csvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+        filename = `pagos_${paymentsToExport.length}_registros_${timestamp}.xls`;
+      }
+      
+      // Crear enlace de descarga
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      
+      console.log(`✅ Exportación completada: ${filename}`);
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al exportar pagos';
+      console.error('❌ Error en exportación:', err);
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const clearError = () => {
+    setError(null);
+  };
+
+  return {
+    isLoading: isExporting,
+    error,
+    exportData,
+    clearError
+  };
+};

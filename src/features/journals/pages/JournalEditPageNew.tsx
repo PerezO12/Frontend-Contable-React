@@ -31,10 +31,12 @@ export function JournalEditPage() {
   // Hooks
   const { journal, loading: fetchLoading, error } = useJournal(id);
   const {
+    bankConfig,
     loading: bankConfigLoading,
     saving: bankConfigSaving,
     error: bankConfigError,
     validation,
+    fetchBankConfig,
     createBankConfig,
     updateBankConfig,
     deleteBankConfig,
@@ -55,7 +57,6 @@ export function JournalEditPage() {
       code: '',
       type: 'sale' as JournalType,
       sequence_prefix: '',
-      default_account_id: '',
       sequence_padding: 4,
       include_year_in_sequence: true,
       reset_sequence_yearly: true,
@@ -69,13 +70,12 @@ export function JournalEditPage() {
   // Cargar datos del journal en el formulario
   useEffect(() => {
     if (journal) {
-      console.log('📝 Cargando datos del journal:', journal);
       reset({
         name: journal.name,
         code: journal.code,
         type: journal.type,
         sequence_prefix: journal.sequence_prefix,
-        default_account_id: journal.default_account_id || '',
+        default_account_id: journal.default_account_id || undefined,
         sequence_padding: journal.sequence_padding,
         include_year_in_sequence: journal.include_year_in_sequence,
         reset_sequence_yearly: journal.reset_sequence_yearly,
@@ -87,8 +87,14 @@ export function JournalEditPage() {
     }
   }, [journal, reset]);
 
-  // Obtener configuración bancaria desde el journal (ya incluida en la respuesta)
-  const bankConfig = journal?.bank_config;
+  // Cargar configuración bancaria si es journal tipo banco
+  useEffect(() => {
+    if (journal?.id && journal.type === 'bank') {
+      fetchBankConfig(journal.id).catch(() => {
+        // Ignorar error si no existe configuración bancaria
+      });
+    }
+  }, [journal?.id, journal?.type, fetchBankConfig]);
 
   // Handlers
   const handleGoBack = () => {
@@ -109,19 +115,15 @@ export function JournalEditPage() {
         requires_validation: data.requires_validation,
         allow_manual_entries: data.allow_manual_entries,
         is_active: data.is_active,
-        description: data.description || undefined,
+        description: data.description,
       };
 
-      console.log('🚀 Actualizando journal con datos:', updateData);
       await JournalAPI.updateJournal(id, updateData);
       showSuccess('Journal actualizado exitosamente');
       navigate(`/journals/${id}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error al actualizar journal:', error);
-      showError(
-        error.response?.data?.detail || 
-        'Error al actualizar el journal. Por favor, intente nuevamente.'
-      );
+      showError('Error al actualizar el journal');
     } finally {
       setIsSubmitting(false);
     }
@@ -272,11 +274,8 @@ export function JournalEditPage() {
                 Cuenta Contable por Defecto
               </Label>
               <AccountSearchInput
-                value={watch('default_account_id') || ''}
-                onChange={(accountId) => {
-                  console.log('🔄 Cuenta seleccionada:', accountId);
-                  setValue('default_account_id', accountId || '');
-                }}
+                value={watch('default_account_id')}
+                onChange={(accountId) => setValue('default_account_id', accountId)}
                 placeholder="Buscar cuenta contable..."
                 limit={15}
               />

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AccountListView } from '@/components/atomic/templates/AccountListView';
+import { AccountListView } from '@/components/atomic/templatesViews/AccountListView';
 import type { Account } from '../types';
 
 export const AccountListPage: React.FC = () => {

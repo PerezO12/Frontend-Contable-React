@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProductListView } from '../templates/ProductListView';
+import { ProductListView } from '../templatesViews/ProductListView';
 import type { Product } from '../../../features/products/types';
 
 export const ProductsPageExample: React.FC = () => {

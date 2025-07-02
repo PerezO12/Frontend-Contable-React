@@ -51,6 +51,11 @@ export function JournalCreatePage() {
   const watchedName = watch('name');
   const watchedType = watch('type');
 
+  // Efecto para mostrar configuración bancaria cuando el tipo es 'bank'
+  // useEffect(() => {
+  //   setShowBankConfig(watchedType === 'bank');
+  // }, [watchedType]);
+
   // Auto-generar código basado en el nombre
   const generateCode = (name: string) => {
     if (!name) return '';
@@ -363,6 +368,36 @@ export function JournalCreatePage() {
               </div>
             </div>
           </Card>
+
+          {/* Configuración bancaria - Solo para journals tipo BANK */}
+          {watchedType === 'bank' && (
+            <Card className="p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Configuración Bancaria
+              </h2>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-amber-800">
+                      Configuración Pendiente
+                    </h4>
+                    <p className="mt-1 text-sm text-amber-700">
+                      La configuración bancaria avanzada se puede configurar después de crear el journal. 
+                      Una vez creado, podrás acceder a todas las opciones bancarias desde la página de edición o detalles.
+                    </p>
+                    <p className="mt-2 text-xs text-amber-600">
+                      Esto incluye: cuentas bancarias, métodos de pago, configuración de divisas, y más.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Acciones */}
           <div className="flex justify-end space-x-4">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ThirdPartyListView } from '../../../components/atomic/templates/ThirdPartyListView';
+import { ThirdPartyListView } from '../../../components/atomic/templatesViews/ThirdPartyListView';
 import { useNavigate } from 'react-router-dom';
 import type { ThirdParty } from '../types';
 

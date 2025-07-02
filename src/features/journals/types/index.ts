@@ -94,6 +94,7 @@ export interface UserRead {
 export interface JournalDetail extends JournalRead {
   default_account?: AccountRead;
   created_by?: UserRead;
+  bank_config?: BankJournalConfigRead;
 }
 
 // Schema para listado
@@ -222,3 +223,87 @@ export interface UseJournalReturn {
 }
 
 // Exportar todos los tipos principales directamente al final
+
+// Tipos para configuración bancaria
+export type PaymentMode = 'manual' | 'batch';
+
+export const PaymentModeConst = {
+  MANUAL: 'manual' as const,
+  BATCH: 'batch' as const,
+} as const;
+
+export const PaymentModeLabels: Record<PaymentMode, string> = {
+  manual: 'Manual',
+  batch: 'Por Lotes',
+};
+
+// Schema base para configuración bancaria
+export interface BankJournalConfigBase {
+  bank_account_number?: string;
+  bank_account_id?: string;
+  transit_account_id?: string;
+  profit_account_id?: string;
+  loss_account_id?: string;
+  dedicated_payment_sequence: boolean;
+  allow_inbound_payments: boolean;
+  inbound_payment_mode: PaymentMode;
+  inbound_receipt_account_id?: string;
+  allow_outbound_payments: boolean;
+  outbound_payment_mode: PaymentMode;
+  outbound_payment_method?: string;
+  outbound_payment_name?: string;
+  outbound_pending_account_id?: string;
+  currency_code: string;
+  allow_currency_exchange: boolean;
+  auto_reconcile: boolean;
+  description?: string;
+}
+
+// Schema para crear configuración bancaria
+export interface BankJournalConfigCreate extends BankJournalConfigBase {}
+
+// Schema para actualizar configuración bancaria
+export interface BankJournalConfigUpdate {
+  bank_account_number?: string;
+  bank_account_id?: string;
+  transit_account_id?: string;
+  profit_account_id?: string;
+  loss_account_id?: string;
+  dedicated_payment_sequence?: boolean;
+  allow_inbound_payments?: boolean;
+  inbound_payment_mode?: PaymentMode;
+  inbound_receipt_account_id?: string;
+  allow_outbound_payments?: boolean;
+  outbound_payment_mode?: PaymentMode;
+  outbound_payment_method?: string;
+  outbound_payment_name?: string;
+  outbound_pending_account_id?: string;
+  currency_code?: string;
+  allow_currency_exchange?: boolean;
+  auto_reconcile?: boolean;
+  description?: string;
+}
+
+// Schema para leer configuración bancaria
+export interface BankJournalConfigRead extends BankJournalConfigBase {
+  journal_id: string;
+  // Cuentas relacionadas expandidas
+  bank_account?: AccountRead;
+  transit_account?: AccountRead;
+  profit_account?: AccountRead;
+  loss_account?: AccountRead;
+  inbound_receipt_account?: AccountRead;
+  outbound_pending_account?: AccountRead;
+}
+
+// Schema para validación de configuración bancaria
+export interface BankJournalConfigValidation {
+  is_valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+// Journal con configuración bancaria incluida
+export interface JournalWithBankConfig extends JournalRead {
+  bank_config?: BankJournalConfigRead;
+}

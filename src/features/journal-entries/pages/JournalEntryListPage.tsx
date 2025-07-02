@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { JournalEntryListView } from '../../../components/atomic/templates';
+import { JournalEntryListView } from '../../../components/atomic/templatesViews';
 import type { JournalEntry } from '../types';
 
 export const JournalEntryListPage: React.FC = () => {

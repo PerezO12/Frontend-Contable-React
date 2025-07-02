@@ -12,7 +12,7 @@ export interface ListViewColumn<T = any> {
 
 export interface ListViewFilter {
   key: string;
-  type: 'text' | 'select' | 'date' | 'range' | 'boolean';
+  type: 'text' | 'select' | 'date' | 'range' | 'boolean' | 'number';
   label: string;
   placeholder?: string;
   options?: Array<{ value: string | number; label: string }>;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ThirdPartyListView } from '../templates/ThirdPartyListView';
+import { ThirdPartyListView } from '../templatesViews/ThirdPartyListView';
 import type { ThirdParty } from '../../../features/third-parties/types';
 
 export const ThirdPartiesPageExample: React.FC = () => {

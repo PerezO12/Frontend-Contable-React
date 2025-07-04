@@ -58,6 +58,7 @@ import {
 } from '@/features/invoices/pages';
 import { DataImportRoutes } from '@/features/data-import';
 import { ReportsRoutes } from '@/features/reports';
+import { SettingsPage } from '@/features/settings/pages';
 
 const AppContent = () => {
   return (
@@ -441,6 +442,18 @@ const AppContent = () => {
             <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CONTADOR, UserRole.SOLO_LECTURA]}>
               <MainLayout>
                 <ReportsRoutes />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Configuración - Solo para ADMIN */}
+        <Route 
+          path="/settings" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+              <MainLayout>
+                <SettingsPage />
               </MainLayout>
             </ProtectedRoute>
           } 

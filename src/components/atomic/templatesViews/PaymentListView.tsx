@@ -2,12 +2,12 @@ import React, { useState, useCallback } from 'react';
 import { ListView } from '../organisms/ListView';
 import { DeleteModal } from '../organisms/DeleteModal';
 import { ExportModal } from '../organisms/ExportModal';
-import { PaymentBulkActionsBar } from '../../../features/payments/components/PaymentBulkActionsBar';
 import { Badge } from '../../ui/Badge';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { usePaymentsExport } from '../../../hooks/useExport';
 import { usePaymentStore } from '../../../features/payments/stores/paymentStore';
 import { paymentDeletionService } from '../../../features/payments/services';
+import { PaymentBulkActionsBar } from '../../../features/payments/components/PaymentBulkActionsBar';
 import type { ListViewColumn, ListViewFilter, ListViewAction } from '../types';
 import type { Payment, PaymentFilters, PaymentListResponse, PaymentStatus, PaymentType } from '../../../features/payments/types';
 import { 
@@ -44,7 +44,7 @@ export const PaymentListView: React.FC<PaymentListViewProps> = ({
   console.log('🔥 PaymentListView renderizando con patrón atómico');
   
   // Store para manejo de selecciones
-  const { setSelectedPayments } = usePaymentStore();
+  const { setSelectedPayments, fetchPayments } = usePaymentStore();
   
   // Función para manejar cambios en la selección
   const handleSelectionChange = useCallback((selectedPayments: Payment[]) => {
@@ -72,19 +72,28 @@ export const PaymentListView: React.FC<PaymentListViewProps> = ({
   const renderStatusBadge = (status: PaymentStatus) => {
     const config = {
       [PS.DRAFT]: { color: 'yellow' as const, icon: ExclamationCircleIcon },
-      [PS.PENDING]: { color: 'orange' as const, icon: ExclamationCircleIcon },
-      [PS.CONFIRMED]: { color: 'blue' as const, icon: CheckCircleIcon },
       [PS.POSTED]: { color: 'green' as const, icon: CheckCircleIcon },
-      [PS.RECONCILED]: { color: 'emerald' as const, icon: CheckCircleIcon },
       [PS.CANCELLED]: { color: 'red' as const, icon: XCircleIcon }
     };
 
-    const { color, icon: Icon } = config[status];
+    const statusConfig = config[status];
+    
+    // Fallback for unknown statuses
+    if (!statusConfig) {
+      return (
+        <Badge color="gray" variant="subtle">
+          <ExclamationCircleIcon className="h-3 w-3 mr-1" />
+          Estado desconocido
+        </Badge>
+      );
+    }
+
+    const { color, icon: Icon } = statusConfig;
     
     return (
       <Badge color={color} variant="subtle">
         <Icon className="h-3 w-3 mr-1" />
-        {PAYMENT_STATUS_LABELS[status]}
+        {PAYMENT_STATUS_LABELS[status] || 'Estado desconocido'}
       </Badge>
     );
   };
@@ -93,18 +102,27 @@ export const PaymentListView: React.FC<PaymentListViewProps> = ({
   const renderTypeBadge = (type: PaymentType) => {
     const config = {
       [PT.CUSTOMER_PAYMENT]: { color: 'blue' as const, icon: ChevronDownIcon },
-      [PT.SUPPLIER_PAYMENT]: { color: 'purple' as const, icon: ChevronUpIcon },
-      [PT.INTERNAL_TRANSFER]: { color: 'indigo' as const, icon: ChevronUpIcon },
-      [PT.ADVANCE_PAYMENT]: { color: 'green' as const, icon: ChevronDownIcon },
-      [PT.REFUND]: { color: 'orange' as const, icon: ChevronDownIcon }
+      [PT.SUPPLIER_PAYMENT]: { color: 'purple' as const, icon: ChevronUpIcon }
     };
 
-    const { color, icon: Icon } = config[type];
+    const typeConfig = config[type];
+    
+    // Fallback for unknown payment types
+    if (!typeConfig) {
+      return (
+        <Badge color="gray" variant="subtle">
+          <ChevronDownIcon className="h-3 w-3 mr-1" />
+          Tipo desconocido
+        </Badge>
+      );
+    }
+
+    const { color, icon: Icon } = typeConfig;
     
     return (
       <Badge color={color} variant="subtle">
         <Icon className="h-3 w-3 mr-1" />
-        {PAYMENT_TYPE_LABELS[type]}
+        {PAYMENT_TYPE_LABELS[type] || 'Tipo desconocido'}
       </Badge>
     );
   };
@@ -196,10 +214,7 @@ export const PaymentListView: React.FC<PaymentListViewProps> = ({
       options: [
         { value: '', label: 'Todos los estados' },
         { value: PS.DRAFT, label: PAYMENT_STATUS_LABELS[PS.DRAFT] },
-        { value: PS.PENDING, label: PAYMENT_STATUS_LABELS[PS.PENDING] },
-        { value: PS.CONFIRMED, label: PAYMENT_STATUS_LABELS[PS.CONFIRMED] },
         { value: PS.POSTED, label: PAYMENT_STATUS_LABELS[PS.POSTED] },
-        { value: PS.RECONCILED, label: PAYMENT_STATUS_LABELS[PS.RECONCILED] },
         { value: PS.CANCELLED, label: PAYMENT_STATUS_LABELS[PS.CANCELLED] },
       ],
     },
@@ -211,9 +226,6 @@ export const PaymentListView: React.FC<PaymentListViewProps> = ({
         { value: '', label: 'Todos los tipos' },
         { value: PT.CUSTOMER_PAYMENT, label: PAYMENT_TYPE_LABELS[PT.CUSTOMER_PAYMENT] },
         { value: PT.SUPPLIER_PAYMENT, label: PAYMENT_TYPE_LABELS[PT.SUPPLIER_PAYMENT] },
-        { value: PT.INTERNAL_TRANSFER, label: PAYMENT_TYPE_LABELS[PT.INTERNAL_TRANSFER] },
-        { value: PT.ADVANCE_PAYMENT, label: PAYMENT_TYPE_LABELS[PT.ADVANCE_PAYMENT] },
-        { value: PT.REFUND, label: PAYMENT_TYPE_LABELS[PT.REFUND] },
       ],
     },
     {
@@ -293,8 +305,19 @@ export const PaymentListView: React.FC<PaymentListViewProps> = ({
       const response: PaymentListResponse = await PaymentFlowAPI.getPayments(paymentFilters);
       
       console.log('✅ Pagos cargados:', response);
+      console.log('🔍 Primeros 3 pagos para debug:', response.data?.slice(0, 3).map(p => ({
+        id: p.id,
+        reference: p.reference,
+        status: p.status,
+        payment_type: p.payment_type
+      })));
+      console.log('🔍 Estados únicos en los datos:', [...new Set(response.data?.map(p => p.status))]);
+      console.log('🔍 Tipos únicos en los datos:', [...new Set(response.data?.map(p => p.payment_type))]);
       
       setTotalItems(response.total || 0);
+      
+      // Sincronizar datos con el store para que las operaciones bulk funcionen correctamente
+      await fetchPayments(paymentFilters);
       
       return {
         items: response.data || [],
@@ -307,7 +330,7 @@ export const PaymentListView: React.FC<PaymentListViewProps> = ({
       console.error('❌ Error al cargar pagos:', error);
       throw error;
     }
-  }, []);
+  }, [fetchPayments]);
 
   // Confirmación de exportación
   const confirmExport = async (format: string, options?: any) => {
@@ -346,9 +369,6 @@ export const PaymentListView: React.FC<PaymentListViewProps> = ({
         }}
       />
 
-      {/* Barra flotante de acciones bulk */}
-      <PaymentBulkActionsBar />
-
       {/* Modal de eliminación */}
       <DeleteModal
         isOpen={deleteModalOpen}
@@ -376,6 +396,9 @@ export const PaymentListView: React.FC<PaymentListViewProps> = ({
         totalItems={totalItems}
         loading={isExporting}
       />
+
+      {/* Barra de acciones bulk flotante */}
+      <PaymentBulkActionsBar />
     </div>
   );
 };

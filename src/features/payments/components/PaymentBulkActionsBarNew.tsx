@@ -9,7 +9,6 @@ import { GenericBulkActionsBar, type BulkAction, type OperationConfig } from '@/
 import { BulkConfirmationModal } from './BulkConfirmationModal';
 import { useBulkPaymentOperations } from '../hooks/useBulkPaymentOperations';
 import { usePaymentStore } from '../stores/paymentStore';
-import { PAYMENT_STATUS_LABELS } from '../types';
 import {
   CheckCircleIcon,
   XCircleIcon,
@@ -30,6 +29,7 @@ export function PaymentBulkActionsBar() {
     getSelectionStats,
     canConfirm,
     canCancel,
+    canReset,
     isLoading,
     selectedPaymentData
   } = useBulkPaymentOperations();
@@ -55,15 +55,15 @@ export function PaymentBulkActionsBar() {
       className: "text-green-600 hover:text-green-700 hover:bg-green-50"
     }] : []),
     
-    // Restablecer a borrador (siempre disponible)
-    {
+    // Resetear a borrador (para POSTED/CANCELLED)
+    ...(canReset ? [{
       key: 'reset',
       label: 'Restablecer a Borrador',
       icon: ArrowPathIcon,
       onClick: () => setShowConfirmDialog('reset'),
       disabled: isLoading,
       className: "text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-    },
+    }] : []),
     
     // Cancelar (solo para POSTED)
     ...(canCancel ? [{
@@ -110,21 +110,21 @@ export function PaymentBulkActionsBar() {
       {stats.byStatus.DRAFT > 0 && (
         <span>
           <Badge color="yellow" variant="subtle" className="text-xs px-1 py-0">
-            {stats.byStatus.DRAFT} {PAYMENT_STATUS_LABELS.DRAFT.toLowerCase()}{stats.byStatus.DRAFT !== 1 ? 's' : ''}
+            {stats.byStatus.DRAFT} borrador{stats.byStatus.DRAFT !== 1 ? 's' : ''}
           </Badge>
         </span>
       )}
       {stats.byStatus.POSTED > 0 && (
         <span>
           <Badge color="green" variant="subtle" className="text-xs px-1 py-0">
-            {stats.byStatus.POSTED} {PAYMENT_STATUS_LABELS.POSTED.toLowerCase()}{stats.byStatus.POSTED !== 1 ? 's' : ''}
+            {stats.byStatus.POSTED} contabilizado{stats.byStatus.POSTED !== 1 ? 's' : ''}
           </Badge>
         </span>
       )}
       {stats.byStatus.CANCELLED > 0 && (
         <span>
           <Badge color="red" variant="subtle" className="text-xs px-1 py-0">
-            {stats.byStatus.CANCELLED} {PAYMENT_STATUS_LABELS.CANCELLED.toLowerCase()}{stats.byStatus.CANCELLED !== 1 ? 's' : ''}
+            {stats.byStatus.CANCELLED} cancelado{stats.byStatus.CANCELLED !== 1 ? 's' : ''}
           </Badge>
         </span>
       )}
@@ -180,7 +180,7 @@ export function PaymentBulkActionsBar() {
         onClose={() => setShowConfirmDialog(null)}
         onConfirm={executeAction}
         title="Cancelar pagos"
-        description={`¿Está seguro de que desea cancelar ${selectedPaymentCount} pago(s)? Los pagos cambiarán a estado ${PAYMENT_STATUS_LABELS.CANCELLED} y no se podrán procesar.`}
+        description={`¿Está seguro de que desea cancelar ${selectedPaymentCount} pago(s)? Los pagos cambiarán a estado CANCELADO y no se podrán procesar.`}
         confirmText="Cancelar Pagos"
         confirmButtonClass="bg-orange-600 hover:bg-orange-700"
         loading={isLoading}
@@ -191,7 +191,7 @@ export function PaymentBulkActionsBar() {
         onClose={() => setShowConfirmDialog(null)}
         onConfirm={executeAction}
         title="Restablecer pagos a borrador"
-        description={`¿Está seguro de que desea restablecer ${selectedPaymentCount} pago(s) a estado ${PAYMENT_STATUS_LABELS.DRAFT}? Los pagos podrán ser editados y procesados nuevamente.`}
+        description={`¿Está seguro de que desea restablecer ${selectedPaymentCount} pago(s) a estado BORRADOR? Los pagos podrán ser editados y procesados nuevamente.`}
         confirmText="Restablecer a Borrador"
         confirmButtonClass="bg-blue-600 hover:bg-blue-700"
         loading={isLoading}
@@ -202,7 +202,7 @@ export function PaymentBulkActionsBar() {
         onClose={() => setShowConfirmDialog(null)}
         onConfirm={executeAction}
         title="Eliminar pagos"
-        description={`¿Está seguro de que desea eliminar ${selectedPaymentCount} pago(s)? Esta acción es permanente y no se puede deshacer. Solo se pueden eliminar pagos en estado ${PAYMENT_STATUS_LABELS.DRAFT}.`}
+        description={`¿Está seguro de que desea eliminar ${selectedPaymentCount} pago(s)? Esta acción es permanente y no se puede deshacer. Solo se pueden eliminar pagos en estado BORRADOR.`}
         confirmText="Eliminar Pagos"
         confirmButtonClass="bg-red-600 hover:bg-red-700"
         loading={isLoading}

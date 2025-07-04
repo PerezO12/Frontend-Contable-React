@@ -57,10 +57,7 @@ export function PaymentFilters() {
             options={[
               { value: '', label: 'Todos los tipos' },
               { value: PaymentType.CUSTOMER_PAYMENT, label: 'Pago de Cliente' },
-              { value: PaymentType.SUPPLIER_PAYMENT, label: 'Pago a Proveedor' },
-              { value: PaymentType.INTERNAL_TRANSFER, label: 'Transferencia Interna' },
-              { value: PaymentType.ADVANCE_PAYMENT, label: 'Anticipo' },
-              { value: PaymentType.REFUND, label: 'Reembolso' }
+              { value: PaymentType.SUPPLIER_PAYMENT, label: 'Pago a Proveedor' }
             ]}
           />
         </div>

@@ -270,6 +270,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onToggle, isC
           icon: icons.settings,
           children: [
             {
+              id: 'company-settings',
+              label: 'Configuración de Empresa',
+              icon: icons.settings,
+              path: '/settings',
+              roles: [UserRole.ADMIN],
+            },
+            {
               id: 'general',
               label: 'Configuración General',
               icon: icons.settings,

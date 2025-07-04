@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { UserRole } from '@/features/auth/types';
 import { Card } from '@/components/ui/Card';
+import ChatWidget from '@/components/ui/ChatWidget';
+import { ChatBubbleLeftRightIcon } from '@/shared/components/icons';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  console.log('Dashboard rendered, isChatOpen:', isChatOpen); // Debug log
 
   if (!user) {
     return null;
@@ -296,6 +301,25 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>        </Card>
       </div>
+
+      {/* Chat Widget */}
+      <ChatWidget
+        isOpen={isChatOpen}
+        onToggle={() => setIsChatOpen(!isChatOpen)}
+        initialContext="general"
+        preferredLanguage={null} // Detección automática
+      />
+
+      {/* Floating Chat Button */}
+      {!isChatOpen && (
+        <button
+          onClick={() => setIsChatOpen(true)}
+          className="fixed bottom-6 right-6 bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-full shadow-xl border-2 border-white z-50 transition-all duration-300 hover:scale-110"
+          title="Abrir chat con IA"
+        >
+          <ChatBubbleLeftRightIcon className="w-7 h-7" />
+        </button>
+      )}
     </>
   );
 };

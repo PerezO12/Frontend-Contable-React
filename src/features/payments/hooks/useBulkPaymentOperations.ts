@@ -1,12 +1,12 @@
 /**
  * Hook para operaciones bulk de pagos
- * Implementa confirmación, cancelación y eliminación en lote
+ * Implementa confirmación, cancelación y eliminación en lote con validación
  */
 import { useState } from 'react';
 import { usePaymentStore } from '../stores/paymentStore';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { PaymentStatus } from '../types';
-import type { PaymentBatchConfirmation } from '../types';
+import type { PaymentBatchConfirmation, BulkPaymentValidationResponse } from '../types';
 
 export function useBulkPaymentOperations() {
   const [isLoading, setIsLoading] = useState(false);
@@ -14,8 +14,16 @@ export function useBulkPaymentOperations() {
   
   const {
     batchConfirmPayments,
+    bulkConfirmPaymentsWithValidation,
+    validateBulkConfirmation,
     bulkCancelPayments,
     bulkDeletePayments,
+    bulkPostPayments,
+    bulkResetPayments,
+    bulkDraftPayments,
+    resetPayment,
+    getBulkOperationsStatus,
+    getOperationsSummary,
     selectedPayments,
     clearPaymentSelection,
     payments
@@ -23,6 +31,57 @@ export function useBulkPaymentOperations() {
 
   const selectedPaymentCount = selectedPayments.length;
   const selectedPaymentData = payments.filter(p => selectedPayments.includes(p.id));
+
+  /**
+   * Validar confirmación masiva antes de proceder
+   */
+  const validateConfirmation = async (paymentIds?: string[]): Promise<BulkPaymentValidationResponse> => {
+    const ids = paymentIds || selectedPayments;
+    if (ids.length === 0) {
+      throw new Error('Debe seleccionar al menos un pago para validar');
+    }
+
+    return await validateBulkConfirmation(ids);
+  };
+
+  /**
+   * Confirmar múltiples pagos con validación y opciones avanzadas
+   */
+  const confirmSelectedPaymentsWithValidation = async (
+    confirmationNotes?: string, 
+    force?: boolean
+  ) => {
+    if (selectedPaymentCount === 0) {
+      showToast('Debe seleccionar al menos un pago para confirmar', 'warning');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await bulkConfirmPaymentsWithValidation(
+        selectedPayments, 
+        confirmationNotes, 
+        force
+      );
+      
+      const successCount = result.successful;
+      const failCount = result.failed;
+      
+      if (failCount === 0) {
+        showToast(`Se confirmaron exitosamente ${successCount} pago(s)`, 'success');
+      } else {
+        showToast(`Se confirmaron ${successCount} pago(s). ${failCount} fallaron.`, 'warning');
+      }
+      
+      clearPaymentSelection();
+      return result;
+    } catch (error: any) {
+      showToast(error.message || 'Error inesperado al confirmar pagos', 'error');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   /**
    * Confirmar múltiples pagos en lote (DRAFT → POSTED)
@@ -164,6 +223,11 @@ export function useBulkPaymentOperations() {
       stats.totalAmount += payment.amount;
     });
 
+    // Solo log en desarrollo si hay problemas
+    if (process.env.NODE_ENV === 'development' && selectedPaymentData.length > 10) {
+      console.log('📊 Stats calculadas para', selectedPaymentData.length, 'pagos:', stats);
+    }
+
     return stats;
   };
 
@@ -171,8 +235,176 @@ export function useBulkPaymentOperations() {
    * Verificar si la operación es válida para la selección actual
    */
   const canConfirm = selectedPaymentData.every(p => p.status === PaymentStatus.DRAFT);
-  const canCancel = selectedPaymentData.some(p => p.status !== PaymentStatus.CANCELLED);
+  const canCancel = selectedPaymentData.some(p => p.status === PaymentStatus.POSTED);
   const canDelete = selectedPaymentData.every(p => p.status === PaymentStatus.DRAFT);
+  const canPost = selectedPaymentData.every(p => p.status === PaymentStatus.DRAFT);
+  const canReset = selectedPaymentData.some(p => p.status === PaymentStatus.POSTED || p.status === PaymentStatus.CANCELLED);
+  const canDraft = selectedPaymentData.some(p => p.status === PaymentStatus.POSTED || p.status === PaymentStatus.CANCELLED);
+
+  // Debug solo en desarrollo y cuando hay problemas
+  if (process.env.NODE_ENV === 'development' && selectedPaymentData.length > 0) {
+    console.log('🔍 Validaciones bulk:', {
+      canConfirm,
+      canCancel, 
+      canDelete,
+      canPost,
+      canReset,
+      canDraft,
+      selectedCount: selectedPaymentData.length
+    });
+  }
+
+  /**
+   * Resetear pago individual (POSTED/CANCELLED → DRAFT)
+   */
+  const resetPaymentIndividual = async (paymentId: string) => {
+    setIsLoading(true);
+    try {
+      await resetPayment(paymentId);
+      showToast('Pago reseteado exitosamente', 'success');
+    } catch (error: any) {
+      showToast(error.message || 'Error al resetear pago', 'error');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Postear múltiples pagos en lote (DRAFT → POSTED)
+   */
+  const postSelectedPayments = async (postingNotes?: string) => {
+    if (selectedPaymentCount === 0) {
+      showToast('Debe seleccionar al menos un pago para postear', 'warning');
+      return;
+    }
+
+    if (!canPost) {
+      showToast('Solo se pueden postear pagos en estado BORRADOR', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await bulkPostPayments(selectedPayments, postingNotes);
+      
+      const successCount = result.successful;
+      const errorCount = result.failed;
+      
+      if (errorCount === 0) {
+        showToast(`Se postearon exitosamente ${successCount} pago(s)`, 'success');
+      } else {
+        showToast(`Se postearon ${successCount} pago(s). ${errorCount} fallaron.`, 'warning');
+      }
+      
+      clearPaymentSelection();
+      return result;
+    } catch (error: any) {
+      showToast(error.message || 'Error inesperado al postear pagos', 'error');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Resetear múltiples pagos en lote (POSTED/CANCELLED → DRAFT)
+   */
+  const resetSelectedPayments = async (resetReason?: string) => {
+    if (selectedPaymentCount === 0) {
+      showToast('Debe seleccionar al menos un pago para resetear', 'warning');
+      return;
+    }
+
+    if (!canReset) {
+      showToast('Solo se pueden resetear pagos en estado POSTEADO o CANCELADO', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await bulkResetPayments(selectedPayments, resetReason);
+      
+      const successCount = result.successful;
+      const errorCount = result.failed;
+      
+      if (errorCount === 0) {
+        showToast(`Se resetearon exitosamente ${successCount} pago(s)`, 'success');
+      } else {
+        showToast(`Se resetearon ${successCount} pago(s). ${errorCount} fallaron.`, 'warning');
+      }
+      
+      clearPaymentSelection();
+      return result;
+    } catch (error: any) {
+      showToast(error.message || 'Error inesperado al resetear pagos', 'error');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Cambiar múltiples pagos a borrador (POSTED/CANCELLED → DRAFT)
+   */
+  const draftSelectedPayments = async (draftReason?: string) => {
+    if (selectedPaymentCount === 0) {
+      showToast('Debe seleccionar al menos un pago para cambiar a borrador', 'warning');
+      return;
+    }
+
+    if (!canDraft) {
+      showToast('Solo se pueden cambiar a borrador pagos en estado POSTEADO o CANCELADO', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await bulkDraftPayments(selectedPayments, draftReason);
+      
+      const successCount = result.successful;
+      const errorCount = result.failed;
+      
+      if (errorCount === 0) {
+        showToast(`Se cambiaron a borrador exitosamente ${successCount} pago(s)`, 'success');
+      } else {
+        showToast(`Se cambiaron a borrador ${successCount} pago(s). ${errorCount} fallaron.`, 'warning');
+      }
+      
+      clearPaymentSelection();
+      return result;
+    } catch (error: any) {
+      showToast(error.message || 'Error inesperado al cambiar pagos a borrador', 'error');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Obtener estado de operaciones en lote disponibles
+   */
+  const fetchBulkOperationsStatus = async () => {
+    try {
+      return await getBulkOperationsStatus();
+    } catch (error: any) {
+      showToast(error.message || 'Error al obtener estado de operaciones en lote', 'error');
+      throw error;
+    }
+  };
+
+  /**
+   * Obtener resumen de operaciones para la selección actual
+   */
+  const fetchOperationsSummary = async (paymentIds?: string[]) => {
+    try {
+      const ids = paymentIds || selectedPayments;
+      return await getOperationsSummary(ids);
+    } catch (error: any) {
+      showToast(error.message || 'Error al obtener resumen de operaciones', 'error');
+      throw error;
+    }
+  };
 
   return {
     // Estado
@@ -180,17 +412,36 @@ export function useBulkPaymentOperations() {
     selectedPaymentCount,
     selectedPaymentData,
     
-    // Operaciones
+    // Operaciones básicas
     confirmSelectedPayments,
     cancelSelectedPayments,
     deleteSelectedPayments,
     
+    // Nuevas operaciones individuales
+    resetPaymentIndividual,
+    
+    // Nuevas operaciones bulk
+    postSelectedPayments,
+    resetSelectedPayments,
+    draftSelectedPayments,
+    
+    // Operaciones avanzadas con validación
+    validateConfirmation,
+    confirmSelectedPaymentsWithValidation,
+    
+    // Información y estado
+    fetchBulkOperationsStatus,
+    fetchOperationsSummary,
+    
     // Utilidades
     getSelectionStats,
     
-    // Validaciones
+    // Validaciones actualizadas
     canConfirm,
     canCancel,
-    canDelete
+    canDelete,
+    canPost,
+    canReset,
+    canDraft
   };
 }

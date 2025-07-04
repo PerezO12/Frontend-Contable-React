@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import FloatingChat from '../ui/FloatingChat';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -43,6 +44,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           </div>
         </main>
       </div>
+      
+      {/* AI Chat Flotante */}
+      <FloatingChat />
     </div>
   );
 };

@@ -74,7 +74,7 @@ export function PaymentDetail({ payment, onEdit, onDelete, loading = false }: Pa
     return (
       <Badge color={color} variant="subtle">
         <Icon className="h-3 w-3 mr-1" />
-        {PAYMENT_STATUS_LABELS[status as keyof typeof PAYMENT_STATUS_LABELS] || status}
+        {PAYMENT_STATUS_LABELS[status as keyof typeof PAYMENT_STATUS_LABELS] || 'Estado desconocido'}
       </Badge>
     );
   };
@@ -134,7 +134,7 @@ export function PaymentDetail({ payment, onEdit, onDelete, loading = false }: Pa
                 Tipo de Pago
               </label>
               <p className="text-sm text-gray-900">
-                {PAYMENT_TYPE_LABELS[payment.payment_type as keyof typeof PAYMENT_TYPE_LABELS] || payment.payment_type}
+                {PAYMENT_TYPE_LABELS[payment.payment_type as keyof typeof PAYMENT_TYPE_LABELS] || 'Tipo no especificado'}
               </p>
             </div>
 

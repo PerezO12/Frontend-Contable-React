@@ -9,7 +9,6 @@ import { formatCurrency, formatDate } from '@/shared/utils/formatters';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { DataTable } from '@/components/ui/DataTable';
-import { PaymentBulkActionsBar } from './PaymentBulkActionsBar';
 import { PaymentFilters } from './PaymentFilters';
 import { PaymentImportModal } from './PaymentImportModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -32,23 +31,8 @@ const statusConfig: Record<PaymentStatus, StatusConfig> = {
     color: 'gray',
     icon: ExclamationCircleIcon
   },
-  [PaymentStatus.PENDING]: {
-    label: 'Pendiente',
-    color: 'yellow',
-    icon: ExclamationCircleIcon
-  },
-  [PaymentStatus.CONFIRMED]: {
-    label: 'Confirmado',
-    color: 'blue',
-    icon: CheckCircleIcon
-  },
   [PaymentStatus.POSTED]: {
     label: 'Contabilizado',
-    color: 'green',
-    icon: CheckCircleIcon
-  },
-  [PaymentStatus.RECONCILED]: {
-    label: 'Conciliado',
     color: 'green',
     icon: CheckCircleIcon
   },
@@ -67,18 +51,6 @@ const typeConfig: Record<PaymentType, StatusConfig> = {
   [PaymentType.SUPPLIER_PAYMENT]: {
     label: 'Pago Proveedor',
     color: 'blue'
-  },
-  [PaymentType.INTERNAL_TRANSFER]: {
-    label: 'Transferencia',
-    color: 'purple'
-  },
-  [PaymentType.ADVANCE_PAYMENT]: {
-    label: 'Anticipo',
-    color: 'orange'
-  },
-  [PaymentType.REFUND]: {
-    label: 'Reembolso',
-    color: 'red'
   }
 };
 
@@ -314,9 +286,6 @@ export function PaymentList() {
 
   return (
     <div className="space-y-6">
-      {/* Barra de acciones bulk */}
-      <PaymentBulkActionsBar />
-
       {/* DataTable con todos los datos */}
       <DataTable
         title="Gestión de Pagos"

@@ -10,7 +10,6 @@ export { PaymentCreatePage } from './pages/PaymentCreatePage';
 export { PaymentList } from './components/PaymentList';
 export { PaymentDetail } from './components/PaymentDetail';
 export { PaymentForm } from './components/PaymentForm';
-export { PaymentBulkActionsBar } from './components/PaymentBulkActionsBar';
 export { PaymentFilters } from './components/PaymentFilters';
 export { PaymentImportModal } from './components/PaymentImportModal';
 

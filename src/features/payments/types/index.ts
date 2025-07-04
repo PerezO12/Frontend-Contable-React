@@ -5,20 +5,14 @@
 
 // Enums que coinciden exactamente con el backend
 export enum PaymentStatus {
-  DRAFT = 'draft',
-  PENDING = 'pending', 
-  CONFIRMED = 'confirmed',
-  POSTED = 'posted',
-  RECONCILED = 'reconciled',
-  CANCELLED = 'cancelled'
+  DRAFT = 'DRAFT',
+  POSTED = 'POSTED',
+  CANCELLED = 'CANCELLED'
 }
 
 export enum PaymentType {
-  CUSTOMER_PAYMENT = 'customer_payment',
-  SUPPLIER_PAYMENT = 'supplier_payment',
-  INTERNAL_TRANSFER = 'internal_transfer',
-  ADVANCE_PAYMENT = 'advance_payment',
-  REFUND = 'refund'
+  CUSTOMER_PAYMENT = 'CUSTOMER_PAYMENT',
+  SUPPLIER_PAYMENT = 'SUPPLIER_PAYMENT'
 }
 
 export enum PaymentMethod {
@@ -34,19 +28,13 @@ export enum PaymentMethod {
 // Labels para los enums
 export const PAYMENT_STATUS_LABELS = {
   [PaymentStatus.DRAFT]: 'Borrador',
-  [PaymentStatus.PENDING]: 'Pendiente',
-  [PaymentStatus.CONFIRMED]: 'Confirmado',
   [PaymentStatus.POSTED]: 'Contabilizado',
-  [PaymentStatus.RECONCILED]: 'Conciliado',
   [PaymentStatus.CANCELLED]: 'Cancelado'
 } as const;
 
 export const PAYMENT_TYPE_LABELS = {
   [PaymentType.CUSTOMER_PAYMENT]: 'Pago de Cliente',
-  [PaymentType.SUPPLIER_PAYMENT]: 'Pago a Proveedor',
-  [PaymentType.INTERNAL_TRANSFER]: 'Transferencia Interna',
-  [PaymentType.ADVANCE_PAYMENT]: 'Anticipo',
-  [PaymentType.REFUND]: 'Reembolso'
+  [PaymentType.SUPPLIER_PAYMENT]: 'Pago a Proveedor'
 } as const;
 
 export const PAYMENT_METHOD_LABELS = {
@@ -272,11 +260,14 @@ export interface BankExtractListResponse {
   pages: number;
 }
 
-// Para importación de archivos
+// Para importación de archivos - ACTUALIZADO para el nuevo endpoint consolidado
 export interface FileImportRequest {
   file: File;
-  format: 'csv' | 'excel';
-  extract_reference?: string;
+  format: 'csv' | 'excel' | 'xlsx' | 'xls' | 'txt';  // Más formatos soportados
+  extract_reference?: string;  // Ahora será extract_name en el backend
+  account_id?: string;         // ID de la cuenta bancaria (requerido por backend)
+  statement_date?: string;     // Fecha del extracto (requerido por backend)
+  auto_match?: boolean;        // Auto-vinculación activada (opcional, default true)
 }
 
 // Estados del UI
@@ -314,4 +305,83 @@ export interface BulkAction {
   requiresConfirmation?: boolean;
   confirmationTitle?: string;
   confirmationMessage?: string;
+}
+
+// ===== TIPOS PARA OPERACIONES BULK =====
+
+export interface PaymentValidationResult {
+  payment_id: string;
+  payment_number: string;
+  can_confirm: boolean;
+  blocking_reasons: string[];
+  warnings: string[];
+  requires_confirmation: boolean;
+}
+
+export interface BulkPaymentValidationResponse {
+  total_payments: number;
+  can_confirm_count: number;
+  blocked_count: number;
+  warnings_count: number;
+  validation_results: PaymentValidationResult[];
+}
+
+export interface PaymentOperationResult {
+  payment_id: string;
+  payment_number: string;
+  success: boolean;
+  message: string;
+  error?: string;
+}
+
+// Formato real del backend para operaciones bulk
+export interface BackendBulkPaymentResult {
+  success: boolean;
+  payment_number?: string;
+  message: string;
+  error?: string;
+}
+
+export interface BulkPaymentOperationResponse {
+  operation?: string;
+  total_payments: number;
+  successful: number;
+  failed: number;
+  results: Record<string, BackendBulkPaymentResult>; // Objeto con payment_id como claves
+  summary?: string;
+  processing_time?: number;
+}
+
+export interface BulkPaymentConfirmationRequest {
+  payment_ids: string[];
+  confirmation_notes?: string;
+}
+
+export interface BulkPaymentValidationRequest {
+  payment_ids: string[];
+}
+
+// ===== PROPS PARA COMPONENTES BULK =====
+
+export interface BulkConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  paymentIds: string[];
+  onConfirm: (confirmationNotes?: string, force?: boolean) => void;
+  onValidate?: (paymentIds: string[]) => Promise<BulkPaymentValidationResponse>;
+  loading?: boolean;
+}
+
+export interface BulkOperationBarProps {
+  selectedPayments: string[];
+  onConfirm: (paymentIds: string[]) => void;
+  onCancel: (paymentIds: string[]) => void;
+  onDelete: (paymentIds: string[]) => void;
+  onClearSelection: () => void;
+  loading?: boolean;
+}
+
+export interface PaymentValidationSummaryProps {
+  validationResults: BulkPaymentValidationResponse;
+  onViewDetails: (paymentId: string) => void;
 }

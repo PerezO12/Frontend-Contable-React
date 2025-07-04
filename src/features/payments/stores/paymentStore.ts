@@ -12,11 +12,12 @@ import type {
   PaymentFlowImportRequest,
   PaymentFlowImportResult,
   PaymentFlowStatus,
-  PaymentConfirmation,
   PaymentBatchConfirmation,
   PaymentReconciliationSummary,
   FileImportRequest,
-  PaymentFlowState
+  PaymentFlowState,
+  BulkPaymentValidationResponse,
+  BulkPaymentOperationResponse
 } from '../types';
 import { PaymentStatus } from '../types';
 import { PaymentFlowAPI } from '../api/paymentFlowAPI';
@@ -76,10 +77,20 @@ interface PaymentStoreState extends PaymentFlowState {
   importFromFile: (data: FileImportRequest) => Promise<PaymentFlowImportResult>;
   
   // PASO 3: Confirmar pago individual
-  confirmPayment: (paymentId: string) => Promise<PaymentConfirmation>;
+  confirmPayment: (paymentId: string) => Promise<Payment>;
   
   // Confirmar múltiples pagos en lote
   batchConfirmPayments: (paymentIds: string[]) => Promise<PaymentBatchConfirmation>;
+  
+  // Validar confirmación masiva antes de proceder
+  validateBulkConfirmation: (paymentIds: string[]) => Promise<BulkPaymentValidationResponse>;
+  
+  // Confirmar múltiples pagos con validación y opciones avanzadas
+  bulkConfirmPaymentsWithValidation: (
+    paymentIds: string[], 
+    confirmationNotes?: string, 
+    force?: boolean
+  ) => Promise<BulkPaymentOperationResponse>;
   
   // Obtener estado del flujo
   getPaymentFlowStatus: (extractId: string) => Promise<PaymentFlowStatus>;
@@ -92,12 +103,36 @@ interface PaymentStoreState extends PaymentFlowState {
   // Cancelar pago
   cancelPayment: (paymentId: string) => Promise<void>;
   
+  // Resetear pago (POSTED/CANCELLED → DRAFT)
+  resetPayment: (paymentId: string) => Promise<void>;
+  
   // Eliminar pago (solo DRAFT)
   deletePayment: (paymentId: string) => Promise<void>;
   
   // Operaciones bulk
   bulkDeletePayments: (paymentIds: string[]) => Promise<{ deleted: number; errors: string[] }>;
   bulkCancelPayments: (paymentIds: string[]) => Promise<{ cancelled: number; errors: string[] }>;
+  bulkPostPayments: (paymentIds: string[], postingNotes?: string) => Promise<BulkPaymentOperationResponse>;
+  bulkResetPayments: (paymentIds: string[], resetReason?: string) => Promise<BulkPaymentOperationResponse>;
+  bulkDraftPayments: (paymentIds: string[], draftReason?: string) => Promise<BulkPaymentOperationResponse>;
+
+  // Operaciones de información
+  getBulkOperationsStatus: () => Promise<{
+    total_payments: number;
+    by_status: Record<string, number>;
+    available_operations: string[];
+    bulk_limits: {
+      max_batch_size: number;
+      recommended_batch_size: number;
+    };
+  }>;
+  getOperationsSummary: (paymentIds?: string[]) => Promise<{
+    payment_count: number;
+    by_status: Record<string, number>;
+    available_operations: string[];
+    warnings: string[];
+    estimated_processing_time: number;
+  }>;
 
   // === ACCIONES DE UI ===
 
@@ -128,7 +163,7 @@ interface PaymentStoreState extends PaymentFlowState {
   reset: () => void;
 }
 
-const initialState: Omit<PaymentStoreState, 'fetchPayments' | 'fetchDraftPayments' | 'fetchPayment' | 'fetchBankExtracts' | 'fetchBankExtract' | 'importBankStatement' | 'importFromFile' | 'confirmPayment' | 'batchConfirmPayments' | 'getPaymentFlowStatus' | 'fetchReconciliationSummary' | 'cancelPayment' | 'deletePayment' | 'bulkDeletePayments' | 'bulkCancelPayments' | 'setFilters' | 'setExtractFilters' | 'clearFilters' | 'setSelectedPayments' | 'togglePaymentSelection' | 'selectAllPayments' | 'clearPaymentSelection' | 'setSelectedExtracts' | 'toggleExtractSelection' | 'clearExtractSelection' | 'setImportProgress' | 'clearImportProgress' | 'clearError' | 'clearValidationErrors' | 'reset'> = {
+const initialState: Omit<PaymentStoreState, 'fetchPayments' | 'fetchDraftPayments' | 'fetchPayment' | 'fetchBankExtracts' | 'fetchBankExtract' | 'importBankStatement' | 'importFromFile' | 'confirmPayment' | 'batchConfirmPayments' | 'validateBulkConfirmation' | 'bulkConfirmPaymentsWithValidation' | 'getPaymentFlowStatus' | 'fetchReconciliationSummary' | 'cancelPayment' | 'resetPayment' | 'deletePayment' | 'bulkDeletePayments' | 'bulkCancelPayments' | 'bulkPostPayments' | 'bulkResetPayments' | 'bulkDraftPayments' | 'getBulkOperationsStatus' | 'getOperationsSummary' | 'setFilters' | 'setExtractFilters' | 'clearFilters' | 'setSelectedPayments' | 'togglePaymentSelection' | 'selectAllPayments' | 'clearPaymentSelection' | 'setSelectedExtracts' | 'toggleExtractSelection' | 'clearExtractSelection' | 'setImportProgress' | 'clearImportProgress' | 'clearError' | 'clearValidationErrors' | 'reset'> = {
   // Datos
   payments: [],
   extracts: [],
@@ -401,14 +436,20 @@ export const usePaymentStore = create<PaymentStoreState>()(
       try {
         const result = await PaymentFlowAPI.confirmPayment(paymentId);
         
-        // Actualizar el pago en la lista
+        // Actualizar el pago en la lista LOCAL inmediatamente
         set((state) => {
           const paymentIndex = state.payments.findIndex(p => p.id === paymentId);
           if (paymentIndex !== -1) {
             state.payments[paymentIndex].status = PaymentStatus.POSTED;
+            state.payments[paymentIndex].confirmed_at = new Date().toISOString();
+            state.payments[paymentIndex].posted_at = new Date().toISOString();
           }
           state.loading = false;
         });
+        
+        // Refrescar datos desde el servidor para asegurar sincronización
+        console.log('🏪 STORE - Refrescando datos después de confirmación individual exitosa...');
+        get().fetchPayments().catch(console.error);
         
         return result;
       } catch (error: any) {
@@ -427,21 +468,104 @@ export const usePaymentStore = create<PaymentStoreState>()(
       });
 
       try {
-        const result = await PaymentFlowAPI.batchConfirmPayments(paymentIds);
+        const result = await PaymentFlowAPI.bulkConfirmPayments(paymentIds);
         
-        // Actualizar pagos confirmados en la lista
+        // Convertir BulkPaymentOperationResponse a PaymentBatchConfirmation
+        const batchConfirmation: PaymentBatchConfirmation = {
+          total_payments: result.total_payments,
+          successful_confirmations: result.successful,
+          failed_confirmations: result.failed,
+          results: Object.entries(result.results).map(([paymentId, r]) => ({
+            payment_id: paymentId,
+            payment_number: r.payment_number || '',
+            success: r.success,
+            message: r.message,
+            entry_id: undefined, // Not provided in bulk response
+            move_lines: [],
+            reconciled_invoices: []
+          }))
+        };
+        
+        // Actualizar pagos confirmados en la lista LOCAL inmediatamente
         set((state) => {
-          result.results.forEach(confirmation => {
+          Object.entries(result.results).forEach(([paymentId, confirmation]) => {
             if (confirmation.success) {
-              const paymentIndex = state.payments.findIndex(p => p.id === confirmation.payment_id);
+              const paymentIndex = state.payments.findIndex(p => p.id === paymentId);
               if (paymentIndex !== -1) {
                 state.payments[paymentIndex].status = PaymentStatus.POSTED;
+                // Actualizar también timestamp de confirmación
+                state.payments[paymentIndex].confirmed_at = new Date().toISOString();
+                state.payments[paymentIndex].posted_at = new Date().toISOString();
               }
             }
           });
           state.selectedPayments = []; // Limpiar selección
           state.loading = false;
         });
+        
+        // Refrescar datos desde el servidor para asegurar sincronización
+        if (result.successful > 0) {
+          console.log('🏪 STORE - Refrescando datos después de confirmación exitosa...');
+          get().fetchPayments().catch(console.error);
+        }
+        
+        return batchConfirmation;
+      } catch (error: any) {
+        set((state) => {
+          state.error = error.message || 'Error al confirmar pagos';
+          state.loading = false;
+        });
+        throw error;
+      }
+    },
+
+    validateBulkConfirmation: async (paymentIds: string[]) => {
+      try {
+        const validation = await PaymentFlowAPI.validatePaymentConfirmation(paymentIds);
+        return validation;
+      } catch (error: any) {
+        set((state) => {
+          state.error = error.message || 'Error al validar confirmación masiva';
+        });
+        throw error;
+      }
+    },
+
+    bulkConfirmPaymentsWithValidation: async (
+      paymentIds: string[], 
+      confirmationNotes?: string, 
+      force?: boolean
+    ) => {
+      set((state) => {
+        state.loading = true;
+        state.error = null;
+      });
+
+      try {
+        const result = await PaymentFlowAPI.bulkConfirmPayments(paymentIds, confirmationNotes, force);
+        
+        // Actualizar pagos confirmados en la lista LOCAL inmediatamente
+        set((state) => {
+          Object.entries(result.results).forEach(([paymentId, confirmation]) => {
+            if (confirmation.success) {
+              const paymentIndex = state.payments.findIndex(p => p.id === paymentId);
+              if (paymentIndex !== -1) {
+                state.payments[paymentIndex].status = PaymentStatus.POSTED;
+                // Actualizar también timestamp de confirmación
+                state.payments[paymentIndex].confirmed_at = new Date().toISOString();
+                state.payments[paymentIndex].posted_at = new Date().toISOString();
+              }
+            }
+          });
+          state.selectedPayments = []; // Limpiar selección
+          state.loading = false;
+        });
+        
+        // Refrescar datos desde el servidor para asegurar sincronización
+        if (result.successful > 0) {
+          console.log('🏪 STORE - Refrescando datos después de confirmación con validación exitosa...');
+          get().fetchPayments().catch(console.error);
+        }
         
         return result;
       } catch (error: any) {
@@ -493,14 +617,19 @@ export const usePaymentStore = create<PaymentStoreState>()(
       try {
         await PaymentFlowAPI.cancelPayment(paymentId);
         
-        // Actualizar el pago en la lista
+        // Actualizar el pago en la lista LOCAL inmediatamente
         set((state) => {
           const paymentIndex = state.payments.findIndex(p => p.id === paymentId);
           if (paymentIndex !== -1) {
             state.payments[paymentIndex].status = PaymentStatus.CANCELLED;
+            state.payments[paymentIndex].cancelled_at = new Date().toISOString();
           }
           state.loading = false;
         });
+        
+        // Refrescar datos desde el servidor para asegurar sincronización
+        console.log('🏪 STORE - Refrescando datos después de cancelación individual exitosa...');
+        get().fetchPayments().catch(console.error);
       } catch (error: any) {
         set((state) => {
           state.error = error.message || 'Error al cancelar pago';
@@ -519,12 +648,16 @@ export const usePaymentStore = create<PaymentStoreState>()(
       try {
         await PaymentFlowAPI.deletePayment(paymentId);
         
-        // Remover el pago de la lista
+        // Remover el pago de la lista LOCAL inmediatamente
         set((state) => {
           state.payments = state.payments.filter(p => p.id !== paymentId);
           state.selectedPayments = state.selectedPayments.filter(id => id !== paymentId);
           state.loading = false;
         });
+        
+        // Refrescar datos desde el servidor para asegurar sincronización
+        console.log('🏪 STORE - Refrescando datos después de eliminación individual exitosa...');
+        get().fetchPayments().catch(console.error);
       } catch (error: any) {
         set((state) => {
           state.error = error.message || 'Error al eliminar pago';
@@ -543,14 +676,33 @@ export const usePaymentStore = create<PaymentStoreState>()(
       try {
         const result = await PaymentFlowAPI.bulkDeletePayments(paymentIds);
         
-        // Remover pagos eliminados de la lista
+        // Remover pagos eliminados de la lista LOCAL inmediatamente
+        const successfulIds = Object.entries(result.results || {})
+          .filter(([_, resultData]: [string, any]) => resultData.success)
+          .map(([paymentId, _]) => paymentId);
+        
         set((state) => {
-          state.payments = state.payments.filter(p => !paymentIds.includes(p.id));
+          // Eliminar de la lista local inmediatamente
+          state.payments = state.payments.filter(p => !successfulIds.includes(p.id));
           state.selectedPayments = [];
           state.loading = false;
         });
         
-        return result;
+        // Refrescar datos desde el servidor para asegurar sincronización
+        if (result.successful > 0) {
+          console.log('🏪 STORE - Refrescando datos después de eliminación exitosa...');
+          get().fetchPayments().catch(console.error);
+        }
+        
+        // Convertir a formato esperado
+        const failedResults = Object.entries(result.results || {})
+          .filter(([_, resultData]: [string, any]) => !resultData.success)
+          .map(([_, resultData]: [string, any]) => resultData.error || resultData.message);
+        
+        return {
+          deleted: result.successful,
+          errors: failedResults
+        };
       } catch (error: any) {
         set((state) => {
           state.error = error.message || 'Error al eliminar pagos';
@@ -569,23 +721,233 @@ export const usePaymentStore = create<PaymentStoreState>()(
       try {
         const result = await PaymentFlowAPI.bulkCancelPayments(paymentIds);
         
-        // Actualizar pagos cancelados en la lista
+        // Actualizar pagos cancelados en la lista LOCAL inmediatamente
+        const successfulIds = Object.entries(result.results || {})
+          .filter(([_, resultData]: [string, any]) => resultData.success)
+          .map(([paymentId, _]) => paymentId);
+        
         set((state) => {
-          paymentIds.forEach(paymentId => {
+          successfulIds.forEach((paymentId: string) => {
             const paymentIndex = state.payments.findIndex(p => p.id === paymentId);
             if (paymentIndex !== -1) {
               state.payments[paymentIndex].status = PaymentStatus.CANCELLED;
+              // Actualizar también timestamp de cancelación
+              state.payments[paymentIndex].cancelled_at = new Date().toISOString();
             }
           });
           state.selectedPayments = [];
           state.loading = false;
         });
         
-        return result;
+        // Refrescar datos desde el servidor para asegurar sincronización
+        if (result.successful > 0) {
+          console.log('🏪 STORE - Refrescando datos después de cancelación exitosa...');
+          get().fetchPayments().catch(console.error);
+        }
+        
+        // Convertir a formato esperado
+        const failedResults = Object.entries(result.results || {})
+          .filter(([_, resultData]: [string, any]) => !resultData.success)
+          .map(([_, resultData]: [string, any]) => resultData.error || resultData.message);
+        
+        return {
+          cancelled: result.successful,
+          errors: failedResults
+        };
       } catch (error: any) {
         set((state) => {
           state.error = error.message || 'Error al cancelar pagos';
           state.loading = false;
+        });
+        throw error;
+      }
+    },
+
+    resetPayment: async (paymentId: string) => {
+      set((state) => {
+        state.loading = true;
+        state.error = null;
+      });
+
+      try {
+        const result = await PaymentFlowAPI.resetPayment(paymentId);
+        
+        // Actualizar el pago en la lista LOCAL inmediatamente
+        set((state) => {
+          const paymentIndex = state.payments.findIndex(p => p.id === paymentId);
+          if (paymentIndex !== -1) {
+            state.payments[paymentIndex] = result;
+          }
+          state.loading = false;
+        });
+        
+        // Refrescar datos desde el servidor para asegurar sincronización
+        console.log('🏪 STORE - Refrescando datos después de reset individual exitoso...');
+        get().fetchPayments().catch(console.error);
+      } catch (error: any) {
+        set((state) => {
+          state.error = error.message || 'Error al resetear pago';
+          state.loading = false;
+        });
+        throw error;
+      }
+    },
+
+    bulkPostPayments: async (paymentIds: string[], postingNotes?: string) => {
+      console.log('🏪 STORE - bulkPostPayments iniciado');
+      console.log('🏪 STORE - paymentIds:', paymentIds);
+      console.log('🏪 STORE - postingNotes:', postingNotes);
+      
+      set((state) => {
+        state.loading = true;
+        state.error = null;
+      });
+
+      try {
+        const result = await PaymentFlowAPI.bulkPostPayments(paymentIds, postingNotes);
+        
+        console.log('🏪 STORE - Resultado de contabilización:', result);
+        console.log('🏪 STORE - Exitosos:', result.successful);
+        console.log('🏪 STORE - Fallidos:', result.failed);
+        console.log('🏪 STORE - Detalles de resultados:', result.results);
+        
+        // Mostrar detalles de errores si los hay
+        if (result.failed > 0) {
+          const failedResults = Object.entries(result.results || {})
+            .filter(([_, resultData]: [string, any]) => !resultData.success);
+          
+          console.error('🏪 STORE - Pagos que fallaron:', failedResults);
+          failedResults.forEach(([paymentId, resultData]: [string, any]) => {
+            console.error(`🏪 STORE - Error en pago ${paymentId}:`, resultData.error || resultData.message);
+          });
+        }
+        
+        // Actualizar pagos posteados en la lista LOCAL inmediatamente
+        const successfulIds = Object.entries(result.results || {})
+          .filter(([_, resultData]: [string, any]) => resultData.success)
+          .map(([paymentId, _]) => paymentId);
+          
+        set((state) => {
+          successfulIds.forEach(paymentId => {
+            const paymentIndex = state.payments.findIndex(p => p.id === paymentId);
+            if (paymentIndex !== -1) {
+              state.payments[paymentIndex].status = PaymentStatus.POSTED;
+              // Actualizar también timestamp de contabilización
+              state.payments[paymentIndex].posted_at = new Date().toISOString();
+            }
+          });
+          state.selectedPayments = [];
+          state.loading = false;
+        });
+        
+        // Refrescar datos desde el servidor para asegurar sincronización
+        if (result.successful > 0) {
+          console.log('🏪 STORE - Refrescando datos después de contabilización exitosa...');
+          get().fetchPayments().catch(console.error);
+        }
+        
+        return result;
+      } catch (error: any) {
+        console.error('🏪 STORE - Error en bulkPostPayments:', error);
+        console.error('🏪 STORE - Stack trace:', error.stack);
+        set((state) => {
+          state.error = error.message || 'Error al postear pagos';
+          state.loading = false;
+        });
+        throw error;
+      }
+    },
+
+    bulkResetPayments: async (paymentIds: string[], resetReason?: string) => {
+      console.log('🏪 STORE - bulkResetPayments iniciado');
+      console.log('🏪 STORE - paymentIds:', paymentIds);
+      console.log('🏪 STORE - resetReason:', resetReason);
+      
+      set((state) => {
+        state.loading = true;
+        state.error = null;
+      });
+
+      try {
+        console.log('🏪 STORE - Llamando a PaymentFlowAPI.bulkResetPayments...');
+        const result = await PaymentFlowAPI.bulkResetPayments(paymentIds, resetReason);
+        console.log('🏪 STORE - Resultado de API:', result);
+        
+        // Actualizar pagos reseteados en la lista LOCAL inmediatamente
+        const successfulIds = Object.entries(result.results || {})
+          .filter(([_, resultData]: [string, any]) => resultData.success)
+          .map(([paymentId, _]) => paymentId);
+        
+        set((state) => {
+          successfulIds.forEach(paymentId => {
+            const paymentIndex = state.payments.findIndex(p => p.id === paymentId);
+            if (paymentIndex !== -1) {
+              state.payments[paymentIndex].status = PaymentStatus.DRAFT;
+              // Actualizar también otros campos que podrían cambiar
+              state.payments[paymentIndex].posted_at = undefined;
+              state.payments[paymentIndex].posted_by_id = undefined;
+            }
+          });
+          state.selectedPayments = [];
+          state.loading = false;
+        });
+        
+        // Refrescar datos desde el servidor para asegurar sincronización
+        if (result.successful > 0) {
+          console.log('🏪 STORE - Refrescando datos después de operación exitosa...');
+          // No await para que no bloquee la respuesta, pero actualiza en background
+          get().fetchPayments().catch(console.error);
+        }
+        
+        return result;
+      } catch (error: any) {
+        console.error('🏪 STORE - Error en bulkResetPayments:', error);
+        set((state) => {
+          state.error = error.message || 'Error al resetear pagos';
+          state.loading = false;
+        });
+        throw error;
+      }
+    },
+
+    bulkDraftPayments: async (paymentIds: string[], draftReason?: string) => {
+      // Esta función es un alias de bulkResetPayments para compatibilidad
+      return get().bulkResetPayments(paymentIds, draftReason);
+    },
+
+    getBulkOperationsStatus: async () => {
+      try {
+        // TODO: Implementar cuando esté disponible en la API
+        return {
+          total_payments: 0,
+          by_status: {},
+          available_operations: ['reset-to-draft', 'confirm', 'post', 'cancel', 'delete'],
+          bulk_limits: {
+            max_batch_size: 1000,
+            recommended_batch_size: 100
+          }
+        };
+      } catch (error: any) {
+        set((state) => {
+          state.error = error.message || 'Error al obtener estado de operaciones en lote';
+        });
+        throw error;
+      }
+    },
+
+    getOperationsSummary: async (paymentIds?: string[]) => {
+      try {
+        // TODO: Implementar cuando esté disponible en la API
+        return {
+          payment_count: paymentIds?.length || 0,
+          by_status: {},
+          available_operations: ['reset-to-draft', 'confirm', 'post', 'cancel', 'delete'],
+          warnings: [],
+          estimated_processing_time: 0
+        };
+      } catch (error: any) {
+        set((state) => {
+          state.error = error.message || 'Error al obtener resumen de operaciones';
         });
         throw error;
       }

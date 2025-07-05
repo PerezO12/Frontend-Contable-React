@@ -8,12 +8,12 @@ import { normalizePaymentsList, normalizePaymentStatus, normalizePaymentType } f
 import type {
   PaymentFlowImportRequest,
   PaymentFlowImportResult,
-  PaymentBatchConfirmation,
+
   Payment,
   PaymentCreate,
   PaymentListResponse,
   PaymentFilters,
-  PaymentStatus,
+
   FileImportRequest,
   BulkPaymentValidationResponse,
   BulkPaymentOperationResponse
@@ -78,11 +78,33 @@ export class PaymentFlowAPI {
    * ACTUALIZADO: Nuevo endpoint bulk/confirm con formato de request corregido
    */
   static async batchConfirmPayments(paymentIds: string[]): Promise<BulkPaymentOperationResponse> {
-    const response = await apiClient.post<BulkPaymentOperationResponse>(
-      `${API_BASE}/bulk/confirm`,
-      { payment_ids: paymentIds }  // Formato correcto para el backend
-    );
-    return response.data;
+    try {
+      const response = await apiClient.post<BulkPaymentOperationResponse>(
+        `${API_BASE}/bulk/confirm`,
+        { payment_ids: paymentIds }  // Formato correcto para el backend
+      );
+      
+      // Log de la respuesta exitosa
+      console.log('✅ Batch confirm response:', response.data);
+      
+      return response.data;
+    } catch (error: any) {
+      // Log detallado del error, especialmente para 422
+      console.error('❌ Batch confirm error:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data
+        }
+      });
+      
+      // Re-throw el error para que el código superior lo maneje
+      throw error;
+    }
   }
 
   /**
@@ -239,23 +261,8 @@ export class PaymentFlowAPI {
     return response.data;
   }
 
-  /**
-   * Contabilizar múltiples pagos en lote (hasta 1000)
-   * ACTUALIZADO: Nuevo endpoint bulk/post con formato corregido
-   */
-  static async bulkPostPayments(
-    paymentIds: string[], 
-    postingNotes?: string
-  ): Promise<BulkPaymentOperationResponse> {
-    const response = await apiClient.post<BulkPaymentOperationResponse>(
-      `${API_BASE}/bulk/post`,
-      { 
-        payment_ids: paymentIds,
-        posting_notes: postingNotes
-      }  // Formato correcto para el backend
-    );
-    return response.data;
-  }
+  // MÉTODO ELIMINADO: bulkPostPayments
+  // Ahora use bulkConfirmPayments para todos los casos (DRAFT → POSTED y CONFIRMED → POSTED)
 
   /**
    * Obtener estados de pago disponibles

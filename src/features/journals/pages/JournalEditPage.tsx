@@ -56,6 +56,13 @@ export function JournalEditPage() {
       type: 'sale' as JournalType,
       sequence_prefix: '',
       default_account_id: '',
+      default_debit_account_id: '',
+      default_credit_account_id: '',
+      customer_receivable_account_id: '',
+      supplier_payable_account_id: '',
+      cash_difference_account_id: '',
+      bank_charges_account_id: '',
+      currency_exchange_account_id: '',
       sequence_padding: 4,
       include_year_in_sequence: true,
       reset_sequence_yearly: true,
@@ -76,6 +83,13 @@ export function JournalEditPage() {
         type: journal.type,
         sequence_prefix: journal.sequence_prefix,
         default_account_id: journal.default_account_id || '',
+        default_debit_account_id: journal.default_debit_account_id || '',
+        default_credit_account_id: journal.default_credit_account_id || '',
+        customer_receivable_account_id: journal.customer_receivable_account_id || '',
+        supplier_payable_account_id: journal.supplier_payable_account_id || '',
+        cash_difference_account_id: journal.cash_difference_account_id || '',
+        bank_charges_account_id: journal.bank_charges_account_id || '',
+        currency_exchange_account_id: journal.currency_exchange_account_id || '',
         sequence_padding: journal.sequence_padding,
         include_year_in_sequence: journal.include_year_in_sequence,
         reset_sequence_yearly: journal.reset_sequence_yearly,
@@ -103,6 +117,13 @@ export function JournalEditPage() {
       const updateData = {
         name: data.name,
         default_account_id: data.default_account_id || undefined,
+        default_debit_account_id: data.default_debit_account_id || undefined,
+        default_credit_account_id: data.default_credit_account_id || undefined,
+        customer_receivable_account_id: data.customer_receivable_account_id || undefined,
+        supplier_payable_account_id: data.supplier_payable_account_id || undefined,
+        cash_difference_account_id: data.cash_difference_account_id || undefined,
+        bank_charges_account_id: data.bank_charges_account_id || undefined,
+        currency_exchange_account_id: data.currency_exchange_account_id || undefined,
         sequence_padding: data.sequence_padding,
         include_year_in_sequence: data.include_year_in_sequence,
         reset_sequence_yearly: data.reset_sequence_yearly,
@@ -283,6 +304,138 @@ export function JournalEditPage() {
               <p className="mt-1 text-xs text-gray-500">
                 Cuenta contable que se usará por defecto en los asientos
               </p>
+            </div>
+
+            {/* Configuración de Cuentas Específicas para Pagos */}
+            <div className="border-t border-gray-200 pt-6">
+              <h4 className="text-md font-medium text-gray-900 mb-4">
+                Configuración de Cuentas para Pagos
+              </h4>
+              <p className="text-sm text-gray-600 mb-4">
+                Cuentas específicas que se usarán en este diario para operaciones de pago. 
+                Si no se especifican, se usarán las cuentas por defecto de la empresa.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="default_debit_account_id">
+                    Cuenta Débito por Defecto
+                  </Label>
+                  <AccountSearchInput
+                    value={watch('default_debit_account_id') || ''}
+                    onChange={(accountId) => {
+                      setValue('default_debit_account_id', accountId || '');
+                    }}
+                    placeholder="Buscar cuenta débito..."
+                    limit={15}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Cuenta que se usará por defecto en el débito
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="default_credit_account_id">
+                    Cuenta Crédito por Defecto
+                  </Label>
+                  <AccountSearchInput
+                    value={watch('default_credit_account_id') || ''}
+                    onChange={(accountId) => {
+                      setValue('default_credit_account_id', accountId || '');
+                    }}
+                    placeholder="Buscar cuenta crédito..."
+                    limit={15}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Cuenta que se usará por defecto en el crédito
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="customer_receivable_account_id">
+                    Cuenta por Cobrar Clientes
+                  </Label>
+                  <AccountSearchInput
+                    value={watch('customer_receivable_account_id') || ''}
+                    onChange={(accountId) => {
+                      setValue('customer_receivable_account_id', accountId || '');
+                    }}
+                    placeholder="Buscar cuenta por cobrar..."
+                    limit={15}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Cuenta específica para pagos de clientes en este diario
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="supplier_payable_account_id">
+                    Cuenta por Pagar Proveedores
+                  </Label>
+                  <AccountSearchInput
+                    value={watch('supplier_payable_account_id') || ''}
+                    onChange={(accountId) => {
+                      setValue('supplier_payable_account_id', accountId || '');
+                    }}
+                    placeholder="Buscar cuenta por pagar..."
+                    limit={15}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Cuenta específica para pagos a proveedores en este diario
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="cash_difference_account_id">
+                    Cuenta Diferencias de Caja
+                  </Label>
+                  <AccountSearchInput
+                    value={watch('cash_difference_account_id') || ''}
+                    onChange={(accountId) => {
+                      setValue('cash_difference_account_id', accountId || '');
+                    }}
+                    placeholder="Buscar cuenta diferencias..."
+                    limit={15}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Cuenta para diferencias de efectivo/caja
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="bank_charges_account_id">
+                    Cuenta Gastos Bancarios
+                  </Label>
+                  <AccountSearchInput
+                    value={watch('bank_charges_account_id') || ''}
+                    onChange={(accountId) => {
+                      setValue('bank_charges_account_id', accountId || '');
+                    }}
+                    placeholder="Buscar cuenta gastos..."
+                    limit={15}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Cuenta para comisiones y gastos bancarios
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="currency_exchange_account_id">
+                    Cuenta Diferencias de Cambio
+                  </Label>
+                  <AccountSearchInput
+                    value={watch('currency_exchange_account_id') || ''}
+                    onChange={(accountId) => {
+                      setValue('currency_exchange_account_id', accountId || '');
+                    }}
+                    placeholder="Buscar cuenta cambio..."
+                    limit={15}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Cuenta para diferencias de tipo de cambio
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Configuración de secuencia */}

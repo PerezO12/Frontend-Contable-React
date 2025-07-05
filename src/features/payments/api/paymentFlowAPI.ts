@@ -94,12 +94,12 @@ export class PaymentFlowAPI {
         requestData
       );
       
-      console.log('✅ API - Response status:', response.status);
-      console.log('✅ API - Response data:', response.data);
+      // Log de la respuesta exitosa
+      console.log('✅ API - Batch confirm response:', response.data);
       
       // Verificar si realmente hubo éxito aunque el status sea 200
       if (response.data.failed > 0) {
-        console.warn('✅ API - Operación con fallos parciales:', {
+        console.warn('⚠️ API - Operación con fallos parciales:', {
           successful: response.data.successful,
           failed: response.data.failed,
           results: response.data.results
@@ -108,13 +108,23 @@ export class PaymentFlowAPI {
 
       return response.data;
     } catch (error: any) {
-      console.error('✅ API - Error en batchConfirmPayments:', error);
-      console.error('✅ API - Error response:', error.response?.data);
-      console.error('✅ API - Error status:', error.response?.status);
+      // Log detallado del error, especialmente para 422
+      console.error('❌ API - Batch confirm error:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data
+        }
+      });
       
       // Manejar códigos de error específicos
       if (error.response?.status === 422) {
-        console.error('✅ API - Error 422 (Unprocessable Entity): Ningún pago pudo ser confirmado');
+        console.error('❌ API - Error 422 (Unprocessable Entity): Ningún pago pudo ser confirmado');
+        console.error('❌ API - Detalles del error 422:', error.response?.data);
       }
       
       throw error;
@@ -387,53 +397,8 @@ export class PaymentFlowAPI {
    * Contabilizar múltiples pagos en lote (hasta 1000)
    * ACTUALIZADO: Nuevo endpoint bulk/post con formato corregido
    */
-  static async bulkPostPayments(
-    paymentIds: string[], 
-    postingNotes?: string
-  ): Promise<BulkPaymentOperationResponse> {
-    console.log('💳 API - bulkPostPayments iniciado');
-    console.log('💳 API - paymentIds:', paymentIds);
-    console.log('💳 API - postingNotes:', postingNotes);
-
-    const requestData = { 
-      payment_ids: paymentIds,
-      posting_notes: postingNotes
-    };
-
-    console.log('💳 API - Request data:', requestData);
-
-    try {
-      const response = await apiClient.post<BulkPaymentOperationResponse>(
-        `${API_BASE}/bulk/post`,
-        requestData
-      );
-      
-      console.log('💳 API - Response status:', response.status);
-      console.log('💳 API - Response data:', response.data);
-      
-      // Verificar si realmente hubo éxito aunque el status sea 200
-      if (response.data.failed > 0) {
-        console.warn('💳 API - Operación con fallos parciales:', {
-          successful: response.data.successful,
-          failed: response.data.failed,
-          results: response.data.results
-        });
-      }
-
-      return response.data;
-    } catch (error: any) {
-      console.error('💳 API - Error en bulkPostPayments:', error);
-      console.error('💳 API - Error response:', error.response?.data);
-      console.error('💳 API - Error status:', error.response?.status);
-      
-      // Manejar códigos de error específicos
-      if (error.response?.status === 422) {
-        console.error('💳 API - Error 422 (Unprocessable Entity): Ningún pago pudo ser contabilizado');
-      }
-      
-      throw error;
-    }
-  }
+  // MÉTODO ELIMINADO: bulkPostPayments
+  // Ahora use bulkConfirmPayments para todos los casos (DRAFT → POSTED y CONFIRMED → POSTED)
 
   /**
    * Obtener estados de pago disponibles

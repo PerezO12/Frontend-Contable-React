@@ -112,7 +112,7 @@ interface PaymentStoreState extends PaymentFlowState {
   // Operaciones bulk
   bulkDeletePayments: (paymentIds: string[]) => Promise<{ deleted: number; errors: string[] }>;
   bulkCancelPayments: (paymentIds: string[]) => Promise<{ cancelled: number; errors: string[] }>;
-  bulkPostPayments: (paymentIds: string[], postingNotes?: string) => Promise<BulkPaymentOperationResponse>;
+  // ELIMINADO: bulkPostPayments - usar bulkConfirmPaymentsWithValidation en su lugar
   bulkResetPayments: (paymentIds: string[], resetReason?: string) => Promise<BulkPaymentOperationResponse>;
   bulkDraftPayments: (paymentIds: string[], draftReason?: string) => Promise<BulkPaymentOperationResponse>;
 
@@ -163,7 +163,7 @@ interface PaymentStoreState extends PaymentFlowState {
   reset: () => void;
 }
 
-const initialState: Omit<PaymentStoreState, 'fetchPayments' | 'fetchDraftPayments' | 'fetchPayment' | 'fetchBankExtracts' | 'fetchBankExtract' | 'importBankStatement' | 'importFromFile' | 'confirmPayment' | 'batchConfirmPayments' | 'validateBulkConfirmation' | 'bulkConfirmPaymentsWithValidation' | 'getPaymentFlowStatus' | 'fetchReconciliationSummary' | 'cancelPayment' | 'resetPayment' | 'deletePayment' | 'bulkDeletePayments' | 'bulkCancelPayments' | 'bulkPostPayments' | 'bulkResetPayments' | 'bulkDraftPayments' | 'getBulkOperationsStatus' | 'getOperationsSummary' | 'setFilters' | 'setExtractFilters' | 'clearFilters' | 'setSelectedPayments' | 'togglePaymentSelection' | 'selectAllPayments' | 'clearPaymentSelection' | 'setSelectedExtracts' | 'toggleExtractSelection' | 'clearExtractSelection' | 'setImportProgress' | 'clearImportProgress' | 'clearError' | 'clearValidationErrors' | 'reset'> = {
+const initialState: Omit<PaymentStoreState, 'fetchPayments' | 'fetchDraftPayments' | 'fetchPayment' | 'fetchBankExtracts' | 'fetchBankExtract' | 'importBankStatement' | 'importFromFile' | 'confirmPayment' | 'batchConfirmPayments' | 'validateBulkConfirmation' | 'bulkConfirmPaymentsWithValidation' | 'getPaymentFlowStatus' | 'fetchReconciliationSummary' | 'cancelPayment' | 'resetPayment' | 'deletePayment' | 'bulkDeletePayments' | 'bulkCancelPayments' | 'bulkResetPayments' | 'bulkDraftPayments' | 'getBulkOperationsStatus' | 'getOperationsSummary' | 'setFilters' | 'setExtractFilters' | 'clearFilters' | 'setSelectedPayments' | 'togglePaymentSelection' | 'selectAllPayments' | 'clearPaymentSelection' | 'setSelectedExtracts' | 'toggleExtractSelection' | 'clearExtractSelection' | 'setImportProgress' | 'clearImportProgress' | 'clearError' | 'clearValidationErrors' | 'reset'> = {
   // Datos
   payments: [],
   extracts: [],
@@ -793,70 +793,8 @@ export const usePaymentStore = create<PaymentStoreState>()(
       }
     },
 
-    bulkPostPayments: async (paymentIds: string[], postingNotes?: string) => {
-      console.log('🏪 STORE - bulkPostPayments iniciado');
-      console.log('🏪 STORE - paymentIds:', paymentIds);
-      console.log('🏪 STORE - postingNotes:', postingNotes);
-      
-      set((state) => {
-        state.loading = true;
-        state.error = null;
-      });
-
-      try {
-        const result = await PaymentFlowAPI.bulkPostPayments(paymentIds, postingNotes);
-        
-        console.log('🏪 STORE - Resultado de contabilización:', result);
-        console.log('🏪 STORE - Exitosos:', result.successful);
-        console.log('🏪 STORE - Fallidos:', result.failed);
-        console.log('🏪 STORE - Detalles de resultados:', result.results);
-        
-        // Mostrar detalles de errores si los hay
-        if (result.failed > 0) {
-          const failedResults = Object.entries(result.results || {})
-            .filter(([_, resultData]: [string, any]) => !resultData.success);
-          
-          console.error('🏪 STORE - Pagos que fallaron:', failedResults);
-          failedResults.forEach(([paymentId, resultData]: [string, any]) => {
-            console.error(`🏪 STORE - Error en pago ${paymentId}:`, resultData.error || resultData.message);
-          });
-        }
-        
-        // Actualizar pagos posteados en la lista LOCAL inmediatamente
-        const successfulIds = Object.entries(result.results || {})
-          .filter(([_, resultData]: [string, any]) => resultData.success)
-          .map(([paymentId, _]) => paymentId);
-          
-        set((state) => {
-          successfulIds.forEach(paymentId => {
-            const paymentIndex = state.payments.findIndex(p => p.id === paymentId);
-            if (paymentIndex !== -1) {
-              state.payments[paymentIndex].status = PaymentStatus.POSTED;
-              // Actualizar también timestamp de contabilización
-              state.payments[paymentIndex].posted_at = new Date().toISOString();
-            }
-          });
-          state.selectedPayments = [];
-          state.loading = false;
-        });
-        
-        // Refrescar datos desde el servidor para asegurar sincronización
-        if (result.successful > 0) {
-          console.log('🏪 STORE - Refrescando datos después de contabilización exitosa...');
-          get().fetchPayments().catch(console.error);
-        }
-        
-        return result;
-      } catch (error: any) {
-        console.error('🏪 STORE - Error en bulkPostPayments:', error);
-        console.error('🏪 STORE - Stack trace:', error.stack);
-        set((state) => {
-          state.error = error.message || 'Error al postear pagos';
-          state.loading = false;
-        });
-        throw error;
-      }
-    },
+    // MÉTODO ELIMINADO: bulkPostPayments
+    // Ahora use bulkConfirmPaymentsWithValidation para todos los casos (DRAFT → POSTED y CONFIRMED → POSTED)
 
     bulkResetPayments: async (paymentIds: string[], resetReason?: string) => {
       console.log('🏪 STORE - bulkResetPayments iniciado');

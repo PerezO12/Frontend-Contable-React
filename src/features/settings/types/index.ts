@@ -24,6 +24,10 @@ export interface CompanySettings {
   default_customer_receivable_account_id?: string;
   default_supplier_payable_account_id?: string;
   
+  // Basic treasury accounts
+  default_cash_account_id?: string;
+  default_bank_account_id?: string;
+  
   // Banking and payments
   bank_suspense_account_id?: string;
   internal_transfer_account_id?: string;
@@ -81,10 +85,19 @@ export interface CompanySettingsCreate {
   company_name: string;
   tax_id?: string;
   currency_code: string;
+  
+  // Default accounts for partners
   default_customer_receivable_account_id?: string;
   default_supplier_payable_account_id?: string;
+  
+  // Basic treasury accounts
+  default_cash_account_id?: string;
+  default_bank_account_id?: string;
+  
+  // Banking and payments
   bank_suspense_account_id?: string;
   internal_transfer_account_id?: string;
+  
   deferred_expense_account_id?: string;
   deferred_expense_journal_id?: string;
   deferred_expense_months?: number;

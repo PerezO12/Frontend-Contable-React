@@ -18,7 +18,7 @@ export function useBulkPaymentOperations() {
     validateBulkConfirmation,
     bulkCancelPayments,
     bulkDeletePayments,
-    bulkPostPayments,
+    // ELIMINADO: bulkPostPayments - usar bulkConfirmPaymentsWithValidation
     bulkResetPayments,
     bulkDraftPayments,
     resetPayment,
@@ -286,21 +286,22 @@ export function useBulkPaymentOperations() {
 
     setIsLoading(true);
     try {
-      const result = await bulkPostPayments(selectedPayments, postingNotes);
+      // Usar el método consolidado que maneja tanto DRAFT como CONFIRMED
+      const result = await bulkConfirmPaymentsWithValidation(selectedPayments, postingNotes, false);
       
       const successCount = result.successful;
       const errorCount = result.failed;
       
       if (errorCount === 0) {
-        showToast(`Se postearon exitosamente ${successCount} pago(s)`, 'success');
+        showToast(`Se procesaron exitosamente ${successCount} pago(s)`, 'success');
       } else {
-        showToast(`Se postearon ${successCount} pago(s). ${errorCount} fallaron.`, 'warning');
+        showToast(`Se procesaron ${successCount} pago(s). ${errorCount} fallaron.`, 'warning');
       }
       
       clearPaymentSelection();
       return result;
     } catch (error: any) {
-      showToast(error.message || 'Error inesperado al postear pagos', 'error');
+      showToast(error.message || 'Error inesperado al procesar pagos', 'error');
       throw error;
     } finally {
       setIsLoading(false);

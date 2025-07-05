@@ -39,6 +39,16 @@ export interface JournalBase {
   type: JournalType;
   sequence_prefix: string;
   default_account_id?: string;
+  
+  // Configuración de cuentas específicas para pagos
+  default_debit_account_id?: string;
+  default_credit_account_id?: string;
+  customer_receivable_account_id?: string;
+  supplier_payable_account_id?: string;
+  cash_difference_account_id?: string;
+  bank_charges_account_id?: string;
+  currency_exchange_account_id?: string;
+  
   sequence_padding: number;
   include_year_in_sequence: boolean;
   reset_sequence_yearly: boolean;
@@ -55,6 +65,16 @@ export interface JournalCreate extends JournalBase {}
 export interface JournalUpdate {
   name?: string;
   default_account_id?: string;
+  
+  // Configuración de cuentas específicas para pagos
+  default_debit_account_id?: string;
+  default_credit_account_id?: string;
+  customer_receivable_account_id?: string;
+  supplier_payable_account_id?: string;
+  cash_difference_account_id?: string;
+  bank_charges_account_id?: string;
+  currency_exchange_account_id?: string;
+  
   sequence_padding?: number;
   include_year_in_sequence?: boolean;
   reset_sequence_yearly?: boolean;
@@ -163,8 +183,15 @@ export interface JournalResponse extends JournalRead {}
 export interface JournalDetailResponse extends JournalDetail {}
 
 // Tipos para formularios
-export interface JournalFormData extends Omit<JournalCreate, 'default_account_id'> {
+export interface JournalFormData extends Omit<JournalCreate, 'default_account_id' | 'default_debit_account_id' | 'default_credit_account_id' | 'customer_receivable_account_id' | 'supplier_payable_account_id' | 'cash_difference_account_id' | 'bank_charges_account_id' | 'currency_exchange_account_id'> {
   default_account_id?: string;
+  default_debit_account_id?: string;
+  default_credit_account_id?: string;
+  customer_receivable_account_id?: string;
+  supplier_payable_account_id?: string;
+  cash_difference_account_id?: string;
+  bank_charges_account_id?: string;
+  currency_exchange_account_id?: string;
 }
 
 // Tipos para opciones de selects

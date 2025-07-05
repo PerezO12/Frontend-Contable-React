@@ -13,7 +13,7 @@ export function usePaymentPosting() {
   const [showValidationModal, setShowValidationModal] = useState(false);
   
   const { 
-    bulkPostPayments, 
+    bulkConfirmPaymentsWithValidation, // Usar el método consolidado
     selectedPayments, 
     clearPaymentSelection,
     payments 
@@ -108,7 +108,8 @@ export function usePaymentPosting() {
     
     try {
       console.log('📝 Contabilizando pagos validados:', paymentIds);
-      const result = await bulkPostPayments(paymentIds, postingNotes);
+      // Usar el método consolidado que maneja ambos casos (DRAFT → POSTED y CONFIRMED → POSTED)
+      const result = await bulkConfirmPaymentsWithValidation(paymentIds, postingNotes, false);
       
       const successCount = result.successful;
       const errorCount = result.failed;

@@ -33,7 +33,12 @@ export class CompanySettingsService {
    * Create new company settings
    */
   static async createCompanySettings(data: CompanySettingsCreate): Promise<CompanySettings> {
+    console.log('CompanySettingsService.createCompanySettings called with:', data);
+    console.log('Data being sent to API:', JSON.stringify(data, null, 2));
+    
     const response = await apiClient.post<CompanySettings>(this.BASE_URL, data);
+    
+    console.log('API Response:', response.data);
     return response.data;
   }
 
@@ -41,7 +46,12 @@ export class CompanySettingsService {
    * Update existing company settings
    */
   static async updateCompanySettings(data: CompanySettingsUpdate): Promise<CompanySettings> {
+    console.log('CompanySettingsService.updateCompanySettings called with:', data);
+    console.log('Data being sent to API:', JSON.stringify(data, null, 2));
+    
     const response = await apiClient.put<CompanySettings>(this.BASE_URL, data);
+    
+    console.log('API Response:', response.data);
     return response.data;
   }
 

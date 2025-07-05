@@ -3,6 +3,7 @@
  * Service to fetch accounts for the AccountSelector component
  */
 import { apiClient } from '../../../shared/api/client';
+import { AccountType } from '../../accounts/types';
 
 export interface Account {
   id: string;
@@ -54,11 +55,11 @@ export class AccountsSettingsService {
 
   /**
    * Get accounts suitable for receivables (customer accounts)
-   * These are typically ACTIVO accounts
+   * These are typically ASSET accounts
    */
   static async getReceivableAccounts(): Promise<Account[]> {
     try {
-      const result = await this.getAccountsByType('ACTIVO', true);
+      const result = await this.getAccountsByType(AccountType.ASSET, true);
       return result.accounts;
     } catch (error) {
       console.error('Error fetching receivable accounts:', error);
@@ -69,11 +70,11 @@ export class AccountsSettingsService {
 
   /**
    * Get accounts suitable for payables (supplier accounts)
-   * These are typically PASIVO accounts
+   * These are typically LIABILITY accounts
    */
   static async getPayableAccounts(): Promise<Account[]> {
     try {
-      const result = await this.getAccountsByType('PASIVO', true);
+      const result = await this.getAccountsByType(AccountType.LIABILITY, true);
       return result.accounts;
     } catch (error) {
       console.error('Error fetching payable accounts:', error);

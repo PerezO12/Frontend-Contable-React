@@ -51,7 +51,22 @@ export interface CompanySettings {
   is_active: boolean;
   notes?: string;
   
-  // Account relationships
+  // Account relationships with names
+  default_customer_receivable_account_name?: string;
+  default_supplier_payable_account_name?: string;
+  bank_suspense_account_name?: string;
+  internal_transfer_account_name?: string;
+  deferred_expense_account_name?: string;
+  deferred_revenue_account_name?: string;
+  early_payment_discount_gain_account_name?: string;
+  early_payment_discount_loss_account_name?: string;
+  
+  // Configuration flags
+  has_customer_receivable_configured: boolean;
+  has_supplier_payable_configured: boolean;
+  has_deferred_accounts_configured: boolean;
+  
+  // Account relationships (full objects)
   default_customer_receivable_account?: Account;
   default_supplier_payable_account?: Account;
   bank_suspense_account?: Account;
@@ -81,12 +96,24 @@ export interface CompanySettingsCreate {
   invoice_line_discount_same_account?: boolean;
   validate_invoice_on_posting?: boolean;
   deferred_generation_method?: string;
+  is_active?: boolean;
   notes?: string;
 }
 
 export interface CompanySettingsUpdate extends Partial<CompanySettingsCreate> {}
 
 export interface DefaultAccountsInfo {
+  // Información de cuentas disponibles
+  available_receivable_accounts: Account[];
+  available_payable_accounts: Account[];
+  available_bank_accounts: Account[];
+  available_expense_accounts: Account[];
+  available_revenue_accounts: Account[];
+  
+  // Configuración actual
+  current_settings?: CompanySettings;
+  
+  // Información de estado
   has_receivable_account: boolean;
   has_payable_account: boolean;
   has_bank_suspense_account: boolean;

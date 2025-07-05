@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '../../../shared/contexts/ToastContext';
 import { CompanySettingsService } from '../services/companySettingsService';
 import { AccountSelector } from './AccountSelector';
+import { JournalSelector } from './JournalSelector';
 import type { CompanySettings, CompanySettingsUpdate } from '../types';
 
 // Simple SVG Icons
@@ -73,9 +74,13 @@ export const CompanySettingsForm: React.FC<CompanySettingsFormProps> = ({
       setLoading(true);
       const data = await CompanySettingsService.getCompanySettings();
       
+      console.log('=== LOADED SETTINGS FROM BACKEND ===');
+      console.log('Raw data received:', JSON.stringify(data, null, 2));
+      console.log('====================================');
+      
       if (data) {
         setSettings(data);
-        setFormData({
+        const formDataToSet = {
           company_name: data.company_name,
           tax_id: data.tax_id || '',
           currency_code: data.currency_code,
@@ -84,23 +89,36 @@ export const CompanySettingsForm: React.FC<CompanySettingsFormProps> = ({
           bank_suspense_account_id: data.bank_suspense_account_id,
           internal_transfer_account_id: data.internal_transfer_account_id,
           deferred_expense_account_id: data.deferred_expense_account_id,
+          deferred_expense_journal_id: data.deferred_expense_journal_id && data.deferred_expense_journal_id.length > 10 ? data.deferred_expense_journal_id : undefined,
+          deferred_expense_months: data.deferred_expense_months || 12,
           deferred_revenue_account_id: data.deferred_revenue_account_id,
+          deferred_revenue_journal_id: data.deferred_revenue_journal_id && data.deferred_revenue_journal_id.length > 10 ? data.deferred_revenue_journal_id : undefined,
+          deferred_revenue_months: data.deferred_revenue_months || 12,
           early_payment_discount_gain_account_id: data.early_payment_discount_gain_account_id,
           early_payment_discount_loss_account_id: data.early_payment_discount_loss_account_id,
           invoice_line_discount_same_account: data.invoice_line_discount_same_account,
           validate_invoice_on_posting: data.validate_invoice_on_posting,
           deferred_generation_method: data.deferred_generation_method,
+          is_active: data.is_active !== false, // Default to true
           notes: data.notes || ''
-        });
+        };
+        
+        console.log('Form data being set:', JSON.stringify(formDataToSet, null, 2));
+        setFormData(formDataToSet);
       } else {
         // Initialize with default values if no settings exist
-        setFormData({
+        const defaultFormData = {
           company_name: '',
           currency_code: 'USD',
+          deferred_expense_months: 12,
+          deferred_revenue_months: 12,
           invoice_line_discount_same_account: true,
           validate_invoice_on_posting: true,
-          deferred_generation_method: 'on_invoice_validation'
-        });
+          deferred_generation_method: 'on_invoice_validation',
+          is_active: true
+        };
+        console.log('No settings found, using default form data:', JSON.stringify(defaultFormData, null, 2));
+        setFormData(defaultFormData);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -143,23 +161,66 @@ export const CompanySettingsForm: React.FC<CompanySettingsFormProps> = ({
     try {
       setSaving(true);
 
+      // Log the data being sent to the backend
+      console.log('=== SENDING DATA TO BACKEND ===');
+      console.log('Form Data:', JSON.stringify(formData, null, 2));
+      console.log('Method:', settings ? 'PUT' : 'POST');
+      console.log('Settings exist:', !!settings);
+      console.log('================================');
+
+      // Clean up form data - convert empty strings to null for UUID fields
+      const cleanedData = { ...formData } as any;
+      const uuidFields = [
+        'default_customer_receivable_account_id',
+        'default_supplier_payable_account_id', 
+        'bank_suspense_account_id',
+        'internal_transfer_account_id',
+        'deferred_expense_account_id',
+        'deferred_expense_journal_id',
+        'deferred_revenue_account_id', 
+        'deferred_revenue_journal_id',
+        'early_payment_discount_gain_account_id',
+        'early_payment_discount_loss_account_id'
+      ];
+
+      uuidFields.forEach(field => {
+        const value = cleanedData[field];
+        if (value === '' || value === undefined || value === null) {
+          cleanedData[field] = null;
+        } else if (typeof value === 'string' && value.length < 10) {
+          // If it's a short string (like "5"), treat as invalid and set to null
+          console.warn(`Invalid UUID format for ${field}: "${value}", setting to null`);
+          cleanedData[field] = null;
+        }
+      });
+
+      console.log('Cleaned Data:', JSON.stringify(cleanedData, null, 2));
+
       let updatedSettings: CompanySettings;
       
       if (settings) {
         // Update existing settings
-        updatedSettings = await CompanySettingsService.updateCompanySettings(formData);
+        console.log('Calling updateCompanySettings with:', cleanedData);
+        updatedSettings = await CompanySettingsService.updateCompanySettings(cleanedData);
         showSuccess('Configuración actualizada exitosamente');
       } else {
         // Create new settings
-        updatedSettings = await CompanySettingsService.createCompanySettings(formData as any);
+        console.log('Calling createCompanySettings with:', cleanedData);
+        updatedSettings = await CompanySettingsService.createCompanySettings(cleanedData as any);
         showSuccess('Configuración creada exitosamente');
       }
 
+      console.log('Response received:', updatedSettings);
       setSettings(updatedSettings);
       onSettingsUpdated?.(updatedSettings);
       
     } catch (error: any) {
       console.error('Error saving settings:', error);
+      console.error('Error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
+      });
       const errorMessage = error.response?.data?.detail || 'Error al guardar la configuración';
       showError(errorMessage);
     } finally {
@@ -388,9 +449,9 @@ export const CompanySettingsForm: React.FC<CompanySettingsFormProps> = ({
                 accountType="receivable"
                 error={errors.default_customer_receivable_account_id}
               />
-              {settings?.default_customer_receivable_account && (
+              {settings?.default_customer_receivable_account_name && (
                 <p className="mt-1 text-xs text-gray-500">
-                  Actual: {settings.default_customer_receivable_account.code} - {settings.default_customer_receivable_account.name}
+                  Actual: {settings.default_customer_receivable_account_name}
                 </p>
               )}
             </div>
@@ -406,9 +467,9 @@ export const CompanySettingsForm: React.FC<CompanySettingsFormProps> = ({
                 accountType="payable"
                 error={errors.default_supplier_payable_account_id}
               />
-              {settings?.default_supplier_payable_account && (
+              {settings?.default_supplier_payable_account_name && (
                 <p className="mt-1 text-xs text-gray-500">
-                  Actual: {settings.default_supplier_payable_account.code} - {settings.default_supplier_payable_account.name}
+                  Actual: {settings.default_supplier_payable_account_name}
                 </p>
               )}
             </div>
@@ -432,9 +493,9 @@ export const CompanySettingsForm: React.FC<CompanySettingsFormProps> = ({
                 placeholder="Seleccionar cuenta transitoria"
                 error={errors.bank_suspense_account_id}
               />
-              {settings?.bank_suspense_account && (
+              {settings?.bank_suspense_account_name && (
                 <p className="mt-1 text-xs text-gray-500">
-                  Actual: {settings.bank_suspense_account.code} - {settings.bank_suspense_account.name}
+                  Actual: {settings.bank_suspense_account_name}
                 </p>
               )}
             </div>
@@ -449,9 +510,179 @@ export const CompanySettingsForm: React.FC<CompanySettingsFormProps> = ({
                 placeholder="Seleccionar cuenta de transferencia"
                 error={errors.internal_transfer_account_id}
               />
-              {settings?.internal_transfer_account && (
+              {settings?.internal_transfer_account_name && (
                 <p className="mt-1 text-xs text-gray-500">
-                  Actual: {settings.internal_transfer_account.code} - {settings.internal_transfer_account.name}
+                  Actual: {settings.internal_transfer_account_name}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Deferred Accounts Configuration */}
+        <div className="bg-white shadow-sm rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Configuración de Cuentas Diferidas
+          </h3>
+          
+          <div className="space-y-6">
+            {/* Deferred Expenses */}
+            <div>
+              <h4 className="text-md font-medium text-gray-800 mb-3">Gastos Diferidos</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Deferred Expense Account */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cuenta de Gastos Diferidos
+                  </label>
+                  <AccountSelector
+                    value={formData.deferred_expense_account_id || ''}
+                    onChange={(value) => handleInputChange('deferred_expense_account_id', value)}
+                    placeholder="Seleccionar cuenta de gastos diferidos"
+                    accountType="EXPENSE"
+                  />
+                  {settings?.deferred_expense_account_name && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Actual: {settings.deferred_expense_account_name}
+                    </p>
+                  )}
+                </div>
+
+                {/* Deferred Expense Journal */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Diario de Gastos Diferidos
+                  </label>
+                  <JournalSelector
+                    value={formData.deferred_expense_journal_id || ''}
+                    onChange={(value) => handleInputChange('deferred_expense_journal_id', value)}
+                    placeholder="Seleccionar diario para gastos diferidos"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Diario donde se registrarán los asientos de gastos diferidos
+                  </p>
+                </div>
+
+                {/* Deferred Expense Months */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Meses para Gastos Diferidos
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={formData.deferred_expense_months || 12}
+                    onChange={(e) => handleInputChange('deferred_expense_months', parseInt(e.target.value) || 12)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="12"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Número de meses para diferir gastos por defecto
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Deferred Revenues */}
+            <div>
+              <h4 className="text-md font-medium text-gray-800 mb-3">Ingresos Diferidos</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Deferred Revenue Account */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cuenta de Ingresos Diferidos
+                  </label>
+                  <AccountSelector
+                    value={formData.deferred_revenue_account_id || ''}
+                    onChange={(value) => handleInputChange('deferred_revenue_account_id', value)}
+                    placeholder="Seleccionar cuenta de ingresos diferidos"
+                    accountType="INCOME"
+                  />
+                  {settings?.deferred_revenue_account_name && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Actual: {settings.deferred_revenue_account_name}
+                    </p>
+                  )}
+                </div>
+
+                {/* Deferred Revenue Journal */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Diario de Ingresos Diferidos
+                  </label>
+                  <JournalSelector
+                    value={formData.deferred_revenue_journal_id || ''}
+                    onChange={(value) => handleInputChange('deferred_revenue_journal_id', value)}
+                    placeholder="Seleccionar diario para ingresos diferidos"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Diario donde se registrarán los asientos de ingresos diferidos
+                  </p>
+                </div>
+
+                {/* Deferred Revenue Months */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Meses para Ingresos Diferidos
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={formData.deferred_revenue_months || 12}
+                    onChange={(e) => handleInputChange('deferred_revenue_months', parseInt(e.target.value) || 12)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="12"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Número de meses para diferir ingresos por defecto
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Early Payment Discount Accounts */}
+        <div className="bg-white shadow-sm rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Cuentas de Descuentos por Pronto Pago
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Early Payment Discount Gain Account */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cuenta de Ganancia por Descuento
+              </label>
+              <AccountSelector
+                value={formData.early_payment_discount_gain_account_id || ''}
+                onChange={(value) => handleInputChange('early_payment_discount_gain_account_id', value)}
+                placeholder="Seleccionar cuenta de ganancia"
+                accountType="INCOME"
+              />
+              {settings?.early_payment_discount_gain_account_name && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Actual: {settings.early_payment_discount_gain_account_name}
+                </p>
+              )}
+            </div>
+
+            {/* Early Payment Discount Loss Account */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cuenta de Pérdida por Descuento
+              </label>
+              <AccountSelector
+                value={formData.early_payment_discount_loss_account_id || ''}
+                onChange={(value) => handleInputChange('early_payment_discount_loss_account_id', value)}
+                placeholder="Seleccionar cuenta de pérdida"
+                accountType="EXPENSE"
+              />
+              {settings?.early_payment_discount_loss_account_name && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Actual: {settings.early_payment_discount_loss_account_name}
                 </p>
               )}
             </div>
@@ -489,6 +720,24 @@ export const CompanySettingsForm: React.FC<CompanySettingsFormProps> = ({
               <label htmlFor="validate_invoice_posting" className="ml-2 block text-sm text-gray-900">
                 Validar facturas automáticamente al contabilizar
               </label>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Método de Generación de Diferidos
+              </label>
+              <select
+                value={formData.deferred_generation_method || 'on_invoice_validation'}
+                onChange={(e) => handleInputChange('deferred_generation_method', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="on_invoice_validation">Al validar factura</option>
+                <option value="manual">Manual</option>
+                <option value="automated">Automatizado</option>
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Cuándo generar los asientos contables para diferidos
+              </p>
             </div>
 
             <div>

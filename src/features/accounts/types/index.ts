@@ -3,37 +3,39 @@ import { z } from 'zod';
 
 // Account Types (matching backend enum)
 export const AccountType = {
-  ACTIVO: 'activo',
-  PASIVO: 'pasivo', 
-  PATRIMONIO: 'patrimonio',
-  INGRESO: 'ingreso',
-  GASTO: 'gasto',
-  COSTOS: 'costos'
+  ASSET: 'asset',
+  LIABILITY: 'liability', 
+  EQUITY: 'equity',
+  INCOME: 'income',
+  EXPENSE: 'expense',
+  COST: 'cost'
 } as const;
 
 export type AccountType = typeof AccountType[keyof typeof AccountType];
 
 // Account Categories (matching backend enum)
 export const AccountCategory = {
-  // Activos
-  ACTIVO_CORRIENTE: 'activo_corriente',
-  ACTIVO_NO_CORRIENTE: 'activo_no_corriente',
-  // Pasivos
-  PASIVO_CORRIENTE: 'pasivo_corriente',
-  PASIVO_NO_CORRIENTE: 'pasivo_no_corriente',
-  // Patrimonio
+  // Assets
+  CURRENT_ASSET: 'current_asset',
+  NON_CURRENT_ASSET: 'non_current_asset',
+  // Liabilities
+  CURRENT_LIABILITY: 'current_liability',
+  NON_CURRENT_LIABILITY: 'non_current_liability',
+  // Equity
   CAPITAL: 'capital',
-  RESERVAS: 'reservas',
-  RESULTADOS: 'resultados',
-  // Ingresos
-  INGRESOS_OPERACIONALES: 'ingresos_operacionales',
-  INGRESOS_NO_OPERACIONALES: 'ingresos_no_operacionales',
-  // Gastos
-  GASTOS_OPERACIONALES: 'gastos_operacionales',
-  GASTOS_NO_OPERACIONALES: 'gastos_no_operacionales',
-  // Costos
-  COSTO_VENTAS: 'costo_ventas',
-  COSTOS_PRODUCCION: 'costos_produccion'
+  RESERVES: 'reserves',
+  RETAINED_EARNINGS: 'retained_earnings',
+  // Income
+  OPERATING_INCOME: 'operating_income',
+  NON_OPERATING_INCOME: 'non_operating_income',
+  // Expenses
+  OPERATING_EXPENSE: 'operating_expense',
+  NON_OPERATING_EXPENSE: 'non_operating_expense',
+  // Costs
+  COST_OF_SALES: 'cost_of_sales',
+  PRODUCTION_COSTS: 'production_costs',
+  // Taxes
+  TAXES: 'taxes'
 } as const;
 
 export type AccountCategory = typeof AccountCategory[keyof typeof AccountCategory];
@@ -149,14 +151,14 @@ export const accountCreateSchema = z.object({
     .min(1, 'El nombre es requerido')
     .max(200, 'El nombre no puede exceder 200 caracteres'),
   description: z.string().optional(),
-  account_type: z.enum(['activo', 'pasivo', 'patrimonio', 'ingreso', 'gasto', 'costos']),
+  account_type: z.enum(['asset', 'liability', 'equity', 'income', 'expense', 'cost']),
   category: z.enum([
-    'activo_corriente', 'activo_no_corriente',
-    'pasivo_corriente', 'pasivo_no_corriente',
-    'capital', 'reservas', 'resultados',
-    'ingresos_operacionales', 'ingresos_no_operacionales',
-    'gastos_operacionales', 'gastos_no_operacionales',
-    'costo_ventas', 'costos_produccion'
+    'current_asset', 'non_current_asset',
+    'current_liability', 'non_current_liability',
+    'capital', 'reserves', 'retained_earnings',
+    'operating_income', 'non_operating_income',
+    'operating_expense', 'non_operating_expense',
+    'cost_of_sales', 'production_costs', 'taxes'
   ]),
   cash_flow_category: z.enum(['operating', 'investing', 'financing', 'cash']).optional(),
   parent_id: z.string().uuid().optional(),
@@ -174,12 +176,12 @@ export const accountUpdateSchema = z.object({
     .optional(),
   description: z.string().optional(),
   category: z.enum([
-    'activo_corriente', 'activo_no_corriente',
-    'pasivo_corriente', 'pasivo_no_corriente',
-    'capital', 'reservas', 'resultados',
-    'ingresos_operacionales', 'ingresos_no_operacionales',
-    'gastos_operacionales', 'gastos_no_operacionales',
-    'costo_ventas', 'costos_produccion'
+    'current_asset', 'non_current_asset',
+    'current_liability', 'non_current_liability',
+    'capital', 'reserves', 'retained_earnings',
+    'operating_income', 'non_operating_income',
+    'operating_expense', 'non_operating_expense',
+    'cost_of_sales', 'production_costs', 'taxes'
   ]).optional(),
   cash_flow_category: z.enum(['operating', 'investing', 'financing', 'cash']).optional(),
   is_active: z.boolean().optional(),
@@ -272,28 +274,29 @@ export interface AccountHierarchy {
 
 // Constants for account type labels and descriptions
 export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  [AccountType.ACTIVO]: 'Activo',
-  [AccountType.PASIVO]: 'Pasivo',
-  [AccountType.PATRIMONIO]: 'Patrimonio',
-  [AccountType.INGRESO]: 'Ingreso',
-  [AccountType.GASTO]: 'Gasto',
-  [AccountType.COSTOS]: 'Costos'
+  [AccountType.ASSET]: 'Asset',
+  [AccountType.LIABILITY]: 'Liability',
+  [AccountType.EQUITY]: 'Equity',
+  [AccountType.INCOME]: 'Income',
+  [AccountType.EXPENSE]: 'Expense',
+  [AccountType.COST]: 'Cost'
 };
 
 export const ACCOUNT_CATEGORY_LABELS: Record<AccountCategory, string> = {
-  [AccountCategory.ACTIVO_CORRIENTE]: 'Activo Corriente',
-  [AccountCategory.ACTIVO_NO_CORRIENTE]: 'Activo No Corriente',
-  [AccountCategory.PASIVO_CORRIENTE]: 'Pasivo Corriente',
-  [AccountCategory.PASIVO_NO_CORRIENTE]: 'Pasivo No Corriente',
+  [AccountCategory.CURRENT_ASSET]: 'Current Asset',
+  [AccountCategory.NON_CURRENT_ASSET]: 'Non-Current Asset',
+  [AccountCategory.CURRENT_LIABILITY]: 'Current Liability',
+  [AccountCategory.NON_CURRENT_LIABILITY]: 'Non-Current Liability',
   [AccountCategory.CAPITAL]: 'Capital',
-  [AccountCategory.RESERVAS]: 'Reservas',
-  [AccountCategory.RESULTADOS]: 'Resultados',
-  [AccountCategory.INGRESOS_OPERACIONALES]: 'Ingresos Operacionales',
-  [AccountCategory.INGRESOS_NO_OPERACIONALES]: 'Ingresos No Operacionales',
-  [AccountCategory.GASTOS_OPERACIONALES]: 'Gastos Operacionales',
-  [AccountCategory.GASTOS_NO_OPERACIONALES]: 'Gastos No Operacionales',
-  [AccountCategory.COSTO_VENTAS]: 'Costo de Ventas',
-  [AccountCategory.COSTOS_PRODUCCION]: 'Costos de Producción'
+  [AccountCategory.RESERVES]: 'Reserves',
+  [AccountCategory.RETAINED_EARNINGS]: 'Retained Earnings',
+  [AccountCategory.OPERATING_INCOME]: 'Operating Income',
+  [AccountCategory.NON_OPERATING_INCOME]: 'Non-Operating Income',
+  [AccountCategory.OPERATING_EXPENSE]: 'Operating Expense',
+  [AccountCategory.NON_OPERATING_EXPENSE]: 'Non-Operating Expense',
+  [AccountCategory.COST_OF_SALES]: 'Cost of Sales',
+  [AccountCategory.PRODUCTION_COSTS]: 'Production Costs',
+  [AccountCategory.TAXES]: 'Taxes'
 };
 
 export const CASH_FLOW_CATEGORY_LABELS: Record<CashFlowCategory, string> = {
@@ -313,42 +316,42 @@ export const CASH_FLOW_CATEGORY_DESCRIPTIONS: Record<CashFlowCategory, string> =
 // Helper functions for account type behavior
 export const getAccountTypeProperties = (accountType: AccountType) => {
   const properties = {
-    [AccountType.ACTIVO]: {
+    [AccountType.ASSET]: {
       normalBalanceSide: 'debit' as const,
       increasesWith: 'debit' as const,
       decreasesWith: 'credit' as const,
       balanceSheetSide: 'left' as const,
       statement: 'balance_sheet' as const
     },
-    [AccountType.PASIVO]: {
+    [AccountType.LIABILITY]: {
       normalBalanceSide: 'credit' as const,
       increasesWith: 'credit' as const,
       decreasesWith: 'debit' as const,
       balanceSheetSide: 'right' as const,
       statement: 'balance_sheet' as const
     },
-    [AccountType.PATRIMONIO]: {
+    [AccountType.EQUITY]: {
       normalBalanceSide: 'credit' as const,
       increasesWith: 'credit' as const,
       decreasesWith: 'debit' as const,
       balanceSheetSide: 'right' as const,
       statement: 'balance_sheet' as const
     },
-    [AccountType.INGRESO]: {
+    [AccountType.INCOME]: {
       normalBalanceSide: 'credit' as const,
       increasesWith: 'credit' as const,
       decreasesWith: 'debit' as const,
       balanceSheetSide: null,
       statement: 'income_statement' as const
     },
-    [AccountType.GASTO]: {
+    [AccountType.EXPENSE]: {
       normalBalanceSide: 'debit' as const,
       increasesWith: 'debit' as const,
       decreasesWith: 'credit' as const,
       balanceSheetSide: null,
       statement: 'income_statement' as const
     },
-    [AccountType.COSTOS]: {
+    [AccountType.COST]: {
       normalBalanceSide: 'debit' as const,
       increasesWith: 'debit' as const,
       decreasesWith: 'credit' as const,
@@ -362,12 +365,12 @@ export const getAccountTypeProperties = (accountType: AccountType) => {
 // Helper function to get recommended cash flow categories based on account type
 export const getRecommendedCashFlowCategories = (accountType: AccountType): CashFlowCategory[] => {
   const recommendations = {
-    [AccountType.ACTIVO]: [CashFlowCategory.CASH_EQUIVALENTS, CashFlowCategory.OPERATING, CashFlowCategory.INVESTING],
-    [AccountType.PASIVO]: [CashFlowCategory.OPERATING, CashFlowCategory.FINANCING],
-    [AccountType.PATRIMONIO]: [CashFlowCategory.FINANCING],
-    [AccountType.INGRESO]: [CashFlowCategory.OPERATING],
-    [AccountType.GASTO]: [CashFlowCategory.OPERATING],
-    [AccountType.COSTOS]: [CashFlowCategory.OPERATING]
+    [AccountType.ASSET]: [CashFlowCategory.CASH_EQUIVALENTS, CashFlowCategory.OPERATING, CashFlowCategory.INVESTING],
+    [AccountType.LIABILITY]: [CashFlowCategory.OPERATING, CashFlowCategory.FINANCING],
+    [AccountType.EQUITY]: [CashFlowCategory.FINANCING],
+    [AccountType.INCOME]: [CashFlowCategory.OPERATING],
+    [AccountType.EXPENSE]: [CashFlowCategory.OPERATING],
+    [AccountType.COST]: [CashFlowCategory.OPERATING]
   };
 
   return recommendations[accountType] || [];
@@ -376,31 +379,31 @@ export const getRecommendedCashFlowCategories = (accountType: AccountType): Cash
 // Helper function to get the default cash flow category for an account type
 export const getDefaultCashFlowCategory = (accountType: AccountType, category: AccountCategory): CashFlowCategory | undefined => {
   // Cash and bank accounts should default to cash equivalents
-  if (accountType === AccountType.ACTIVO && category === AccountCategory.ACTIVO_CORRIENTE) {
+  if (accountType === AccountType.ASSET && category === AccountCategory.CURRENT_ASSET) {
     return CashFlowCategory.CASH_EQUIVALENTS;
   }
   
   // Fixed assets should default to investing
-  if (accountType === AccountType.ACTIVO && category === AccountCategory.ACTIVO_NO_CORRIENTE) {
+  if (accountType === AccountType.ASSET && category === AccountCategory.NON_CURRENT_ASSET) {
     return CashFlowCategory.INVESTING;
   }
   
   // Current liabilities should default to operating
-  if (accountType === AccountType.PASIVO && category === AccountCategory.PASIVO_CORRIENTE) {
+  if (accountType === AccountType.LIABILITY && category === AccountCategory.CURRENT_LIABILITY) {
     return CashFlowCategory.OPERATING;
   }
   
   // Long-term liabilities should default to financing
-  if (accountType === AccountType.PASIVO && category === AccountCategory.PASIVO_NO_CORRIENTE) {
+  if (accountType === AccountType.LIABILITY && category === AccountCategory.NON_CURRENT_LIABILITY) {
     return CashFlowCategory.FINANCING;
   }
   
   // Equity accounts should default to financing
-  if (accountType === AccountType.PATRIMONIO) {
+  if (accountType === AccountType.EQUITY) {
     return CashFlowCategory.FINANCING;
   }
     // Income, expense, and cost accounts should default to operating
-  if (accountType === AccountType.INGRESO || accountType === AccountType.GASTO || accountType === AccountType.COSTOS) {
+  if (accountType === AccountType.INCOME || accountType === AccountType.EXPENSE || accountType === AccountType.COST) {
     return CashFlowCategory.OPERATING;
   }
   

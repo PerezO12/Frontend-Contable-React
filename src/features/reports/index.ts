@@ -103,10 +103,10 @@ export const DETAIL_LEVELS = {
 } as const;
 
 export const ACCOUNT_TYPES = {
-  ACTIVO: 'ACTIVO',
-  PASIVO: 'PASIVO',
-  PATRIMONIO: 'PATRIMONIO',
-  INGRESO: 'INGRESO',
-  GASTO: 'GASTO',
-  COSTOS: 'COSTOS'
+  ASSET: 'asset',
+  LIABILITY: 'liability',
+  EQUITY: 'equity',
+  INCOME: 'income',
+  EXPENSE: 'expense',
+  COST: 'cost'
 } as const;

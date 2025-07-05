@@ -39,12 +39,12 @@ export const CashFlowCategory = {
 export type CashFlowCategory = typeof CashFlowCategory[keyof typeof CashFlowCategory];
 
 export const AccountType = {
-  ACTIVO: 'ACTIVO',
-  PASIVO: 'PASIVO',
-  PATRIMONIO: 'PATRIMONIO',
-  INGRESO: 'INGRESO',
-  GASTO: 'GASTO',
-  COSTOS: 'COSTOS'
+  ASSET: 'asset',
+  LIABILITY: 'liability',
+  EQUITY: 'equity',
+  INCOME: 'income',
+  EXPENSE: 'expense',
+  COST: 'cost'
 } as const;
 
 export type AccountType = typeof AccountType[keyof typeof AccountType];

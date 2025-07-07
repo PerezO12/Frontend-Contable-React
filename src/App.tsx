@@ -58,7 +58,8 @@ import {
 } from '@/features/invoices/pages';
 import { DataImportRoutes } from '@/features/data-import';
 import { ReportsRoutes } from '@/features/reports';
-import { SettingsPage } from '@/features/settings/pages';
+import { SettingsPage, TaxAccountsConfigurationPage } from '@/features/settings/pages';
+import { UnifiedCurrencyManagementPage } from '@/features/settings/components/UnifiedCurrencyManagementPage';
 
 const AppContent = () => {
   return (
@@ -454,6 +455,30 @@ const AppContent = () => {
             <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
               <MainLayout>
                 <SettingsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Configuración de Monedas - Solo para ADMIN */}
+        <Route 
+          path="/settings/currencies" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+              <MainLayout>
+                <UnifiedCurrencyManagementPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Configuración de Cuentas de Impuestos - Solo para ADMIN */}
+        <Route 
+          path="/config/taxes" 
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+              <MainLayout>
+                <TaxAccountsConfigurationPage />
               </MainLayout>
             </ProtectedRoute>
           } 

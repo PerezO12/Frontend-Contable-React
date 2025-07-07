@@ -220,11 +220,11 @@ export const AccountListView: React.FC<AccountListViewProps> = ({
       render: (account) => (
         <Badge 
           color={
-            account.account_type === 'activo' ? 'blue' :
-            account.account_type === 'pasivo' ? 'red' :
-            account.account_type === 'patrimonio' ? 'purple' :
-            account.account_type === 'ingreso' ? 'green' :
-            account.account_type === 'gasto' ? 'orange' :
+            account.account_type === 'asset' ? 'blue' :
+            account.account_type === 'liability' ? 'red' :
+            account.account_type === 'equity' ? 'purple' :
+            account.account_type === 'income' ? 'green' :
+            account.account_type === 'expense' ? 'orange' :
             'gray'
           }
           variant="subtle"

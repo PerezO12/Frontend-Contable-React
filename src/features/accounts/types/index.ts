@@ -8,7 +8,14 @@ export const AccountType = {
   EQUITY: 'equity',
   INCOME: 'income',
   EXPENSE: 'expense',
-  COST: 'cost'
+  COST: 'cost',
+  // Legacy Spanish names for backward compatibility
+  ACTIVO: 'asset',
+  PASIVO: 'liability',
+  PATRIMONIO: 'equity',
+  INGRESO: 'income',
+  GASTO: 'expense',
+  COSTOS: 'cost'
 } as const;
 
 export type AccountType = typeof AccountType[keyof typeof AccountType];
@@ -35,7 +42,20 @@ export const AccountCategory = {
   COST_OF_SALES: 'cost_of_sales',
   PRODUCTION_COSTS: 'production_costs',
   // Taxes
-  TAXES: 'taxes'
+  TAXES: 'taxes',
+  // Legacy Spanish names for backward compatibility
+  ACTIVO_CORRIENTE: 'current_asset',
+  ACTIVO_NO_CORRIENTE: 'non_current_asset',
+  PASIVO_CORRIENTE: 'current_liability',
+  PASIVO_NO_CORRIENTE: 'non_current_liability',
+  RESERVAS: 'reserves',
+  RESULTADOS: 'retained_earnings',
+  INGRESOS_OPERACIONALES: 'operating_income',
+  INGRESOS_NO_OPERACIONALES: 'non_operating_income',
+  GASTOS_OPERACIONALES: 'operating_expense',
+  GASTOS_NO_OPERACIONALES: 'non_operating_expense',
+  COSTO_VENTAS: 'cost_of_sales',
+  COSTOS_PRODUCCION: 'production_costs'
 } as const;
 
 export type AccountCategory = typeof AccountCategory[keyof typeof AccountCategory];

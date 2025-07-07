@@ -7,6 +7,7 @@ import { useToast } from '../../../shared/contexts/ToastContext';
 import { CompanySettingsService } from '../services/companySettingsService';
 import { AccountSelector } from './AccountSelector';
 import { JournalSelector } from './JournalSelector';
+import { useAvailableCurrencies } from '../hooks/useCurrency';
 import type { CompanySettings, CompanySettingsUpdate } from '../types';
 
 // Simple SVG Icons
@@ -64,6 +65,7 @@ export const CompanySettingsForm: React.FC<CompanySettingsFormProps> = ({
   const [validationResult, setValidationResult] = useState<any>(null);
   
   const { showSuccess, showError, showWarning } = useToast();
+  const { currencies, loading: currenciesLoading } = useAvailableCurrencies();
 
   useEffect(() => {
     loadSettings();
@@ -86,6 +88,8 @@ export const CompanySettingsForm: React.FC<CompanySettingsFormProps> = ({
           currency_code: data.currency_code,
           default_customer_receivable_account_id: data.default_customer_receivable_account_id,
           default_supplier_payable_account_id: data.default_supplier_payable_account_id,
+          default_sales_income_account_id: data.default_sales_income_account_id,
+          default_purchase_expense_account_id: data.default_purchase_expense_account_id,
           default_cash_account_id: data.default_cash_account_id,
           default_bank_account_id: data.default_bank_account_id,
           bank_suspense_account_id: data.bank_suspense_account_id,
@@ -413,20 +417,27 @@ export const CompanySettingsForm: React.FC<CompanySettingsFormProps> = ({
               <select
                 value={formData.currency_code || ''}
                 onChange={(e) => handleInputChange('currency_code', e.target.value)}
+                disabled={currenciesLoading}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.currency_code ? 'border-red-300' : 'border-gray-300'
-                }`}
+                } ${currenciesLoading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               >
-                <option value="">Seleccionar moneda</option>
-                <option value="USD">USD - Dólar Americano</option>
-                <option value="EUR">EUR - Euro</option>
-                <option value="COP">COP - Peso Colombiano</option>
-                <option value="MXN">MXN - Peso Mexicano</option>
-                <option value="ARS">ARS - Peso Argentino</option>
-                <option value="PEN">PEN - Sol Peruano</option>
+                <option value="">
+                  {currenciesLoading ? 'Cargando monedas...' : 'Seleccionar moneda'}
+                </option>
+                {currencies.map((currency) => (
+                  <option key={currency.id} value={currency.code}>
+                    {currency.code} - {currency.name} ({currency.symbol})
+                  </option>
+                ))}
               </select>
               {errors.currency_code && (
                 <p className="mt-1 text-sm text-red-600">{errors.currency_code}</p>
+              )}
+              {currencies.length === 0 && !currenciesLoading && (
+                <p className="mt-1 text-sm text-amber-600">
+                  No hay monedas configuradas. Configure monedas en la sección de Monedas.
+                </p>
               )}
             </div>
           </div>
@@ -474,6 +485,108 @@ export const CompanySettingsForm: React.FC<CompanySettingsFormProps> = ({
               {settings?.default_supplier_payable_account_name && (
                 <p className="mt-1 text-xs text-gray-500">
                   Actual: {settings.default_supplier_payable_account_name}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Sales and Purchase Accounts Configuration */}
+        <div className="bg-white shadow-sm rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <span className="ml-2">Cuentas por Defecto para Ventas y Compras</span>
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Estas cuentas se utilizarán por defecto para la contabilización de facturas de venta y compra.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cuenta de Ingresos por Ventas
+              </label>
+              <AccountSelector
+                value={formData.default_sales_income_account_id || ''}
+                onChange={(accountId) => handleInputChange('default_sales_income_account_id', accountId)}
+                placeholder="Seleccionar cuenta de ingresos"
+                accountType="revenue"
+                error={errors.default_sales_income_account_id}
+              />
+              {settings?.default_sales_income_account_name && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Actual: {settings.default_sales_income_account_name}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cuenta de Gastos por Compras
+              </label>
+              <AccountSelector
+                value={formData.default_purchase_expense_account_id || ''}
+                onChange={(accountId) => handleInputChange('default_purchase_expense_account_id', accountId)}
+                placeholder="Seleccionar cuenta de gastos"
+                accountType="expense"
+                error={errors.default_purchase_expense_account_id}
+              />
+              {settings?.default_purchase_expense_account_name && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Actual: {settings.default_purchase_expense_account_name}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Sales and Purchase Accounts Configuration */}
+        <div className="bg-white shadow-sm rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <span className="ml-2">Cuentas por Defecto para Ventas y Compras</span>
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Estas cuentas se utilizarán por defecto para la contabilización de facturas de venta y compra.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cuenta de Ingresos por Ventas
+              </label>
+              <AccountSelector
+                value={formData.default_sales_income_account_id || ''}
+                onChange={(accountId) => handleInputChange('default_sales_income_account_id', accountId)}
+                placeholder="Seleccionar cuenta de ingresos"
+                accountType="revenue"
+                error={errors.default_sales_income_account_id}
+              />
+              {settings?.default_sales_income_account_name && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Actual: {settings.default_sales_income_account_name}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cuenta de Gastos por Compras
+              </label>
+              <AccountSelector
+                value={formData.default_purchase_expense_account_id || ''}
+                onChange={(accountId) => handleInputChange('default_purchase_expense_account_id', accountId)}
+                placeholder="Seleccionar cuenta de gastos"
+                accountType="expense"
+                error={errors.default_purchase_expense_account_id}
+              />
+              {settings?.default_purchase_expense_account_name && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Actual: {settings.default_purchase_expense_account_name}
                 </p>
               )}
             </div>

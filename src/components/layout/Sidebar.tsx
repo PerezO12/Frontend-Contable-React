@@ -301,7 +301,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onToggle, isC
               id: 'currencies',
               label: 'Monedas',
               icon: icons.settings,
-              path: '/config/currencies',
+              path: '/settings/currencies',
               roles: [UserRole.ADMIN],
             },
           ],

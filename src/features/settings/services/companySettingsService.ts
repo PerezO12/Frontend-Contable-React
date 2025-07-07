@@ -8,7 +8,10 @@ import type {
   CompanySettingsUpdate,
   DefaultAccountsInfo,
   ValidationResult,
-  AccountSuggestion
+  AccountSuggestion,
+  TaxAccountsResponse,
+  TaxAccountsUpdate,
+  TaxAccountSuggestion
 } from '../types';
 
 export class CompanySettingsService {
@@ -85,6 +88,44 @@ export class CompanySettingsService {
    */
   static async initializeSettings(): Promise<{ message: string; settings_id: string }> {
     const response = await apiClient.post<{ message: string; settings_id: string }>(`${this.BASE_URL}/initialize`);
+    return response.data;
+  }
+
+  /**
+   * Get tax accounts configuration
+   */
+  static async getTaxAccountsConfiguration(): Promise<TaxAccountsResponse> {
+    const response = await apiClient.get<TaxAccountsResponse>(`${this.BASE_URL}/tax-accounts`);
+    return response.data;
+  }
+
+  /**
+   * Update tax accounts configuration
+   */
+  static async updateTaxAccountsConfiguration(data: TaxAccountsUpdate): Promise<TaxAccountsResponse> {
+    console.log('CompanySettingsService.updateTaxAccountsConfiguration called with:', data);
+    console.log('Data being sent to API:', JSON.stringify(data, null, 2));
+    
+    const response = await apiClient.put<TaxAccountsResponse>(`${this.BASE_URL}/tax-accounts`, data);
+    
+    console.log('API Response:', response.data);
+    return response.data;
+  }
+
+  /**
+   * Get tax account suggestions
+   */
+  static async getTaxAccountSuggestions(accountType?: string): Promise<TaxAccountSuggestion[]> {
+    const params = accountType ? { account_type: accountType } : {};
+    const response = await apiClient.get<TaxAccountSuggestion[]>(`${this.BASE_URL}/tax-accounts/suggestions`, { params });
+    return response.data;
+  }
+
+  /**
+   * Auto-configure tax accounts
+   */
+  static async autoConfigureTaxAccounts(): Promise<{ success: boolean; message: string; configured_accounts: Record<string, string> }> {
+    const response = await apiClient.post<{ success: boolean; message: string; configured_accounts: Record<string, string> }>(`${this.BASE_URL}/tax-accounts/auto-configure`);
     return response.data;
   }
 }

@@ -67,12 +67,12 @@ export const AccountDetail: React.FC<AccountDetailProps> = ({
 
   const getAccountTypeColor = () => {
     const colors = {
-      activo: 'bg-green-100 text-green-800',
-      pasivo: 'bg-red-100 text-red-800',
-      patrimonio: 'bg-blue-100 text-blue-800',
-      ingreso: 'bg-purple-100 text-purple-800',
-      gasto: 'bg-orange-100 text-orange-800',
-      costos: 'bg-yellow-100 text-yellow-800'
+      asset: 'bg-green-100 text-green-800',
+      liability: 'bg-red-100 text-red-800',
+      equity: 'bg-blue-100 text-blue-800',
+      income: 'bg-purple-100 text-purple-800',
+      expense: 'bg-orange-100 text-orange-800',
+      cost: 'bg-yellow-100 text-yellow-800'
     };
     return colors[account.account_type] || 'bg-gray-100 text-gray-800';
   };

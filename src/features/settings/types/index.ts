@@ -24,6 +24,15 @@ export interface CompanySettings {
   default_customer_receivable_account_id?: string;
   default_supplier_payable_account_id?: string;
   
+  // Default accounts for sales and purchases
+  default_sales_income_account_id?: string;
+  default_purchase_expense_account_id?: string;
+  
+  // Tax accounts
+  default_sales_tax_payable_account_id?: string;
+  default_purchase_tax_deductible_account_id?: string;
+  default_tax_account_id?: string;
+  
   // Basic treasury accounts
   default_cash_account_id?: string;
   default_bank_account_id?: string;
@@ -55,9 +64,42 @@ export interface CompanySettings {
   is_active: boolean;
   notes?: string;
   
+  // Brazilian tax accounts (IDs)
+  default_icms_payable_account_id?: string;
+  default_icms_deductible_account_id?: string;
+  default_pis_payable_account_id?: string;
+  default_pis_deductible_account_id?: string;
+  default_cofins_payable_account_id?: string;
+  default_cofins_deductible_account_id?: string;
+  default_ipi_payable_account_id?: string;
+  default_ipi_deductible_account_id?: string;
+  default_iss_payable_account_id?: string;
+  default_csll_payable_account_id?: string;
+  default_irpj_payable_account_id?: string;
+  
   // Account relationships with names
   default_customer_receivable_account_name?: string;
   default_supplier_payable_account_name?: string;
+  default_sales_income_account_name?: string;
+  default_purchase_expense_account_name?: string;
+  default_sales_tax_payable_account_name?: string;
+  default_purchase_tax_deductible_account_name?: string;
+  default_tax_account_name?: string;
+  
+  // Brazilian tax accounts names
+  default_icms_payable_account_name?: string;
+  default_icms_deductible_account_name?: string;
+  default_pis_payable_account_name?: string;
+  default_pis_deductible_account_name?: string;
+  default_cofins_payable_account_name?: string;
+  default_cofins_deductible_account_name?: string;
+  default_ipi_payable_account_name?: string;
+  default_ipi_deductible_account_name?: string;
+  default_iss_payable_account_name?: string;
+  default_csll_payable_account_name?: string;
+  default_irpj_payable_account_name?: string;
+  
+  // Other account names
   bank_suspense_account_name?: string;
   internal_transfer_account_name?: string;
   deferred_expense_account_name?: string;
@@ -69,6 +111,8 @@ export interface CompanySettings {
   has_customer_receivable_configured: boolean;
   has_supplier_payable_configured: boolean;
   has_deferred_accounts_configured: boolean;
+  has_tax_accounts_configured: boolean;
+  has_brazilian_tax_accounts_configured: boolean;
   
   // Account relationships (full objects)
   default_customer_receivable_account?: Account;
@@ -89,6 +133,15 @@ export interface CompanySettingsCreate {
   // Default accounts for partners
   default_customer_receivable_account_id?: string;
   default_supplier_payable_account_id?: string;
+  
+  // Default accounts for sales and purchases
+  default_sales_income_account_id?: string;
+  default_purchase_expense_account_id?: string;
+  
+  // Tax accounts
+  default_sales_tax_payable_account_id?: string;
+  default_purchase_tax_deductible_account_id?: string;
+  default_tax_account_id?: string;
   
   // Basic treasury accounts
   default_cash_account_id?: string;
@@ -153,4 +206,66 @@ export interface AccountSuggestion {
   account_category: string;
   score: number;
   reason: string;
+}
+
+export interface TaxAccountsResponse {
+  default_sales_tax_payable_account_id?: string;
+  default_sales_tax_payable_account_name?: string;
+  default_purchase_tax_deductible_account_id?: string;
+  default_purchase_tax_deductible_account_name?: string;
+  default_tax_account_id?: string;
+  default_tax_account_name?: string;
+  
+  // Brazilian tax accounts
+  default_icms_payable_account_id?: string;
+  default_icms_payable_account_name?: string;
+  default_icms_deductible_account_id?: string;
+  default_icms_deductible_account_name?: string;
+  default_pis_payable_account_id?: string;
+  default_pis_payable_account_name?: string;
+  default_pis_deductible_account_id?: string;
+  default_pis_deductible_account_name?: string;
+  default_cofins_payable_account_id?: string;
+  default_cofins_payable_account_name?: string;
+  default_cofins_deductible_account_id?: string;
+  default_cofins_deductible_account_name?: string;
+  default_ipi_payable_account_id?: string;
+  default_ipi_payable_account_name?: string;
+  default_ipi_deductible_account_id?: string;
+  default_ipi_deductible_account_name?: string;
+  default_iss_payable_account_id?: string;
+  default_iss_payable_account_name?: string;
+  default_csll_payable_account_id?: string;
+  default_csll_payable_account_name?: string;
+  default_irpj_payable_account_id?: string;
+  default_irpj_payable_account_name?: string;
+  
+  is_configured: boolean;
+}
+
+export interface TaxAccountsUpdate {
+  default_sales_tax_payable_account_id?: string;
+  default_purchase_tax_deductible_account_id?: string;
+  default_tax_account_id?: string;
+  
+  // Brazilian tax accounts
+  default_icms_payable_account_id?: string;
+  default_icms_deductible_account_id?: string;
+  default_pis_payable_account_id?: string;
+  default_pis_deductible_account_id?: string;
+  default_cofins_payable_account_id?: string;
+  default_cofins_deductible_account_id?: string;
+  default_ipi_payable_account_id?: string;
+  default_ipi_deductible_account_id?: string;
+  default_iss_payable_account_id?: string;
+  default_csll_payable_account_id?: string;
+  default_irpj_payable_account_id?: string;
+}
+
+export interface TaxAccountSuggestion {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  account_type: string;
 }

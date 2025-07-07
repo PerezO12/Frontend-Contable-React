@@ -13,6 +13,8 @@ export interface CompanySettingsResponse {
   company_name?: string;
   default_receivable_account_id?: string;
   default_payable_account_id?: string;
+  default_sales_income_account_id?: string;
+  default_purchase_expense_account_id?: string;
   default_bank_suspense_account_id?: string;
   default_internal_transfer_account_id?: string;
   default_deferred_expense_account_id?: string;
@@ -23,6 +25,8 @@ export interface CompanySettingsResponse {
   updated_at: string;
   default_receivable_account?: Account;
   default_payable_account?: Account;
+  default_sales_income_account?: Account;
+  default_purchase_expense_account?: Account;
   default_bank_suspense_account?: Account;
   default_internal_transfer_account?: Account;
   default_deferred_expense_account?: Account;
@@ -34,6 +38,8 @@ export interface CompanySettingsCreate {
   company_name?: string;
   default_receivable_account_id?: string;
   default_payable_account_id?: string;
+  default_sales_income_account_id?: string;
+  default_purchase_expense_account_id?: string;
   default_bank_suspense_account_id?: string;
   default_internal_transfer_account_id?: string;
   default_deferred_expense_account_id?: string;
@@ -45,6 +51,8 @@ export interface CompanySettingsUpdate {
   company_name?: string;
   default_receivable_account_id?: string;
   default_payable_account_id?: string;
+  default_sales_income_account_id?: string;
+  default_purchase_expense_account_id?: string;
   default_bank_suspense_account_id?: string;
   default_internal_transfer_account_id?: string;
   default_deferred_expense_account_id?: string;

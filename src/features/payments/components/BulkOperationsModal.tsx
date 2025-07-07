@@ -144,13 +144,13 @@ export function BulkOperationsModal({ isOpen, onClose, selectedPaymentIds }: Bul
           result = await confirmSelectedPaymentsWithValidation(operationNotes, forceOperation);
           break;
         case 'post':
-          result = await postSelectedPayments(operationNotes, forceOperation);
+          result = await postSelectedPayments(operationNotes);
           break;
         case 'reset':
           result = await resetSelectedPayments(operationNotes);
           break;
         case 'draft':
-          result = await draftSelectedPayments(operationNotes, forceOperation);
+          result = await draftSelectedPayments(operationNotes);
           break;
         case 'cancel':
           result = await cancelSelectedPayments();

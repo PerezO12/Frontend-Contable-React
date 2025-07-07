@@ -3,7 +3,10 @@
  * Professional extensible configuration page for company settings
  */
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CompanySettingsForm } from '../components/CompanySettingsForm';
+import { TaxAccountsConfiguration } from '../components/TaxAccountsConfiguration';
+import { UnifiedCurrencyManagementPage } from '../components/UnifiedCurrencyManagementPage';
 
 // Configuration sections that can be extended in the future
 interface SettingsSection {
@@ -48,6 +51,18 @@ const BellIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
   </svg>
 );
 
+const TaxIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+  </svg>
+);
+
+const CurrencyIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
 // Placeholder components for future features
 const PlaceholderComponent = ({ title }: { title: string }) => (
   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
@@ -72,6 +87,20 @@ const SETTINGS_SECTIONS: SettingsSection[] = [
     description: 'Cuentas por defecto y configuraciones generales de la empresa',
     icon: BuildingIcon,
     component: CompanySettingsForm,
+  },
+  {
+    id: 'tax-accounts',
+    name: 'Cuentas de Impuestos',
+    description: 'Configuración de cuentas contables para el manejo de impuestos',
+    icon: TaxIcon,
+    component: TaxAccountsConfiguration,
+  },
+  {
+    id: 'currencies',
+    name: 'Monedas',
+    description: 'Gestión de monedas, tipos de cambio y configuración monetaria',
+    icon: CurrencyIcon,
+    component: UnifiedCurrencyManagementPage,
   },
   {
     id: 'users',
@@ -113,6 +142,15 @@ const SETTINGS_SECTIONS: SettingsSection[] = [
 
 export const SettingsPage: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>('company');
+  const navigate = useNavigate();
+
+  const handleSectionClick = (sectionId: string) => {
+    if (sectionId === 'currencies') {
+      navigate('/settings/currencies');
+    } else {
+      setActiveSection(sectionId);
+    }
+  };
 
   const currentSection = SETTINGS_SECTIONS.find(section => section.id === activeSection);
   const CurrentComponent = currentSection?.component || (() => null);
@@ -151,7 +189,7 @@ export const SettingsPage: React.FC = () => {
                   return (
                     <button
                       key={section.id}
-                      onClick={() => !isDisabled && setActiveSection(section.id)}
+                      onClick={() => !isDisabled && handleSectionClick(section.id)}
                       disabled={isDisabled}
                       className={`
                         w-full flex items-center px-3 py-3 text-sm font-medium rounded-md mb-1 transition-colors
